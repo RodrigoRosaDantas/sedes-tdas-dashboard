@@ -1,6 +1,5 @@
-
 export const BASE='/sedes-tdas-dashboard/';
-export const routes={home:BASE,hoje:BASE+'hoje/',evolucao:BASE+'evolucao/',riscos:BASE+'riscos/',agenda:BASE+'agenda/',redacoes:BASE+'redacoes/',auditoria:BASE+'auditoria/',mais:BASE+'mais/'};
+export const routes={home:BASE,hoje:BASE+'hoje/',evolucao:BASE+'evolucao/',riscos:BASE+'riscos/',agenda:BASE+'agenda/',redacoes:BASE+'redacoes/',auditoria:BASE+'auditoria/',mais:BASE+'mais/',pe:BASE+'pe/',materias:BASE+'materias/'};
 const icons={home:'⌂',hoje:'◎',evolucao:'↗',riscos:'!',agenda:'◷',redacoes:'✎',auditoria:'✓',mais:'•••'};
 const labels={home:'Início',hoje:'Hoje',evolucao:'Evolução',riscos:'Riscos',agenda:'Agenda',redacoes:'Redações',auditoria:'Auditoria',mais:'Mais'};
 export async function loadJSON(path){const r=await fetch(BASE+path,{cache:'no-store'});if(!r.ok)throw new Error('Falha ao carregar dados ('+r.status+')');return r.json()}
@@ -11,21 +10,23 @@ export function escapeHTML(s){return String(s??'').replace(/[&<>'"]/g,c=>({'&':'
 export function setupShell(page,meta){
  const desktop=['home','hoje','evolucao','riscos','agenda','redacoes','auditoria'];
  const mobile=['home','hoje','evolucao','riscos','mais'];
- document.querySelector('#desktop-nav').innerHTML='<div class="nav-label">Plataforma de estudo</div>'+desktop.map(k=>`<a href="${routes[k]}" class="${k===page?'active':''}"><span class="nav-icon">${icons[k]}</span>${labels[k]}</a>`).join('');
- const mobileActive=['agenda','redacoes','auditoria'].includes(page)?'mais':page;
+ const active=page==='pe'?'agenda':page==='subject'?'riscos':page;
+ document.querySelector('#desktop-nav').innerHTML='<div class="nav-label">Plataforma de estudo</div>'+desktop.map(k=>`<a href="${routes[k]}" class="${k===active?'active':''}"><span class="nav-icon">${icons[k]}</span>${labels[k]}</a>`).join('');
+ const mobileActive=['agenda','redacoes','auditoria'].includes(active)?'mais':active;
  document.querySelector('#mobile-nav').innerHTML=mobile.map(k=>`<a href="${routes[k]}" class="${k===mobileActive?'active':''}"><span>${icons[k]}</span><span>${labels[k]}</span></a>`).join('');
  document.querySelectorAll('[data-snapshot]').forEach(el=>el.textContent=fmtDate(meta.snapshotDate));
  document.querySelectorAll('[data-sync]').forEach(el=>el.textContent=meta.syncTimes.join(' · '));
  const stored=localStorage.getItem('tdas-theme');if(stored)document.documentElement.dataset.theme=stored;
  if(!document.documentElement.dataset.controlsReady){document.documentElement.dataset.controlsReady='1';document.addEventListener('click',e=>{const theme=e.target.closest('[data-theme-toggle]');if(theme){const next=document.documentElement.dataset.theme==='light'?'dark':'light';document.documentElement.dataset.theme=next;localStorage.setItem('tdas-theme',next);theme.setAttribute('aria-label','Alternar para tema '+(next==='light'?'escuro':'claro'));return}const install=e.target.closest('[data-install-button]');if(install)runInstall()})}
  window.addEventListener('online',updateOnline);window.addEventListener('offline',updateOnline);updateOnline();
- if('serviceWorker'in navigator)navigator.serviceWorker.register(BASE+'sw.js?v=19').catch(console.error);
- setupInstall();
+ if('serviceWorker'in navigator)navigator.serviceWorker.register(BASE+'sw.js?v=20').catch(console.error);
+ setupInstall();loadV20Enhancements();
 }
-function updateOnline(){document.querySelector('#offline')?.classList.toggle('show',!navigator.onLine)}
+function updateOnline(){document.querySelector '#offline' ?.classList.toggle('show',!navigator.onLine)}
 let installPrompt=null;
 function setupInstall(){window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();installPrompt=e;document.querySelectorAll('[data-install]').forEach(x=>x.classList.add('show'))},{once:true})}
 async function runInstall(){if(!installPrompt){alert('No navegador, use o menu e escolha “Adicionar à tela inicial” quando essa opção estiver disponível.');return}installPrompt.prompt();await installPrompt.userChoice;installPrompt=null;document.querySelectorAll('[data-install]').forEach(x=>x.classList.remove('show'))}
+function loadV20Enhancements(){if(!document.querySelector('link[data-v20]')){const l=document.createElement('link');l.rel='stylesheet';l.href=BASE+'assets/v20.css?v=20';l.dataset.v20='1';document.head.appendChild(l)}import(BASE+'assets/enhance-v20.js?v=20').catch(console.error)}
 export function renderLineChart(el,rows,{x='pe',y='accuracy',label='Aproveitamento'}={}){
  if(!rows.length){el.innerHTML='<div class="empty">Sem dados para o filtro selecionado.</div>';return}
  const W=900,H=300,p=42;const vals=rows.map(r=>Number(r[y]));const min=Math.max(0,Math.floor(Math.min(...vals)-5));const max=Math.min(100,Math.ceil(Math.max(...vals)+3));const sx=i=>p+i*(W-2*p)/Math.max(1,rows.length-1);const sy=v=>H-p-(v-min)*(H-2*p)/Math.max(1,max-min);
