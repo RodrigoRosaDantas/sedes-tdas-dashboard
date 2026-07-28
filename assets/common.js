@@ -22,7 +22,7 @@ export function setupShell(page,meta){
  if('serviceWorker'in navigator)navigator.serviceWorker.register(BASE+'sw.js?v=20').catch(console.error);
  setupInstall();loadV20Enhancements();
 }
-function updateOnline(){document.querySelector '#offline' ?.classList.toggle('show',!navigator.onLine)}
+function updateOnline(){document.querySelector('#offline')?.classList.toggle('show',!navigator.onLine)}
 let installPrompt=null;
 function setupInstall(){window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();installPrompt=e;document.querySelectorAll('[data-install]').forEach(x=>x.classList.add('show'))},{once:true})}
 async function runInstall(){if(!installPrompt){alert('No navegador, use o menu e escolha “Adicionar à tela inicial” quando essa opção estiver disponível.');return}installPrompt.prompt();await installPrompt.userChoice;installPrompt=null;document.querySelectorAll('[data-install]').forEach(x=>x.classList.remove('show'))}
