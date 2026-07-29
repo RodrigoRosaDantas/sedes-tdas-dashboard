@@ -1,0 +1,234 @@
+{
+  "meta": {
+    "snapshotDate": "2026-07-29",
+    "syncTimes": [
+      "01h20",
+      "07h20",
+      "13h20",
+      "19h20"
+    ],
+    "examDate": "2026-09-06",
+    "source": "Notion EDAS/Administração"
+  },
+  "metrics": {
+    "completed": 1,
+    "total": 42,
+    "questions": 35,
+    "correct": 27,
+    "accuracy": 77.14,
+    "errors": 8,
+    "casesCompleted": 0,
+    "casesTotal": 12
+  },
+  "today": {
+    "sprint": "S02",
+    "title": "PODC",
+    "scheduledDate": "2026-07-28",
+    "status": "Não iniciada",
+    "planned": 40,
+    "block": "30 Material + 5 Comuns + 5 Português",
+    "review": "R24 do S01 + D+1 do SEC01",
+    "time": 165,
+    "material": "S02 — PODC",
+    "common": "C2 — LC 840/2011 e Lei 7.484/2024",
+    "portuguese": "P2 — coesão, referenciação e conectivos",
+    "deliverable": "Quadro função × decisão × pegadinha"
+  },
+  "performance": [
+    {
+      "label": "Material do dia",
+      "value": 88.0,
+      "result": "22/25"
+    },
+    {
+      "label": "Conhecimentos comuns",
+      "value": 40.0,
+      "result": "2/5"
+    },
+    {
+      "label": "Português",
+      "value": 60.0,
+      "result": "3/5"
+    },
+    {
+      "label": "Total objetivo",
+      "value": 77.14,
+      "result": "27/35"
+    }
+  ],
+  "evolution": [
+    {
+      "sprint": "S01",
+      "date": "2026-07-27",
+      "accuracy": 77.14,
+      "questions": 35,
+      "correct": 27
+    }
+  ],
+  "errorsByBlock": [
+    {
+      "label": "Material do dia",
+      "errors": 3
+    },
+    {
+      "label": "Conhecimentos comuns",
+      "errors": 3
+    },
+    {
+      "label": "Português",
+      "errors": 2
+    }
+  ],
+  "alerts": [
+    {
+      "level": "critical",
+      "title": "S02 ainda não iniciado",
+      "detail": "O Sprint previsto para 28/07 permanece sem execução real registrada.",
+      "action": "Abrir foco do Sprint",
+      "href": "/sedes-tdas-dashboard/edas-administracao/hoje/"
+    },
+    {
+      "level": "warning",
+      "title": "Conhecimentos comuns em 40%",
+      "detail": "O bloco comum concentrou 3 erros em apenas 5 questões; revisar antes de ampliar volume.",
+      "action": "Ver riscos",
+      "href": "/sedes-tdas-dashboard/edas-administracao/riscos/"
+    },
+    {
+      "level": "warning",
+      "title": "SEC01 pendente",
+      "detail": "O estudo de caso está pronto e auditado, mas ainda não foi executado nem corrigido.",
+      "action": "Ver estudos de caso",
+      "href": "/sedes-tdas-dashboard/edas-administracao/estudos-caso/"
+    }
+  ],
+  "projections": [
+    {
+      "label": "Progresso do ciclo",
+      "value": "2,38%",
+      "formula": "1 Sprint concluído ÷ 42 Sprints × 100"
+    },
+    {
+      "label": "Ritmo necessário",
+      "value": "1,05 Sprint/dia",
+      "formula": "41 Sprints restantes ÷ 39 dias até a prova"
+    },
+    {
+      "label": "Taxa de erro atual",
+      "value": "22,86%",
+      "formula": "8 erros ÷ 35 questões × 100"
+    }
+  ],
+  "agenda": [
+    {
+      "date": "2026-07-28",
+      "id": "S02",
+      "title": "PODC",
+      "status": "Pendente",
+      "detail": "40 questões · R24 S01 · D+1 SEC01"
+    },
+    {
+      "date": "2026-07-29",
+      "id": "S03",
+      "title": "Níveis de planejamento",
+      "status": "Planejado",
+      "detail": "Material + Comuns + Português"
+    },
+    {
+      "date": "2026-07-30",
+      "id": "S04",
+      "title": "Ferramentas administrativas",
+      "status": "Planejado",
+      "detail": "Inclui SEC02"
+    },
+    {
+      "date": "2026-07-31",
+      "id": "S05",
+      "title": "Processos e indicadores",
+      "status": "Planejado",
+      "detail": "Material + Comuns + Português"
+    },
+    {
+      "date": "2026-08-01",
+      "id": "S06",
+      "title": "Revisão estratégica",
+      "status": "Planejado",
+      "detail": "Amostra de até 20 questões"
+    },
+    {
+      "date": "2026-08-02",
+      "id": "S07",
+      "title": "Descanso real",
+      "status": "Planejado",
+      "detail": "Nenhuma questão programada"
+    }
+  ],
+  "cases": [
+    {
+      "id": "SEC01",
+      "date": "2026-07-27",
+      "theme": "TGA aplicada à reorganização de unidade pública",
+      "status": "Não iniciado",
+      "readiness": "Pronto — auditado",
+      "next": "Executar manuscrito de 20–30 linhas e realizar o D+1."
+    },
+    {
+      "id": "SEC02",
+      "date": "2026-07-30",
+      "theme": "Ferramentas administrativas e decisão",
+      "status": "Não iniciado",
+      "readiness": "Planejado",
+      "next": "Executar após concluir o conteúdo do S04."
+    },
+    {
+      "id": "SEC03",
+      "date": "2026-08-03",
+      "theme": "Estruturas, funções e descentralização",
+      "status": "Não iniciado",
+      "readiness": "Planejado",
+      "next": "Executar no Sprint correspondente."
+    },
+    {
+      "id": "SEC04",
+      "date": "2026-08-06",
+      "theme": "OS&M, fluxo, padronização e qualidade",
+      "status": "Não iniciado",
+      "readiness": "Planejado",
+      "next": "Executar no Sprint correspondente."
+    }
+  ],
+  "quality": [
+    {
+      "level": "warning",
+      "title": "S01 com conclusão objetiva e pendências qualitativas",
+      "detail": "O campo Status está como Concluído, mas as observações ainda citam quadro, SEC01 e Índice Mestre pendentes."
+    },
+    {
+      "level": "critical",
+      "title": "S02 vencido sem execução registrada",
+      "detail": "A data prevista foi 28/07/2026 e o status permanece Não iniciada."
+    },
+    {
+      "level": "info",
+      "title": "Fórmulas do Notion não retornadas como valores na visualização",
+      "detail": "O painel usa somente campos numéricos e registros confirmados, sem estimar fórmulas indisponíveis."
+    }
+  ],
+  "sources": [
+    {
+      "name": "Controle de Questões EDAS",
+      "detail": "Sprints S01–S42, metas, execução, revisões e desempenho.",
+      "url": "https://app.notion.com/p/51c357e5bf1c47fea1c40357bf4c8801?v=362cf5a2673181218f66000c90df5be0&source=copy_link"
+    },
+    {
+      "name": "Caderno de Erros EDAS",
+      "detail": "Erros reaplicáveis, gravidade, reincidência e janelas de revisão.",
+      "url": "https://app.notion.com/p/705bb839a4be4be497ae192cd62c9540?v=d860b6eeb7be43b6a903e0603f25264d&source=copy_link"
+    },
+    {
+      "name": "Estudos de Caso EDAS",
+      "detail": "SEC01–SEC12, prontidão, critérios e próximos passos.",
+      "url": "https://app.notion.com/p/4a0a746eb92642489db14f3cbc3fd5d8?v=362cf5a2673181b9b0b1000c1f1e7039&source=copy_link"
+    }
+  ]
+}
