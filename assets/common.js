@@ -1,8 +1,8 @@
 export const BASE='/sedes-tdas-dashboard/';
-export const routes={home:BASE,hoje:BASE+'hoje/',evolucao:BASE+'evolucao/',riscos:BASE+'riscos/',agenda:BASE+'agenda/',redacoes:BASE+'redacoes/',auditoria:BASE+'auditoria/',mais:BASE+'mais/',pe:BASE+'pe/',materias:BASE+'materias/',questoesErros:BASE+'questoes-erros/'};
-const icons={home:'⌂',hoje:'◎',evolucao:'↗',riscos:'!',agenda:'◷',redacoes:'✎',auditoria:'✓',mais:'•••'};
-const labels={home:'Início',hoje:'Hoje',evolucao:'Evolução',riscos:'Riscos',agenda:'Agenda',redacoes:'Redações',auditoria:'Auditoria',mais:'Mais'};
-const LIVE_VERSION='20260728-1634';
+export const routes={home:BASE,hoje:BASE+'hoje/',evolucao:BASE+'evolucao/',riscos:BASE+'riscos/',agenda:BASE+'agenda/',questoes:BASE+'provas/',provas:BASE+'provas/',simulados:BASE+'simulados/',resolver:BASE+'resolver/',redacoes:BASE+'redacoes/',auditoria:BASE+'auditoria/',mais:BASE+'mais/',pe:BASE+'pe/',materias:BASE+'materias/',questoesErros:BASE+'questoes-erros/'};
+const icons={home:'⌂',hoje:'◎',evolucao:'↗',riscos:'!',agenda:'◷',questoes:'▣',redacoes:'✎',auditoria:'✓',mais:'•••'};
+const labels={home:'Início',hoje:'Hoje',evolucao:'Evolução',riscos:'Riscos',agenda:'Agenda',questoes:'Questões',redacoes:'Redações',auditoria:'Auditoria',mais:'Mais'};
+const LIVE_VERSION='20260729-1313';
 let livePromise=null;
 async function loadLive(){
  if(!livePromise)livePromise=fetch(BASE+'data/live.json?v='+LIVE_VERSION,{cache:'no-store'})
@@ -39,18 +39,18 @@ export function fmtPct(v,d=2){return new Intl.NumberFormat('pt-BR',{minimumFract
 export function fmtDate(iso){if(!iso)return'—';const[y,m,d]=iso.split('-').map(Number);return new Intl.DateTimeFormat('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric'}).format(new Date(y,m-1,d))}
 export function escapeHTML(s){return String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
 export function setupShell(page,meta){
- const desktop=['home','hoje','evolucao','riscos','agenda','redacoes','auditoria'];
+ const desktop=['home','hoje','evolucao','riscos','agenda','questoes','redacoes','auditoria'];
  const mobile=['home','hoje','evolucao','riscos','mais'];
- const active=page==='pe'?'agenda':page==='subject'?'riscos':page;
+ const active=page==='pe'?'agenda':page==='subject'?'riscos':['provas','simulados','resolver'].includes(page)?'questoes':page;
  document.querySelector('#desktop-nav').innerHTML='<div class="nav-label">Plataforma de estudo</div>'+desktop.map(k=>`<a href="${routes[k]}" class="${k===active?'active':''}"><span class="nav-icon">${icons[k]}</span>${labels[k]}</a>`).join('');
- const mobileActive=['agenda','redacoes','auditoria'].includes(active)?'mais':active;
+ const mobileActive=['agenda','questoes','redacoes','auditoria'].includes(active)?'mais':active;
  document.querySelector('#mobile-nav').innerHTML=mobile.map(k=>`<a href="${routes[k]}" class="${k===mobileActive?'active':''}"><span>${icons[k]}</span><span>${labels[k]}</span></a>`).join('');
  document.querySelectorAll('[data-snapshot]').forEach(el=>el.textContent=fmtDate(meta.snapshotDate));
  document.querySelectorAll('[data-sync]').forEach(el=>el.textContent=meta.syncTimes.join(' · '));
  const stored=localStorage.getItem('tdas-theme');if(stored)document.documentElement.dataset.theme=stored;
  if(!document.documentElement.dataset.controlsReady){document.documentElement.dataset.controlsReady='1';document.addEventListener('click',e=>{const theme=e.target.closest('[data-theme-toggle]');if(theme){const next=document.documentElement.dataset.theme==='light'?'dark':'light';document.documentElement.dataset.theme=next;localStorage.setItem('tdas-theme',next);theme.setAttribute('aria-label','Alternar para tema '+(next==='light'?'escuro':'claro'));return}const install=e.target.closest('[data-install-button]');if(install)runInstall()})}
  window.addEventListener('online',updateOnline);window.addEventListener('offline',updateOnline);updateOnline();
- if('serviceWorker'in navigator)navigator.serviceWorker.register(BASE+'sw.js?v=20.2').catch(console.error);
+ if('serviceWorker'in navigator)navigator.serviceWorker.register(BASE+'sw.js?v=22').catch(console.error);
  setupInstall();loadV20Enhancements();
 }
 function loadV20Enhancements(){if(!document.querySelector('link[data-v20]')){const l=document.createElement('link');l.rel='stylesheet';l.href=BASE+'assets/v20.css?v=20.2';l.dataset.v20='1';document.head.appendChild(l)}import(BASE+'assets/enhance-v20.js?v=20.2').catch(console.error)}
