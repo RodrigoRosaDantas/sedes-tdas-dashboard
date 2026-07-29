@@ -1,0 +1,114 @@
+{
+  "version": "0.1.0",
+  "generatedAt": "2026-07-29T13:13:00-03:00",
+  "materials": [
+    {
+      "id": "demo-prova-tdas-2022",
+      "type": "prova",
+      "title": "DEMO — Prova anterior TDAS",
+      "source": "Instituto Quadrix (demonstração)",
+      "year": 2022,
+      "agency": "SEDES/DF",
+      "role": "TDAS — Técnico Administrativo",
+      "roleCode": "202",
+      "questionIds": ["demo-prova-q001", "demo-prova-q002"],
+      "demo": true,
+      "published": false
+    },
+    {
+      "id": "demo-simulado-autoral-2026",
+      "type": "simulado",
+      "title": "DEMO — Simulado autoral TDAS",
+      "source": "Autoral",
+      "year": 2026,
+      "agency": "SEDES/DF",
+      "role": "TDAS — Técnico Administrativo",
+      "roleCode": "202",
+      "questionIds": ["demo-simulado-q001", "demo-simulado-q002"],
+      "demo": true,
+      "published": false
+    }
+  ],
+  "questions": [
+    {
+      "id": "demo-prova-q001",
+      "materialId": "demo-prova-tdas-2022",
+      "number": 1,
+      "discipline": "Organização de dados",
+      "subject": "Banco editorial",
+      "statement": "No projeto SEDES/DF Questões, qual estrutura preserva uma única fonte de verdade e permite separar provas e simulados no site?",
+      "options": [
+        {"key": "A", "text": "Manter um banco para cada disciplina e duplicar as questões.", "comment": "A duplicação aumenta o risco de divergências e retrabalho."},
+        {"key": "B", "text": "Usar uma base única e classificar cada registro pelo tipo de material.", "comment": "Correta. A coluna Tipo de material permite filtrar Prova e Simulado sem duplicar registros."},
+        {"key": "C", "text": "Armazenar as questões apenas dentro das páginas do site.", "comment": "O site deve consumir dados estruturados, não ser a fonte editorial."},
+        {"key": "D", "text": "Criar arquivos separados sem identificador único.", "comment": "Sem identificador único, a rastreabilidade e a deduplicação ficam comprometidas."},
+        {"key": "E", "text": "Publicar diretamente os PDFs sem transcrição.", "comment": "Isso não permitiria correção interativa, filtros ou estatísticas por questão."}
+      ],
+      "answer": "B",
+      "generalComment": "Uma única base editorial reduz duplicidades. A separação no site ocorre por filtros derivados do campo Tipo de material.",
+      "legalBasis": "Regra técnica do projeto: uma linha representa uma questão.",
+      "trick": "Confundir separação visual no site com separação física dos dados.",
+      "annulled": false
+    },
+    {
+      "id": "demo-prova-q002",
+      "materialId": "demo-prova-tdas-2022",
+      "number": 2,
+      "discipline": "Governança editorial",
+      "subject": "Fonte do material",
+      "statement": "Quando um registro é classificado como simulado e sua origem não pode ser identificada, qual valor padronizado deve constar em Fonte / Banca?",
+      "options": [
+        {"key": "A", "text": "Campo em branco.", "comment": "Campos vazios dificultam filtros, validação e exportação."},
+        {"key": "B", "text": "Banca desconhecida.", "comment": "Simulado não possui banca organizadora; o conceito correto é fonte."},
+        {"key": "C", "text": "Simulado sem fonte.", "comment": "Correta. Esse é o valor padronizado definido para origem não identificada."},
+        {"key": "D", "text": "Instituto Quadrix.", "comment": "Não se deve atribuir autoria ou fonte sem comprovação."},
+        {"key": "E", "text": "Material oficial.", "comment": "A classificação seria falsa e prejudicaria a integridade do acervo."}
+      ],
+      "answer": "C",
+      "generalComment": "A origem deve ser explícita. Quando não for conhecida, usa-se exatamente Simulado sem fonte.",
+      "legalBasis": "Padrão editorial do Banco Mestre — Provas e Simulados SEDES/DF.",
+      "trick": "Atribuir banca a um simulado ou deixar a fonte vazia.",
+      "annulled": false
+    },
+    {
+      "id": "demo-simulado-q001",
+      "materialId": "demo-simulado-autoral-2026",
+      "number": 1,
+      "discipline": "Experiência de estudo",
+      "subject": "Cronômetro",
+      "statement": "Em uma tentativa de prova ou simulado, em qual momento o cronômetro deve começar?",
+      "options": [
+        {"key": "A", "text": "Ao abrir a página inicial do site.", "comment": "Isso incluiria tempo de leitura da apresentação antes da tentativa."},
+        {"key": "B", "text": "Ao selecionar uma alternativa da primeira questão.", "comment": "O usuário já poderia ter lido a questão por vários minutos."},
+        {"key": "C", "text": "Ao clicar em Iniciar tentativa.", "comment": "Correta. Esse evento define um início claro e auditável."},
+        {"key": "D", "text": "Somente depois de responder cinco questões.", "comment": "Isso distorceria o tempo total e a média por questão."},
+        {"key": "E", "text": "Apenas quando a tentativa for finalizada.", "comment": "Sem registrar o início, não há como calcular o tempo decorrido."}
+      ],
+      "answer": "C",
+      "generalComment": "O botão Iniciar tentativa cria um marco temporal objetivo para o cálculo do tempo total.",
+      "legalBasis": "Especificação funcional do MVP do site.",
+      "trick": "Confundir carregamento da página com início efetivo da tentativa.",
+      "annulled": false
+    },
+    {
+      "id": "demo-simulado-q002",
+      "materialId": "demo-simulado-autoral-2026",
+      "number": 2,
+      "discipline": "Experiência de estudo",
+      "subject": "Modos de resolução",
+      "statement": "Qual é a diferença principal entre o modo treino e o modo prova?",
+      "options": [
+        {"key": "A", "text": "No modo treino não existe gabarito.", "comment": "O modo treino depende justamente do feedback após a confirmação."},
+        {"key": "B", "text": "No modo prova o cronômetro é desativado.", "comment": "O cronômetro é especialmente importante no modo prova."},
+        {"key": "C", "text": "No modo treino a correção aparece após confirmar; no modo prova, somente ao finalizar.", "comment": "Correta. Essa distinção atende aprendizagem imediata e simulação real."},
+        {"key": "D", "text": "O modo prova permite alterar o gabarito oficial.", "comment": "O usuário marca respostas; não altera o gabarito."},
+        {"key": "E", "text": "Os dois modos são idênticos.", "comment": "Eles compartilham dados, mas possuem fluxos de feedback diferentes."}
+      ],
+      "answer": "C",
+      "generalComment": "O modo treino oferece feedback imediato. O modo prova preserva o sigilo do gabarito até o encerramento.",
+      "legalBasis": "Escopo funcional aprovado para o projeto.",
+      "trick": "Confundir base de dados compartilhada com experiência de resolução idêntica.",
+      "annulled": false
+    }
+  ]
+}
