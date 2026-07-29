@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#07101b">
+  <meta name="description" content="MVP de resolução de provas e simulados SEDES/DF.">
+  <title>Questões SEDES/DF — MVP</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#app">Pular para o conteúdo</a>
+  <header class="topbar">
+    <a class="brand" href="../">
+      <span class="brand-mark">Q</span>
+      <span><strong>Questões SEDES/DF</strong><small>MVP · branch de desenvolvimento</small></span>
+    </a>
+    <div class="top-actions">
+      <button id="theme-toggle" class="icon-btn" type="button" aria-label="Alternar tema">◐</button>
+    </div>
+  </header>
+  <main id="app" class="app" tabindex="-1" aria-live="polite">
+    <section class="loading card">
+      <p class="eyebrow">Carregando</p>
+      <h1>Preparando o banco de questões…</h1>
+    </section>
+  </main>
+  <template id="error-template">
+    <section class="card error-card">
+      <p class="eyebrow">Falha de carregamento</p>
+      <h1>Não foi possível abrir as questões.</h1>
+      <p>Atualize a página. Se o erro persistir, confira o arquivo de dados do MVP.</p>
+    </section>
+  </template>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
