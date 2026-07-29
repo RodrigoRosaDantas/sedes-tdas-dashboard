@@ -1,5 +1,5 @@
 export const BASE='/sedes-tdas-dashboard/';
-export const routes={home:BASE,hoje:BASE+'hoje/',evolucao:BASE+'evolucao/',riscos:BASE+'riscos/',agenda:BASE+'agenda/',redacoes:BASE+'redacoes/',auditoria:BASE+'auditoria/',mais:BASE+'mais/',pe:BASE+'pe/',materias:BASE+'materias/'};
+export const routes={home:BASE,hoje:BASE+'hoje/',evolucao:BASE+'evolucao/',riscos:BASE+'riscos/',agenda:BASE+'agenda/',redacoes:BASE+'redacoes/',auditoria:BASE+'auditoria/',mais:BASE+'mais/',pe:BASE+'pe/',materias:BASE+'materias/',questoesErros:BASE+'questoes-erros/'};
 const icons={home:'⌂',hoje:'◎',evolucao:'↗',riscos:'!',agenda:'◷',redacoes:'✎',auditoria:'✓',mais:'•••'};
 const labels={home:'Início',hoje:'Hoje',evolucao:'Evolução',riscos:'Riscos',agenda:'Agenda',redacoes:'Redações',auditoria:'Auditoria',mais:'Mais'};
 const LIVE_VERSION='20260728-1634';
@@ -26,7 +26,7 @@ function patchValue(base,patch){
  }
  if(Array.isArray(patch))return patch;
  const out=base&&typeof base==='object'&&!Array.isArray(base)?{...base}:{};
- for(const [k,v] of Object.entries(patch))if(!k.startsWith('$'))out[k]=patchValue(out[k],v);
+ for(const[k,v]of Object.entries(patch))if(!k.startsWith('$'))out[k]=patchValue(out[k],v);
  return out;
 }
 export async function loadJSON(path){
@@ -36,7 +36,7 @@ export async function loadJSON(path){
 }
 export function fmtNumber(v){return new Intl.NumberFormat('pt-BR').format(v)}
 export function fmtPct(v,d=2){return new Intl.NumberFormat('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d}).format(v)+'%'}
-export function fmtDate(iso){if(!iso)return '—';const [y,m,d]=iso.split('-').map(Number);return new Intl.DateTimeFormat('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric'}).format(new Date(y,m-1,d))}
+export function fmtDate(iso){if(!iso)return'—';const[y,m,d]=iso.split('-').map(Number);return new Intl.DateTimeFormat('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric'}).format(new Date(y,m-1,d))}
 export function escapeHTML(s){return String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
 export function setupShell(page,meta){
  const desktop=['home','hoje','evolucao','riscos','agenda','redacoes','auditoria'];
@@ -50,10 +50,10 @@ export function setupShell(page,meta){
  const stored=localStorage.getItem('tdas-theme');if(stored)document.documentElement.dataset.theme=stored;
  if(!document.documentElement.dataset.controlsReady){document.documentElement.dataset.controlsReady='1';document.addEventListener('click',e=>{const theme=e.target.closest('[data-theme-toggle]');if(theme){const next=document.documentElement.dataset.theme==='light'?'dark':'light';document.documentElement.dataset.theme=next;localStorage.setItem('tdas-theme',next);theme.setAttribute('aria-label','Alternar para tema '+(next==='light'?'escuro':'claro'));return}const install=e.target.closest('[data-install-button]');if(install)runInstall()})}
  window.addEventListener('online',updateOnline);window.addEventListener('offline',updateOnline);updateOnline();
- if('serviceWorker'in navigator)navigator.serviceWorker.register(BASE+'sw.js?v=20.1').catch(console.error);
+ if('serviceWorker'in navigator)navigator.serviceWorker.register(BASE+'sw.js?v=20.2').catch(console.error);
  setupInstall();loadV20Enhancements();
 }
-function loadV20Enhancements(){if(!document.querySelector('link[data-v20]')){const l=document.createElement('link');l.rel='stylesheet';l.href=BASE+'assets/v20.css?v=20.1';l.dataset.v20='1';document.head.appendChild(l)}import(BASE+'assets/enhance-v20.js?v=20.1').catch(console.error)}
+function loadV20Enhancements(){if(!document.querySelector('link[data-v20]')){const l=document.createElement('link');l.rel='stylesheet';l.href=BASE+'assets/v20.css?v=20.2';l.dataset.v20='1';document.head.appendChild(l)}import(BASE+'assets/enhance-v20.js?v=20.2').catch(console.error)}
 function updateOnline(){document.querySelector('#offline')?.classList.toggle('show',!navigator.onLine)}
 let installPrompt=null;
 function setupInstall(){window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();installPrompt=e;document.querySelectorAll('[data-install]').forEach(x=>x.classList.add('show'))},{once:true})}
@@ -67,6 +67,6 @@ export function renderLineChart(el,rows,{x='pe',y='accuracy',label='Aproveitamen
  el.innerHTML=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${escapeHTML(label)}"><title>${escapeHTML(label)}</title>${grids}<polyline fill="none" stroke="var(--accent)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" points="${points}"/>${dots}</svg><div class="chart-summary">${rows.length} resultados exibidos. Mínimo ${Math.min(...vals).toFixed(2)}%, máximo ${Math.max(...vals).toFixed(2)}%.</div>`;
 }
 export function renderBars(el,rows,{labelKey='subject',valueKey='errors',suffix='',maxValue=null}={}){if(!rows.length){el.innerHTML='<div class="empty">Sem dados.</div>';return}const max=maxValue||Math.max(...rows.map(r=>Number(r[valueKey])));el.innerHTML='<div class="bars">'+rows.map(r=>`<div class="bar-row"><span>${escapeHTML(r[labelKey])}</span><div class="bar-track" aria-hidden="true"><div class="bar-fill" style="width:${Math.max(2,Number(r[valueKey])/max*100)}%"></div></div><strong class="bar-value">${escapeHTML(r[valueKey])}${suffix}</strong></div>`).join('')+'</div>'}
-export function metric(label,value,detail){return `<article class="card metric"><small>${escapeHTML(label)}</small><strong>${escapeHTML(value)}</strong><span>${escapeHTML(detail)}</span></article>`}
-export function alertCard(a){return `<article class="card alert" data-level="${escapeHTML(a.level)}"><span class="alert-icon">${a.level==='critical'?'!':a.level==='warning'?'△':'i'}</span><div><b>${escapeHTML(a.title)}</b><p>${escapeHTML(a.detail)}</p></div>${a.href?`<a href="${a.href}">${escapeHTML(a.action||'Abrir')} →</a>`:''}</article>`}
+export function metric(label,value,detail){return`<article class="card metric"><small>${escapeHTML(label)}</small><strong>${escapeHTML(value)}</strong><span>${escapeHTML(detail)}</span></article>`}
+export function alertCard(a){return`<article class="card alert" data-level="${escapeHTML(a.level)}"><span class="alert-icon">${a.level==='critical'?'!':a.level==='warning'?'△':'i'}</span><div><b>${escapeHTML(a.title)}</b><p>${escapeHTML(a.detail)}</p></div>${a.href?`<a href="${a.href}">${escapeHTML(a.action||'Abrir')} →</a>`:''}</article>`}
 export function setLoadingError(err){document.querySelector('main').innerHTML=`<section class="card panel"><h1>Não foi possível carregar esta página.</h1><p>${escapeHTML(err.message)}</p><a class="btn" href="${routes.home}">Voltar ao início</a></section>`}
