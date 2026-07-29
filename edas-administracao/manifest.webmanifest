@@ -1,0 +1,17 @@
+{
+  "name": "EDAS — Administração | SEDES/DF",
+  "short_name": "EDAS 400",
+  "start_url": "/sedes-tdas-dashboard/edas-administracao/",
+  "scope": "/sedes-tdas-dashboard/edas-administracao/",
+  "display": "standalone",
+  "background_color": "#07101b",
+  "theme_color": "#07101b",
+  "icons": [
+    {
+      "src": "/sedes-tdas-dashboard/edas-administracao/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
