@@ -65,3 +65,4 @@ jobs:
           git add -A
           git commit -m 'Aplicar correções integrais da sincronização TDAS v20'
           git push origin HEAD:fix/v20-sync-corrections-20260729
+# disparo explícito da preparação isolada
