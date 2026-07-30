@@ -1,9 +1,9 @@
-const VERSION='tdas-v24-20260730a';
+const VERSION='tdas-v24-1-20260730a';
 const BASE='/sedes-tdas-dashboard/';
 const PRECACHE=[
  BASE,BASE+'hoje/',BASE+'evolucao/',BASE+'riscos/',BASE+'agenda/',BASE+'redacoes/',BASE+'auditoria/',BASE+'mais/',BASE+'questoes-erros/',BASE+'pe/',BASE+'pe/73/',BASE+'pe/74/',BASE+'materias/',BASE+'offline.html',BASE+'manifest.webmanifest',
  BASE+'assets/styles.css',BASE+'assets/v20.css',BASE+'assets/common.js',BASE+'assets/home.js',BASE+'assets/today.js',BASE+'assets/evolution.js',BASE+'assets/risks.js',BASE+'assets/agenda.js',BASE+'assets/redactions.js',BASE+'assets/audit.js',BASE+'assets/more.js',BASE+'assets/pe.js',BASE+'assets/subject.js',BASE+'assets/subjects-index.js',BASE+'assets/error-questions.js',BASE+'assets/enhance-v20.js',
- BASE+'data/home.json',BASE+'data/today.json',BASE+'data/evolution.json',BASE+'data/risks.json',BASE+'data/agenda.json',BASE+'data/redactions.json',BASE+'data/audit.json',BASE+'data/more.json',BASE+'data/subjects.json',BASE+'data/sync-history.json',BASE+'data/live-v23.json',BASE+'data/error-questions/index.json',
+ BASE+'data/home.json',BASE+'data/today.json',BASE+'data/evolution.json',BASE+'data/risks.json',BASE+'data/agenda.json',BASE+'data/redactions.json',BASE+'data/audit.json',BASE+'data/more.json',BASE+'data/subjects.json',BASE+'data/sync-history.json',BASE+'data/live-v23.json',BASE+'data/live-v24.json',BASE+'data/error-questions/index.json',
  ...Array.from({length:9},(_,i)=>BASE+`data/error-questions/part-${String(i+1).padStart(2,'0')}.json`),
  BASE+'icons/icon.svg',BASE+'icons/maskable.svg',BASE+'icons/icon-192.png',BASE+'icons/icon-512.png'
 ];
