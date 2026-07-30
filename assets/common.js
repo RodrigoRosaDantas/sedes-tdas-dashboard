@@ -2,10 +2,10 @@ export const BASE='/sedes-tdas-dashboard/';
 export const routes={home:BASE,hoje:BASE+'hoje/',evolucao:BASE+'evolucao/',riscos:BASE+'riscos/',agenda:BASE+'agenda/',redacoes:BASE+'redacoes/',auditoria:BASE+'auditoria/',mais:BASE+'mais/',pe:BASE+'pe/',materias:BASE+'materias/',questoesErros:BASE+'questoes-erros/'};
 const icons={home:'⌂',hoje:'◎',evolucao:'↗',riscos:'!',agenda:'◷',redacoes:'✎',auditoria:'✓',mais:'•••'};
 const labels={home:'Início',hoje:'Hoje',evolucao:'Evolução',riscos:'Riscos',agenda:'Agenda',redacoes:'Redações',auditoria:'Auditoria',mais:'Mais'};
-const LIVE_VERSION='20260728-1634';
+const LIVE_VERSION='20260729-2333';
 let livePromise=null;
 async function loadLive(){
- if(!livePromise)livePromise=fetch(BASE+'data/live.json?v='+LIVE_VERSION,{cache:'no-store'})
+ if(!livePromise)livePromise=fetch(BASE+'data/live-v22.json?v='+LIVE_VERSION,{cache:'no-store'})
   .then(r=>r.ok?r.json():{}).catch(()=>({}));
  return livePromise;
 }
@@ -31,7 +31,7 @@ function patchValue(base,patch){
 }
 export async function loadJSON(path){
  const r=await fetch(BASE+path,{cache:'no-store'});if(!r.ok)throw new Error('Falha ao carregar dados ('+r.status+')');
- const data=await r.json();if(path==='data/live.json')return data;
+ const data=await r.json();if(path==='data/live-v22.json')return data;
  const live=await loadLive();return patchValue(data,live[path]);
 }
 export function fmtNumber(v){return new Intl.NumberFormat('pt-BR').format(v)}
@@ -50,7 +50,7 @@ export function setupShell(page,meta){
  const stored=localStorage.getItem('tdas-theme');if(stored)document.documentElement.dataset.theme=stored;
  if(!document.documentElement.dataset.controlsReady){document.documentElement.dataset.controlsReady='1';document.addEventListener('click',e=>{const theme=e.target.closest('[data-theme-toggle]');if(theme){const next=document.documentElement.dataset.theme==='light'?'dark':'light';document.documentElement.dataset.theme=next;localStorage.setItem('tdas-theme',next);theme.setAttribute('aria-label','Alternar para tema '+(next==='light'?'escuro':'claro'));return}const install=e.target.closest('[data-install-button]');if(install)runInstall()})}
  window.addEventListener('online',updateOnline);window.addEventListener('offline',updateOnline);updateOnline();
- if('serviceWorker'in navigator)navigator.serviceWorker.register(BASE+'sw.js?v=20.2').catch(console.error);
+ if('serviceWorker'in navigator)navigator.serviceWorker.register(BASE+'sw.js?v=22.0').catch(console.error);
  setupInstall();loadV20Enhancements();
 }
 function loadV20Enhancements(){if(!document.querySelector('link[data-v20]')){const l=document.createElement('link');l.rel='stylesheet';l.href=BASE+'assets/v20.css?v=20.2';l.dataset.v20='1';document.head.appendChild(l)}import(BASE+'assets/enhance-v20.js?v=20.2').catch(console.error)}
