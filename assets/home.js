@@ -1,4 +1,4 @@
-import{loadJSON,setupShell,fmtNumber,fmtPct,fmtDate,metric,alertCard,setLoadingError,routes}from'./common.js?v=22';
+import{loadJSON,setupShell,fmtNumber,fmtPct,fmtDate,metric,alertCard,setLoadingError,routes}from'./common.js?v=23';
 
 function examCountdown(examDate){
  const [year,month,day]=examDate.split('-').map(Number);
@@ -36,7 +36,7 @@ try{
  </section>
  <section class="grid metrics">
   ${metric('Ciclo concluído',`${m.completed}/${m.totalPE}`,`${(m.completed/m.totalPE*100).toFixed(1).replace('.',',')}% do plano`)}
-  ${metric('Questões concluídas',fmtNumber(m.questions),'volume com resultado validado')}
+  ${metric('Questões concluídas',fmtNumber(m.questions),'volume total dos PE concluídos')}
   ${metric('Acertos registrados',fmtNumber(m.correct),`${fmtNumber(resultQuestions)} questões com resultado`)}
   ${metric('Aproveitamento',fmtPct(m.accuracy),'somente questões com resultado')}
  </section>
@@ -50,5 +50,5 @@ try{
  <section class="section"><div class="section-head"><div><h2>Áreas da plataforma</h2><p>Os detalhes ficam em páginas independentes e mais leves.</p></div><span class="stamp">Navegação direta</span></div><div class="grid portal-grid"><a class="card portal" href="${routes.evolucao}"><small>Desempenho</small><b>Evolução</b><span>Filtros por período e bloco, semanas e simulados.</span><em>Abrir →</em></a><a class="card portal" href="${routes.riscos}"><small>Diagnóstico</small><b>Riscos e erros</b><span>Pareto, reincidências e alertas inteligentes.</span><em>Abrir →</em></a><a class="card portal" href="${routes.agenda}"><small>Execução</small><b>Agenda</b><span>Próximos PE e projeção do ritmo necessário.</span><em>Abrir →</em></a><a class="card portal" href="${routes.redacoes}"><small>Discursiva</small><b>Redações</b><span>Temas, semanas e ritmo de produção.</span><em>Abrir →</em></a><a class="card portal" href="${routes.auditoria}"><small>Governança</small><b>Auditoria</b><span>Qualidade, fontes e downloads reais.</span><em>Abrir →</em></a></div></section>
  <section class="section"><div class="section-head"><div><h2>Alertas prioritários</h2><p>Problema, impacto e próximo passo.</p></div></div><div class="grid three">${d.alerts.map(alertCard).join('')}</div></section>
  <section class="section"><div class="section-head"><div><h2>Projeções transparentes</h2><p>Nenhum índice oculto: a fórmula aparece junto ao resultado.</p></div></div><div class="grid three">${d.projections.map(x=>`<article class="card formula"><small>${x.label}</small><strong>${x.value}</strong><code>${x.formula}</code></article>`).join('')}</div></section>
- <footer class="footer"><span>TDAS · Plataforma v22</span><span>Sincronização: <span data-sync></span></span></footer>`;
+ <footer class="footer"><span>TDAS · Plataforma v${d.meta.version}</span><span>Sincronização: <span data-sync></span></span></footer>`;
 }catch(e){setLoadingError(e)}
