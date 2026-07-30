@@ -1,0 +1,30 @@
+name: Validar leitura oficial TDAS v20
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    if: github.event.pull_request.head.ref == 'repair/v20-official-only-20260729'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: repair/v20-official-only-20260729
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validar plataforma sem sobreposição
+        run: |
+          node --check assets/common.js
+          node --check sw.js
+          node scripts/validate-platform.mjs
+          ! grep -R "live-v22" assets .github/workflows scripts --exclude='validate-official-only-v20.yml'
+          test "$(cat data/live-v22.json)" = "{}"
