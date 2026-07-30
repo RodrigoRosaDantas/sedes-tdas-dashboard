@@ -2,9 +2,9 @@ export const BASE='/sedes-tdas-dashboard/';
 export const routes={home:BASE,hoje:BASE+'hoje/',evolucao:BASE+'evolucao/',riscos:BASE+'riscos/',agenda:BASE+'agenda/',redacoes:BASE+'redacoes/',auditoria:BASE+'auditoria/',mais:BASE+'mais/',pe:BASE+'pe/',materias:BASE+'materias/',questoesErros:BASE+'questoes-erros/'};
 const icons={home:'⌂',hoje:'◎',evolucao:'↗',riscos:'!',agenda:'◷',redacoes:'✎',auditoria:'✓',mais:'•••'};
 const labels={home:'Início',hoje:'Hoje',evolucao:'Evolução',riscos:'Riscos',agenda:'Agenda',redacoes:'Redações',auditoria:'Auditoria',mais:'Mais'};
-const LIVE_VERSION='20260729-v23';
+const LIVE_VERSION='20260730-v24';
 let livePromise=null;
-async function loadLive(){if(!livePromise)livePromise=fetch(BASE+'data/live-v23.json?v='+LIVE_VERSION,{cache:'no-store'}).then(r=>r.ok?r.json():{}).catch(()=>({}));return livePromise}
+async function loadLive(){if(!livePromise)livePromise=fetch(BASE+'data/live-v24.json?v='+LIVE_VERSION,{cache:'no-store'}).then(r=>r.ok?r.json():{}).catch(()=>({}));return livePromise}
 function patchValue(base,patch){
  if(patch===undefined)return base;
  if(patch===null||typeof patch!=='object')return patch;
@@ -26,7 +26,7 @@ function patchValue(base,patch){
  for(const[k,v]of Object.entries(patch))if(!k.startsWith('$'))out[k]=patchValue(out[k],v);
  return out;
 }
-export async function loadJSON(path){const r=await fetch(BASE+path,{cache:'no-store'});if(!r.ok)throw new Error('Falha ao carregar dados ('+r.status+')');const data=await r.json();if(path==='data/live-v23.json')return data;const live=await loadLive();return patchValue(data,live[path])}
+export async function loadJSON(path){const r=await fetch(BASE+path,{cache:'no-store'});if(!r.ok)throw new Error('Falha ao carregar dados ('+r.status+')');const data=await r.json();if(path==='data/live-v24.json')return data;const live=await loadLive();return patchValue(data,live[path])}
 export function fmtNumber(v){return new Intl.NumberFormat('pt-BR').format(v)}
 export function fmtPct(v,d=2){return new Intl.NumberFormat('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d}).format(v)+'%'}
 export function fmtDate(iso){if(!iso)return'—';const[y,m,d]=iso.split('-').map(Number);return new Intl.DateTimeFormat('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric'}).format(new Date(y,m-1,d))}
@@ -35,7 +35,7 @@ export function setupShell(page,meta){
  const desktop=['home','hoje','evolucao','riscos','agenda','redacoes','auditoria'];
  const mobile=['home','hoje','evolucao','riscos','mais'];
  const active=page==='pe'?'agenda':page==='subject'?'riscos':page;
- document.querySelector('.brand small')?.replaceChildren(`SEDES/DF · v${meta.version||'23.0'}`);
+ document.querySelector('.brand small')?.replaceChildren(`SEDES/DF · v${meta.version||'24.0'}`);
  document.querySelector('#desktop-nav').innerHTML='<div class="nav-label">Plataforma de estudo</div>'+desktop.map(k=>`<a href="${routes[k]}" class="${k===active?'active':''}"><span class="nav-icon">${icons[k]}</span>${labels[k]}</a>`).join('');
  const mobileActive=['agenda','redacoes','auditoria'].includes(active)?'mais':active;
  document.querySelector('#mobile-nav').innerHTML=mobile.map(k=>`<a href="${routes[k]}" class="${k===mobileActive?'active':''}"><span>${icons[k]}</span><span>${labels[k]}</span></a>`).join('');
@@ -44,10 +44,10 @@ export function setupShell(page,meta){
  const stored=localStorage.getItem('tdas-theme');if(stored)document.documentElement.dataset.theme=stored;
  if(!document.documentElement.dataset.controlsReady){document.documentElement.dataset.controlsReady='1';document.addEventListener('click',e=>{const theme=e.target.closest('[data-theme-toggle]');if(theme){const next=document.documentElement.dataset.theme==='light'?'dark':'light';document.documentElement.dataset.theme=next;localStorage.setItem('tdas-theme',next);theme.setAttribute('aria-label','Alternar para tema '+(next==='light'?'escuro':'claro'));return}const install=e.target.closest('[data-install-button]');if(install)runInstall()})}
  window.addEventListener('online',updateOnline);window.addEventListener('offline',updateOnline);updateOnline();
- if('serviceWorker'in navigator)navigator.serviceWorker.register(BASE+'sw.js?v=23.0').catch(console.error);
+ if('serviceWorker'in navigator)navigator.serviceWorker.register(BASE+'sw.js?v=24.0').catch(console.error);
  setupInstall();loadV20Enhancements();
 }
-function loadV20Enhancements(){if(!document.querySelector('link[data-v20]')){const l=document.createElement('link');l.rel='stylesheet';l.href=BASE+'assets/v20.css?v=23.0';l.dataset.v20='1';document.head.appendChild(l)}import(BASE+'assets/enhance-v20.js?v=23.0').catch(console.error)}
+function loadV20Enhancements(){if(!document.querySelector('link[data-v20]')){const l=document.createElement('link');l.rel='stylesheet';l.href=BASE+'assets/v20.css?v=24.0';l.dataset.v20='1';document.head.appendChild(l)}import(BASE+'assets/enhance-v20.js?v=24.0').catch(console.error)}
 function updateOnline(){document.querySelector('#offline')?.classList.toggle('show',!navigator.onLine)}
 let installPrompt=null;
 function setupInstall(){window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();installPrompt=e;document.querySelectorAll('[data-install]').forEach(x=>x.classList.add('show'))},{once:true})}
