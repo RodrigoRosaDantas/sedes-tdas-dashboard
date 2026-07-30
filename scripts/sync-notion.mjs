@@ -1,92 +1,165 @@
-import { SOURCES, hash, localDate, readJson, writeJson } from './notion/config.mjs';
-import { fetchMarkdown, mapLimit, queryAll } from './notion/api.mjs';
-import { control, error, redaction } from './notion/normalize.mjs';
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import { SOURCES, ROOT, hash, localDate, localIso, readJson, writeJson, writeText } from './notion/config.mjs';
+import { fetchMarkdown, fetchPropertyText, mapLimit, queryAll } from './notion/api.mjs';
+import { control, error, propId, redaction } from './notion/normalize.mjs';
 import { build } from './notion/build.mjs';
 
 const MINIMUM = { controls: 100, errors: 100, redactions: 25 };
+const SCHEMA_VERSION = '20.3';
 const previousState = await readJson('data/notion/state.json', {});
-const previousErrors = await readJson('data/notion/errors.json', { records: [] });
-const previousHome = await readJson('data/home.json', {});
-const previousRedactionsPublic = await readJson('data/redactions.json', {});
-const oldMarkdown = new Map((previousErrors.records || []).map(item => [item.id, item.markdown || '']));
+const previousHistory = await readJson('data/sync-history.json', { entries: [] });
+const runStartedAt = new Date().toISOString();
+const snapshotDate = localDate(runStartedAt);
+const kind = process.env.SYNC_KIND === 'schedule' ? 'Sincronização agendada' : process.env.SYNC_KIND === 'workflow_dispatch' ? 'Sincronização manual' : 'Sincronização de preparação';
 
-console.log('Consultando os três bancos oficiais do Notion...');
+function uniqueBy(records, key, label) {
+  const seen = new Map();
+  for (const record of records) {
+    const value = record[key];
+    if (!value) throw new Error(`${label}: registro sem ${key}.`);
+    if (seen.has(value)) throw new Error(`${label}: ${key} duplicado (${value}).`);
+    seen.set(value, record);
+  }
+}
+
+function validateSourceCounts(raw, filtered, name, previousCount) {
+  if (filtered.length < MINIMUM[name]) throw new Error(`${name}: apenas ${filtered.length} registros válidos; mínimo de segurança ${MINIMUM[name]}.`);
+  if (previousCount && filtered.length < Math.floor(previousCount * 0.95) && process.env.ALLOW_LARGE_DROP !== 'true') {
+    throw new Error(`${name}: queda anormal de ${previousCount} para ${filtered.length}; publicação bloqueada.`);
+  }
+  if (filtered.length > raw.length) throw new Error(`${name}: total filtrado maior que total consultado.`);
+}
+
+async function completeError(record) {
+  const summaryPropertyId = propId(record, ['Resumo']);
+  let completeSummary = '';
+  if (summaryPropertyId) {
+    try { completeSummary = await fetchPropertyText(record.id, summaryPropertyId); }
+    catch (failure) { console.warn(`${record.url}: falha ao paginar Resumo: ${failure.message}`); }
+  }
+  let markdown = '';
+  if (!completeSummary.trim()) markdown = await fetchMarkdown(record.id);
+  return error(record, completeSummary.trim(), markdown.trim());
+}
+
+function semanticRecord(record, type) {
+  if (type === 'control') {
+    const { id, last_edited_time, ...publicRecord } = record;
+    return publicRecord;
+  }
+  if (type === 'redaction') {
+    const { id, last_edited_time, ...publicRecord } = record;
+    return publicRecord;
+  }
+  const { id, last_edited_time, markdown, ...publicRecord } = record;
+  return publicRecord;
+}
+
+async function clearOldErrorParts() {
+  const directory = path.join(ROOT, 'data/error-questions');
+  await fs.mkdir(directory, { recursive: true });
+  for (const file of await fs.readdir(directory)) if (/^part-\d+\.json$/.test(file)) await fs.rm(path.join(directory, file));
+}
+
+async function removeLegacyTechnicalData() {
+  for (const file of ['data/notion/control.json', 'data/notion/errors.json', 'data/notion/redactions.json']) {
+    try { await fs.rm(path.join(ROOT, file)); } catch {}
+  }
+}
+
+async function ensureRoutes(routes) {
+  const peTemplate = await fs.readFile(path.join(ROOT, 'pe/1/index.html'), 'utf8');
+  const subjectTemplate = await fs.readFile(path.join(ROOT, 'materias/portugues/index.html'), 'utf8');
+  for (const number of routes.peNumbers) await writeText(`pe/${number}/index.html`, peTemplate);
+  for (const slug of routes.subjectSlugs.filter(Boolean)) await writeText(`materias/${slug}/index.html`, subjectTemplate);
+}
+
+async function generateServiceWorker(routes, errorIndex) {
+  const base = '/sedes-tdas-dashboard/';
+  const core = [
+    '', 'hoje/', 'evolucao/', 'riscos/', 'agenda/', 'redacoes/', 'auditoria/', 'mais/', 'questoes-erros/', 'pe/', 'materias/', 'offline.html',
+    'manifest.webmanifest', 'assets/styles.css', 'assets/v20.css', 'assets/common.js', 'assets/home.js', 'assets/today.js', 'assets/evolution.js',
+    'assets/risks.js', 'assets/agenda.js', 'assets/redactions.js', 'assets/audit.js', 'assets/more.js', 'assets/pe.js', 'assets/subject.js',
+    'assets/subjects-index.js', 'assets/error-questions.js', 'assets/enhance-v20.js', 'data/home.json', 'data/today.json', 'data/evolution.json',
+    'data/risks.json', 'data/agenda.json', 'data/redactions.json', 'data/audit.json', 'data/more.json', 'data/subjects.json',
+    'data/sync-history.json', 'data/live.json', 'data/error-questions/index.json', 'icons/icon.svg', 'icons/maskable.svg', 'icons/icon-192.png', 'icons/icon-512.png'
+  ];
+  const dynamic = [
+    ...routes.peNumbers.map(number => `pe/${number}/`),
+    ...routes.subjectSlugs.filter(Boolean).map(slug => `materias/${slug}/`),
+    ...errorIndex.parts.map(part => `data/error-questions/${part.file}`)
+  ];
+  const precache = [...new Set([...core, ...dynamic])].map(item => `${base}${item}`);
+  const source = `const VERSION='tdas-v20-${snapshotDate.replaceAll('-', '')}-${hash(precache).slice(0, 8)}';\nconst BASE='${base}';\nconst PRECACHE=${JSON.stringify(precache)};\nself.addEventListener('install',event=>event.waitUntil(caches.open(VERSION).then(cache=>cache.addAll(PRECACHE)).then(()=>self.skipWaiting())));\nself.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key!==VERSION).map(key=>caches.delete(key)))).then(()=>self.clients.claim())));\nself.addEventListener('fetch',event=>{if(event.request.method!=='GET')return;const url=new URL(event.request.url);if(url.origin!==location.origin)return;if(event.request.mode==='navigate'){event.respondWith(fetch(event.request).then(response=>{const copy=response.clone();caches.open(VERSION).then(cache=>cache.put(event.request,copy));return response}).catch(()=>caches.match(event.request).then(cached=>cached||caches.match(BASE+'offline.html'))));return}if(url.pathname.includes('/data/')){event.respondWith(fetch(event.request).then(response=>{const copy=response.clone();caches.open(VERSION).then(cache=>cache.put(event.request,copy));return response}).catch(()=>caches.match(event.request)));return}event.respondWith(caches.match(event.request).then(cached=>cached||fetch(event.request).then(response=>{const copy=response.clone();caches.open(VERSION).then(cache=>cache.put(event.request,copy));return response}))) });\n`;
+  await writeText('sw.js', source);
+}
+
+function appendHistory(status, summary, detail) {
+  return {
+    meta: { snapshotDate, examDate: '2026-09-06', syncTimes: ['00h50', '06h50', '12h50', '18h50'], version: SCHEMA_VERSION },
+    entries: [{ at: localIso(runStartedAt), kind, status, summary, detail }, ...(previousHistory.entries || [])].slice(0, 40)
+  };
+}
+
+function setOutput(name, value) {
+  if (!process.env.GITHUB_OUTPUT) return;
+  return fs.appendFile(process.env.GITHUB_OUTPUT, `${name}=${value}\n`, 'utf8');
+}
+
+console.log('Consultando exclusivamente as três fontes oficiais do Notion...');
 const [rawControls, rawErrors, rawRedactions] = await Promise.all([
-  queryAll(SOURCES.control),
-  queryAll(SOURCES.errors),
-  queryAll(SOURCES.redactions)
+  queryAll(SOURCES.control), queryAll(SOURCES.errors), queryAll(SOURCES.redactions)
 ]);
 
-const controls = rawControls
-  .map(control)
-  .filter(item => /^PE\d{2,3}$/.test(item.pe))
-  .sort((a, b) => a.pe.localeCompare(b.pe) || a.id.localeCompare(b.id));
-const rdToPe = new Map(controls.filter(item => item.rd && item.pe).map(item => [item.rd, item.pe]));
-const redactions = rawRedactions
-  .map(redaction)
-  .filter(item => /^RD\d{2,3}$/.test(item.rd))
-  .map(item => ({ ...item, pe: rdToPe.get(item.rd) || '' }))
-  .sort((a, b) => a.rd.localeCompare(b.rd) || a.id.localeCompare(b.id));
+const controls = rawControls.map(control).filter(item => /^PE[0-9]+$/.test(item.pe)).sort((a, b) => Number(a.pe.slice(2)) - Number(b.pe.slice(2)));
+const rdToPe = new Map(controls.filter(item => item.rd).map(item => [item.rd, item.pe]));
+const redactions = rawRedactions.map(redaction).filter(item => /^RD[0-9]+$/.test(item.rd)).map(item => ({ ...item, pe: rdToPe.get(item.rd) || '' })).sort((a, b) => Number(a.rd.slice(2)) - Number(b.rd.slice(2)));
+const realErrorPages = rawErrors.filter(item => String(item.title || '').trim() !== '');
+console.log(`Caderno de Erros: ${realErrorPages.length} registros reais; lendo Resumo integral de cada página.`);
+const errors = (await mapLimit(realErrorPages, 3, completeError)).sort((a, b) => String(a.url).localeCompare(String(b.url)));
 
-const changedErrors = rawErrors.filter(item => previousState.pageVersions?.[item.id] !== item.last_edited_time || !oldMarkdown.has(item.id));
-console.log(`Erros: ${rawErrors.length}; conteúdo novo/alterado: ${changedErrors.length}.`);
-const freshMarkdown = new Map(await mapLimit(changedErrors, 3, async item => [item.id, await fetchMarkdown(item.id)]));
-const errors = rawErrors.map(item => error(item, freshMarkdown.get(item.id) ?? oldMarkdown.get(item.id) ?? '')).sort((a, b) => String(a.date).localeCompare(String(b.date)) || a.id.localeCompare(b.id));
-
-const fallbackPreviousCounts = {
-  controls: Number(previousHome.metrics?.totalPE) || 0,
-  errors: Number(previousHome.metrics?.errors) || 0,
-  redactions: Number(previousRedactionsPublic.summary?.valid) || 0
-};
-const previousCounts = { ...fallbackPreviousCounts, ...(previousState.counts || {}) };
-const currentCounts = { controls: controls.length, errors: errors.length, redactions: redactions.length };
-
-for (const [name, count] of Object.entries(currentCounts)) {
-  if (count < MINIMUM[name]) throw new Error(`${name}: consulta incompleta (${count}); mínimo de segurança: ${MINIMUM[name]}.`);
-  const previous = Number(previousCounts[name]) || 0;
-  if (previous && count < Math.floor(previous * 0.95) && process.env.ALLOW_LARGE_DROP !== 'true') {
-    throw new Error(`${name}: queda anormal de ${previous} para ${count}. Publicação bloqueada para preservar o último snapshot válido.`);
-  }
-}
-
-for (const [name, records] of Object.entries({ controls, errors, redactions })) {
-  const ids = new Set(records.map(item => item.id));
-  if (ids.size !== records.length) throw new Error(`${name}: IDs duplicados detectados.`);
-  if (records.some(item => !item.id || !item.url)) throw new Error(`${name}: registro sem ID ou URL oficial.`);
-}
-
-for (const [name, records, key] of [['controls', controls, 'pe'], ['redactions', redactions, 'rd']]) {
-  const codes = new Set();
-  for (const item of records) {
-    if (codes.has(item[key])) throw new Error(`${name}: código duplicado ${item[key]}.`);
-    codes.add(item[key]);
-  }
-}
+validateSourceCounts(rawControls, controls, 'controls', Number(previousState.counts?.controls) || 0);
+validateSourceCounts(rawErrors, errors, 'errors', Number(previousState.counts?.errors) || 0);
+validateSourceCounts(rawRedactions, redactions, 'redactions', Number(previousState.counts?.redactions) || 0);
+uniqueBy(controls, 'url', 'Controle'); uniqueBy(controls, 'pe', 'Controle');
+uniqueBy(errors, 'url', 'Caderno de Erros');
+uniqueBy(redactions, 'url', 'Redações'); uniqueBy(redactions, 'rd', 'Redações');
+if (errors.some(item => !item.questionError.trim())) throw new Error('Caderno de Erros: registro real sem Questão / Erro após normalização.');
 
 const semantic = {
-  controls: controls.map(({ last_edited_time, ...item }) => item),
-  errors: errors.map(({ last_edited_time, markdown, ...item }) => ({ ...item, markdownHash: hash(markdown || '') })),
-  redactions: redactions.map(({ last_edited_time, ...item }) => item)
+  schemaVersion: SCHEMA_VERSION,
+  controls: controls.map(item => semanticRecord(item, 'control')),
+  errors: errors.map(item => semanticRecord(item, 'error')),
+  redactions: redactions.map(item => semanticRecord(item, 'redaction'))
 };
 const nextHash = hash(semantic);
-if (previousState.semanticHash === nextHash) {
-  console.log('Nenhuma alteração semântica encontrada. Nenhum arquivo será alterado.');
-  process.exit(0);
-}
-
-const syncedAt = new Date().toISOString();
-const date = localDate(syncedAt);
-const output = build(controls, errors, redactions, date, syncedAt);
+const semanticChanged = previousState.semanticHash !== nextHash;
+const output = build(controls, errors, redactions, snapshotDate, runStartedAt);
 output.state.semanticHash = nextHash;
 
-await Promise.all([
-  writeJson('data/notion/control.json', { source: SOURCES.control, records: controls }),
-  writeJson('data/notion/errors.json', { source: SOURCES.errors, records: errors }),
-  writeJson('data/notion/redactions.json', { source: SOURCES.redactions, records: redactions }),
-  writeJson('data/notion/state.json', output.state),
-  writeJson('data/home.json', output.home),
-  writeJson('data/risks.json', output.risks),
-  writeJson('data/subjects.json', output.subjects),
-  writeJson('data/redactions.json', output.redactionsOut)
-]);
-console.log(`Sincronização preparada: ${controls.length} controles, ${errors.length} erros e ${redactions.length} redações.`);
+if (semanticChanged) {
+  await removeLegacyTechnicalData();
+  await clearOldErrorParts();
+  await Promise.all([
+    writeJson('data/notion/state.json', output.state),
+    writeJson('data/home.json', output.home), writeJson('data/today.json', output.today), writeJson('data/evolution.json', output.evolution),
+    writeJson('data/risks.json', output.risks), writeJson('data/agenda.json', output.agenda), writeJson('data/redactions.json', output.redactionsPublic),
+    writeJson('data/audit.json', output.audit), writeJson('data/more.json', output.more), writeJson('data/subjects.json', output.subjects), writeJson('data/live.json', output.live),
+    writeJson('data/export/actual-01.json', output.exports.actual1), writeJson('data/export/actual-02.json', output.exports.actual2), writeJson('data/export/actual-03.json', output.exports.actual3),
+    writeJson('data/export/future-01.json', output.exports.future1), writeJson('data/export/future-02.json', output.exports.future2),
+    writeJson('data/export/redactions-01.json', output.exports.redactions1), writeJson('data/export/redactions-02.json', output.exports.redactions2),
+    writeJson('data/export/errors.json', output.exports.errors), writeJson('data/export/quality.json', output.exports.quality), writeJson('data/export/summary.json', output.exports.summary),
+    writeJson('data/error-questions/index.json', output.errorQuestions.index),
+    ...output.errorQuestions.parts.map((records, index) => writeJson(`data/error-questions/part-${String(index + 1).padStart(2, '0')}.json`, records))
+  ]);
+  await ensureRoutes(output.routes);
+  await generateServiceWorker(output.routes, output.errorQuestions.index);
+  await writeJson('data/sync-history.json', appendHistory('success', 'Fontes oficiais sincronizadas', `Processados ${controls.length} PE válidos, ${errors.length} erros reais e ${redactions.length} redações válidas. Indicadores, exportações, rotas e questões erradas foram recalculados integralmente.`));
+  await setOutput('semantic_changes', 'true');
+  console.log(`Mudança semântica preparada: ${controls.length} PE, ${errors.length} erros e ${redactions.length} redações.`);
+} else {
+  await writeJson('data/sync-history.json', appendHistory('no_changes', 'Fontes oficiais verificadas sem mudança semântica', `Contagens confirmadas: ${controls.length} PE válidos, ${errors.length} erros reais e ${redactions.length} redações válidas. Nenhum indicador ou conteúdo público foi recalculado.`));
+  await setOutput('semantic_changes', 'false');
+  console.log('Nenhuma mudança semântica; somente o histórico da execução foi atualizado.');
+}

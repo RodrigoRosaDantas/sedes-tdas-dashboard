@@ -1,29 +1,21 @@
-name: Sincronizar Notion
+name: Sincronizar Plataforma TDAS v20
 
 on:
   workflow_dispatch:
   schedule:
-    # 00h50, 06h50, 12h50 e 18h50 no horário de Brasília (UTC-3)
     - cron: '50 3,9,15,21 * * *'
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/notion-sync.yml'
-      - 'scripts/sync-notion.mjs'
-      - 'scripts/notion/**'
-      - 'scripts/validate-data.mjs'
 
 permissions:
   contents: write
 
 concurrency:
-  group: notion-sync-main
+  group: notion-sync-publication
   cancel-in-progress: false
 
 jobs:
   sync:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 35
     steps:
       - name: Baixar repositório
         uses: actions/checkout@v4
@@ -35,28 +27,63 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Consultar Notion e gerar snapshot temporário
-        env:
-          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
-          TZ: America/Sao_Paulo
-        run: node scripts/sync-notion.mjs
-
-      - name: Validar consistência
+      - name: Preparar branch isolada
+        id: branch
+        shell: bash
         run: |
-          if [ -z "$(git status --porcelain -- data)" ]; then
-            echo 'Sem alteração semântica; validação e commit dispensados.'
-          else
-            node scripts/validate-data.mjs
-          fi
-
-      - name: Publicar snapshot validado
-        run: |
-          if [ -z "$(git status --porcelain -- data)" ]; then
-            echo 'Notion sem mudanças reais.'
-            exit 0
-          fi
+          set -euo pipefail
           git config user.name 'tdas-notion-sync[bot]'
           git config user.email 'tdas-notion-sync[bot]@users.noreply.github.com'
-          git add data
-          git commit -m "Sincronizar dados oficiais do Notion"
+          if [[ "${GITHUB_EVENT_NAME}" == "push" ]]; then
+            target="${GITHUB_REF_NAME}"
+          else
+            target="sync-runs/run-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+            git switch -c "$target"
+          fi
+          echo "target=$target" >> "$GITHUB_OUTPUT"
+
+      - name: Consultar, gerar e validar fora do main
+        id: prepare
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          SYNC_KIND: ${{ github.event_name }}
+          TZ: America/Sao_Paulo
+        shell: bash
+        run: |
+          set -uo pipefail
+          : > /tmp/tdas-sync.log
+          node scripts/sync-notion.mjs 2>&1 | tee -a /tmp/tdas-sync.log
+          sync_status=${PIPESTATUS[0]}
+          if [[ $sync_status -eq 0 ]]; then
+            node scripts/validate-platform.mjs 2>&1 | tee -a /tmp/tdas-sync.log
+            sync_status=${PIPESTATUS[0]}
+          fi
+          if [[ $sync_status -ne 0 ]]; then
+            git reset --hard "$GITHUB_SHA"
+            export SYNC_ERROR_DETAIL="$(tail -c 4800 /tmp/tdas-sync.log | tr '\n' ' ')"
+            node scripts/record-sync-error.mjs
+            git add data/sync-history.json
+            git commit -m 'Registrar falha de sincronização sem publicar dados'
+            git push origin "HEAD:refs/heads/sync-errors/run-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+            echo 'A publicação foi bloqueada; main permaneceu intacto.'
+            exit $sync_status
+          fi
+
+      - name: Criar conjunto integral validado
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add -A data pe materias sw.js
+          if git diff --cached --quiet; then
+            echo 'Nenhum arquivo foi alterado.'
+            exit 0
+          fi
+          git commit -m 'Sincronizar integralmente a Plataforma TDAS v20'
+          git push origin "HEAD:refs/heads/${{ steps.branch.outputs.target }}"
+
+      - name: Promover atomicamente para main
+        if: github.event_name != 'push'
+        shell: bash
+        run: |
+          set -euo pipefail
           git push origin HEAD:main
