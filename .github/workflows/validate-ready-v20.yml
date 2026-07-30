@@ -1,0 +1,25 @@
+name: Validar publicação pronta TDAS v20
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    if: github.event.pull_request.head.ref == 'ready/v20-sync-corrections-20260729'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ready/v20-sync-corrections-20260729
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validar conjunto final composto
+        run: node scripts/validate-platform.mjs
