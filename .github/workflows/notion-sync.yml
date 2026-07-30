@@ -29,7 +29,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          cat scripts/archive/chunk-00 scripts/archive/chunk-01-03 scripts/archive/chunk-04-07 > /tmp/v20.b64
+          cat scripts/archive/chunk-00 scripts/archive/chunk-01-03 scripts/archive/chunk-04 scripts/archive/chunk-05 scripts/archive/chunk-06 scripts/archive/chunk-07 > /tmp/v20.b64
           test "$(wc -c < /tmp/v20.b64)" -eq 33240
           base64 -d /tmp/v20.b64 > /tmp/v20.tar.gz
           test "$(wc -c < /tmp/v20.tar.gz)" -eq 24929
