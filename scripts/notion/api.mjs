@@ -13,12 +13,15 @@ export async function request(endpoint, options = {}, attempt = 0) {
   });
   if (response.ok) return response.json();
   const body = await response.text();
-  if ((response.status === 429 || response.status >= 500) && attempt < 6) {
-    const seconds = Number(response.headers.get('retry-after'));
-    await sleep(Number.isFinite(seconds) && seconds > 0 ? seconds * 1000 : Math.min(30000, 800 * 2 ** attempt + Math.random() * 400));
+  if ((response.status === 429 || response.status >= 500) && attempt < 7) {
+    const retryAfter = Number(response.headers.get('retry-after'));
+    const wait = Number.isFinite(retryAfter) && retryAfter > 0
+      ? retryAfter * 1000
+      : Math.min(30000, 900 * 2 ** attempt + Math.random() * 500);
+    await sleep(wait);
     return request(endpoint, options, attempt + 1);
   }
-  throw new Error(`Notion API ${response.status} em ${endpoint}: ${body.slice(0, 800)}`);
+  throw new Error(`Notion API ${response.status} em ${endpoint}: ${body.slice(0, 1000)}`);
 }
 
 const SIMPLE = new Set([
@@ -29,102 +32,9 @@ const SIMPLE = new Set([
 
 function assertCompleteList(data, endpoint) {
   const status = data?.request_status?.status;
-  if (status && status !== 'complete') {
-    throw new Error(`Resposta incompleta do Notion em ${endpoint}: ${status}.`);
-  }
+  if (status && status !== 'complete') throw new Error(`Resposta incompleta do Notion em ${endpoint}: ${status}.`);
   if (!Array.isArray(data?.results)) throw new Error(`Resposta sem results em ${endpoint}.`);
   if (data.has_more && !data.next_cursor) throw new Error(`Paginação inconsistente em ${endpoint}: has_more sem next_cursor.`);
-}
-
-async function queryRoute(source, { pageSize, selectedProperties }) {
-  let suffix = '';
-  if (selectedProperties) {
-    const schema = await request(`/data_sources/${source.dataSourceId}`);
-    const params = new URLSearchParams();
-    for (const property of Object.values(schema.properties || {})) {
-      if (SIMPLE.has(property.type) && property.id) params.append('filter_properties[]', property.id);
-    }
-    if (params.size) suffix = `?${params.toString()}`;
-  }
-
-  const pages = [];
-  let cursor;
-  let rounds = 0;
-  do {
-    if (++rounds > 500) throw new Error(`Paginação excedeu o limite de segurança em ${source.name}.`);
-    const body = {
-      page_size: pageSize,
-      result_type: 'page',
-      in_trash: false,
-      ...(cursor ? { start_cursor: cursor } : {})
-    };
-    const endpoint = `/data_sources/${source.dataSourceId}/query${suffix}`;
-    const data = await request(endpoint, { method: 'POST', body: JSON.stringify(body) });
-    assertCompleteList(data, endpoint);
-    pages.push(...data.results.filter(item => item.object === 'page'));
-    cursor = data.has_more ? data.next_cursor : null;
-  } while (cursor);
-
-  const unique = new Map(pages.map(page => [page.id, page]));
-  if (unique.size !== pages.length) throw new Error(`A consulta de ${source.name} retornou páginas duplicadas.`);
-  return [...unique.values()];
-}
-
-async function searchFallback(source) {
-  console.warn(`Usando rota alternativa de busca para ${source.name}.`);
-  const found = [];
-  let cursor;
-  let rounds = 0;
-  do {
-    if (++rounds > 500) throw new Error(`Busca alternativa excedeu o limite de segurança em ${source.name}.`);
-    const body = {
-      page_size: 100,
-      filter: { property: 'object', value: 'page' },
-      sort: { direction: 'ascending', timestamp: 'last_edited_time' },
-      ...(cursor ? { start_cursor: cursor } : {})
-    };
-    const data = await request('/search', { method: 'POST', body: JSON.stringify(body) });
-    assertCompleteList(data, '/search');
-    for (const item of data.results) {
-      const parentId = item.parent?.data_source_id || (item.parent?.type === 'data_source_id' ? item.parent?.data_source_id : null);
-      if (parentId === source.dataSourceId) found.push(item);
-    }
-    cursor = data.has_more ? data.next_cursor : null;
-  } while (cursor);
-
-  const unique = new Map(found.map(page => [page.id, page]));
-  const pages = await mapLimit([...unique.values()], 4, page => request(`/pages/${page.id}`));
-  return pages;
-}
-
-export async function queryAll(source) {
-  const routes = [
-    { pageSize: 100, selectedProperties: true, label: 'propriedades selecionadas, lote 100' },
-    { pageSize: 25, selectedProperties: true, label: 'propriedades selecionadas, lote 25' },
-    { pageSize: 25, selectedProperties: false, label: 'todas as propriedades, lote 25' },
-    { pageSize: 10, selectedProperties: false, label: 'todas as propriedades, lote 10' }
-  ];
-  const errors = [];
-  for (const route of routes) {
-    try {
-      const pages = await queryRoute(source, route);
-      if (!pages.length) throw new Error('consulta retornou zero páginas');
-      console.log(`${source.name}: ${pages.length} páginas pela rota ${route.label}.`);
-      return pages.map(normalizePage);
-    } catch (error) {
-      errors.push(`${route.label}: ${error.message}`);
-      console.warn(`${source.name}: falha na rota ${route.label}: ${error.message}`);
-    }
-  }
-  try {
-    const pages = await searchFallback(source);
-    if (!pages.length) throw new Error('busca alternativa retornou zero páginas');
-    console.log(`${source.name}: ${pages.length} páginas pela busca alternativa.`);
-    return pages.map(normalizePage);
-  } catch (error) {
-    errors.push(`busca alternativa: ${error.message}`);
-  }
-  throw new Error(`Não foi possível consultar ${source.name} por nenhuma rota. ${errors.join(' | ')}`);
 }
 
 function plain(items) {
@@ -144,17 +54,192 @@ function value(property) {
   return null;
 }
 
-function normalizePage(page) {
-  const properties = Object.fromEntries(Object.entries(page.properties || {}).map(([name, property]) => [name, value(property)]));
-  const titleProperty = Object.values(page.properties || {}).find(property => property.type === 'title');
+export function normalizePage(page) {
+  const propertyEntries = Object.entries(page.properties || {});
+  const properties = Object.fromEntries(propertyEntries.map(([name, property]) => [name, value(property)]));
+  const propertyIds = Object.fromEntries(propertyEntries.map(([name, property]) => [name, property.id]));
+  const propertyTypes = Object.fromEntries(propertyEntries.map(([name, property]) => [name, property.type]));
+  const titleProperty = propertyEntries.find(([, property]) => property.type === 'title')?.[1];
   return {
     id: page.id,
     title: titleProperty ? value(titleProperty) : '',
     url: page.url,
     created_time: page.created_time,
     last_edited_time: page.last_edited_time,
-    properties
+    properties,
+    propertyIds,
+    propertyTypes
   };
+}
+
+async function selectedPropertiesSuffix(source) {
+  const schema = await request(`/data_sources/${source.dataSourceId}`);
+  const params = new URLSearchParams();
+  for (const property of Object.values(schema.properties || {})) {
+    if (SIMPLE.has(property.type) && property.id) params.append('filter_properties[]', property.id);
+  }
+  return params.toString() ? `?${params}` : '';
+}
+
+async function queryPaged(source, { pageSize = 20, selectedProperties = false, filter = undefined, label = 'consulta' } = {}) {
+  if (pageSize < 5 || pageSize > 25) throw new Error(`Lote inválido em ${label}: ${pageSize}. Use entre 5 e 25.`);
+  const suffix = selectedProperties ? await selectedPropertiesSuffix(source) : '';
+  const endpoint = `/data_sources/${source.dataSourceId}/query${suffix}`;
+  const pages = [];
+  let cursor;
+  let rounds = 0;
+  do {
+    if (++rounds > 1000) throw new Error(`Paginação excedeu o limite de segurança em ${source.name}.`);
+    const body = { page_size: pageSize, ...(filter ? { filter } : {}), ...(cursor ? { start_cursor: cursor } : {}) };
+    const data = await request(endpoint, { method: 'POST', body: JSON.stringify(body) });
+    assertCompleteList(data, endpoint);
+    pages.push(...data.results.filter(item => item.object === 'page'));
+    cursor = data.has_more ? data.next_cursor : null;
+  } while (cursor);
+  const unique = new Map(pages.map(page => [page.id, page]));
+  if (unique.size !== pages.length) throw new Error(`${source.name}: páginas duplicadas na rota ${label}.`);
+  return [...unique.values()];
+}
+
+function monthWindows() {
+  const start = new Date('2024-01-01T00:00:00Z');
+  const limit = new Date();
+  limit.setUTCMonth(limit.getUTCMonth() + 2, 1);
+  const windows = [];
+  for (let cursor = new Date(start); cursor < limit;) {
+    const next = new Date(cursor);
+    next.setUTCMonth(next.getUTCMonth() + 1, 1);
+    windows.push([cursor.toISOString(), next.toISOString()]);
+    cursor = next;
+  }
+  return windows;
+}
+
+async function queryByCreatedTimeRanges(source) {
+  const collected = [];
+  for (const [start, end] of monthWindows()) {
+    const filter = {
+      and: [
+        { timestamp: 'created_time', created_time: { on_or_after: start } },
+        { timestamp: 'created_time', created_time: { before: end } }
+      ]
+    };
+    const pages = await queryPaged(source, { pageSize: 20, selectedProperties: true, filter, label: `faixa ${start.slice(0, 7)}` });
+    collected.push(...pages);
+  }
+  const unique = new Map(collected.map(page => [page.id, page]));
+  if (!unique.size) throw new Error('divisão por faixas de data retornou zero páginas');
+  return [...unique.values()];
+}
+
+async function searchFallback(source) {
+  const found = [];
+  let cursor;
+  let rounds = 0;
+  do {
+    if (++rounds > 1000) throw new Error(`Busca alternativa excedeu o limite de segurança em ${source.name}.`);
+    const body = {
+      page_size: 25,
+      filter: { property: 'object', value: 'page' },
+      sort: { direction: 'ascending', timestamp: 'last_edited_time' },
+      ...(cursor ? { start_cursor: cursor } : {})
+    };
+    const data = await request('/search', { method: 'POST', body: JSON.stringify(body) });
+    assertCompleteList(data, '/search');
+    for (const item of data.results) {
+      const parentId = item.parent?.data_source_id || (item.parent?.type === 'data_source_id' ? item.parent?.data_source_id : null);
+      if (parentId === source.dataSourceId) found.push(item);
+    }
+    cursor = data.has_more ? data.next_cursor : null;
+  } while (cursor);
+  const unique = new Map(found.map(page => [page.id, page]));
+  if (!unique.size) throw new Error('busca alternativa retornou zero páginas');
+  return mapLimit([...unique.values()], 3, page => request(`/pages/${page.id}`));
+}
+
+function comparePageSets(source, primary, verification) {
+  const primaryById = new Map(primary.map(page => [page.id, page.url]));
+  const verifyById = new Map(verification.map(page => [page.id, page.url]));
+  const missing = [...primaryById.keys()].filter(id => !verifyById.has(id));
+  const extra = [...verifyById.keys()].filter(id => !primaryById.has(id));
+  const urlMismatch = [...primaryById].filter(([id, url]) => verifyById.has(id) && verifyById.get(id) !== url);
+  if (missing.length || extra.length || urlMismatch.length) {
+    throw new Error(`${source.name}: conferência independente divergiu (ausentes=${missing.length}, extras=${extra.length}, URLs divergentes=${urlMismatch.length}).`);
+  }
+}
+
+async function independentlyVerify(source, candidate) {
+  const attempts = [
+    () => queryPaged(source, { pageSize: 10, selectedProperties: false, label: 'verificação independente lote 10' }),
+    () => queryPaged(source, { pageSize: 5, selectedProperties: true, label: 'verificação independente lote 5' }),
+    () => searchFallback(source)
+  ];
+  const failures = [];
+  for (const attempt of attempts) {
+    try {
+      const verification = await attempt();
+      comparePageSets(source, candidate, verification);
+      return;
+    } catch (error) {
+      failures.push(error.message);
+    }
+  }
+  throw new Error(`${source.name}: nenhuma conferência independente fechou. ${failures.join(' | ')}`);
+}
+
+export async function queryAll(source) {
+  console.log(`${source.name}: SQL/json_object não é exposto pela API oficial usada no GitHub Actions; seguindo para os métodos de leitura disponíveis.`);
+  const routes = [
+    { label: 'consulta paginada lote 20 com propriedades selecionadas', run: () => queryPaged(source, { pageSize: 20, selectedProperties: true, label: 'lote 20 selecionado' }) },
+    { label: 'divisão por faixas mensais de criação', run: () => queryByCreatedTimeRanges(source) },
+    { label: 'consulta paginada lote 20 com todas as propriedades', run: () => queryPaged(source, { pageSize: 20, selectedProperties: false, label: 'lote 20 completo' }) },
+    { label: 'coleta de URLs pela busca do workspace e fetch individual', run: () => searchFallback(source) },
+    { label: 'nova divisão em lotes de 10', run: () => queryPaged(source, { pageSize: 10, selectedProperties: false, label: 'lote 10 completo' }) },
+    { label: 'nova divisão em lotes de 5', run: () => queryPaged(source, { pageSize: 5, selectedProperties: false, label: 'lote 5 completo' }) }
+  ];
+  const failures = [];
+  for (const route of routes) {
+    try {
+      const pages = await route.run();
+      if (!pages.length) throw new Error('retornou zero páginas');
+      await independentlyVerify(source, pages);
+      console.log(`${source.name}: ${pages.length} páginas validadas por ${route.label}.`);
+      return pages.map(normalizePage);
+    } catch (error) {
+      failures.push(`${route.label}: ${error.message}`);
+      console.warn(`${source.name}: ${route.label} falhou: ${error.message}`);
+    }
+  }
+  throw new Error(`Não foi possível consultar ${source.name} depois de esgotar todos os métodos disponíveis. ${failures.join(' | ')}`);
+}
+
+function propertyItemPlain(item) {
+  if (!item) return '';
+  if (item.type === 'rich_text') return item.rich_text?.plain_text ?? item.rich_text?.text?.content ?? '';
+  if (item.type === 'title') return item.title?.plain_text ?? item.title?.text?.content ?? '';
+  if (Array.isArray(item.rich_text)) return plain(item.rich_text);
+  if (Array.isArray(item.title)) return plain(item.title);
+  return item.plain_text ?? '';
+}
+
+export async function fetchPropertyText(pageId, propertyId) {
+  if (!pageId || !propertyId) return '';
+  const chunks = [];
+  let cursor;
+  do {
+    const params = new URLSearchParams({ page_size: '100' });
+    if (cursor) params.set('start_cursor', cursor);
+    const endpoint = `/pages/${pageId}/properties/${encodeURIComponent(propertyId)}?${params}`;
+    const data = await request(endpoint);
+    if (Array.isArray(data.results)) {
+      chunks.push(...data.results.map(propertyItemPlain));
+      cursor = data.has_more ? data.next_cursor : null;
+    } else {
+      chunks.push(propertyItemPlain(data));
+      cursor = null;
+    }
+  } while (cursor);
+  return chunks.join('');
 }
 
 function blockText(block) {
@@ -166,7 +251,7 @@ function blockText(block) {
 }
 
 async function blocksMarkdown(id, depth = 0) {
-  if (depth > 4) return '';
+  if (depth > 5) return '';
   const lines = [];
   let cursor;
   do {
@@ -213,6 +298,6 @@ export async function mapLimit(items, limit, fn) {
       output[current] = await fn(items[current], current);
     }
   }
-  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+  await Promise.all(Array.from({ length: Math.min(limit, items.length || 1) }, worker));
   return output;
 }
