@@ -65,6 +65,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          git restore --source=origin/fix/v20-sync-corrections-20260729 -- .github/workflows/notion-sync.yml
           git add -A
           git commit -m 'Aplicar correções integrais da sincronização TDAS v20'
-          git push origin HEAD:fix/v20-sync-corrections-20260729
+          git push --force-with-lease origin HEAD:validated/v20-sync-corrections-20260729
