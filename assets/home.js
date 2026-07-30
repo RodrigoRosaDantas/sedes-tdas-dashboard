@@ -1,4 +1,4 @@
-import{loadJSON,setupShell,fmtNumber,fmtPct,fmtDate,metric,alertCard,setLoadingError,routes}from'./common.js?v=23';
+import{loadJSON,setupShell,fmtNumber,fmtPct,fmtDate,metric,alertCard,setLoadingError,routes}from'./common.js?v=24';
 
 function examCountdown(examDate){
  const [year,month,day]=examDate.split('-').map(Number);
