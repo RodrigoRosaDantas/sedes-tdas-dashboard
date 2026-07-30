@@ -29,8 +29,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          base64 -d scripts/.v20-corrections.tar.gz.b64 | tar -xz
-          rm scripts/.v20-corrections.tar.gz.b64
+          cat scripts/archive/chunk-00 scripts/archive/chunk-01-03 scripts/archive/chunk-04-07 > /tmp/v20.b64
+          test "$(wc -c < /tmp/v20.b64)" -eq 33240
+          base64 -d /tmp/v20.b64 > /tmp/v20.tar.gz
+          test "$(wc -c < /tmp/v20.tar.gz)" -eq 24929
+          tar -xzf /tmp/v20.tar.gz
+          rm -rf scripts/archive scripts/.v20-corrections.tar.gz.b64
           git config user.name 'tdas-notion-sync[bot]'
           git config user.email 'tdas-notion-sync[bot]@users.noreply.github.com'
       - name: Sincronizar e validar na branch isolada
