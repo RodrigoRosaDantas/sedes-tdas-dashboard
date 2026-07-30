@@ -10,6 +10,7 @@ on:
     paths:
       - '.github/workflows/notion-sync.yml'
       - 'scripts/sync-notion.mjs'
+      - 'scripts/notion/**'
       - 'scripts/validate-data.mjs'
 
 permissions:
