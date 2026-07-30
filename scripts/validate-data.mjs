@@ -49,8 +49,18 @@ for (const [name, records] of Object.entries({ controls, errors, redactions })) 
   }
 }
 
-if (!controls.some(item => /^PE\d{2,3}$/.test(item.pe))) throw new Error('Nenhum Dia ID PE válido foi encontrado.');
+const peCodes = new Set();
+for (const item of controls) {
+  if (!/^PE\d{2,3}$/.test(item.pe)) throw new Error(`Dia ID inválido: ${item.pe || '(vazio)'}.`);
+  if (peCodes.has(item.pe)) throw new Error(`Dia ID duplicado: ${item.pe}.`);
+  peCodes.add(item.pe);
+}
+const rdCodes = new Set();
+for (const item of redactions) {
+  if (!/^RD\d{2,3}$/.test(item.rd)) throw new Error(`RD ID inválido: ${item.rd || '(vazio)'}.`);
+  if (rdCodes.has(item.rd)) throw new Error(`RD ID duplicado: ${item.rd}.`);
+  rdCodes.add(item.rd);
+}
 if (!errors.every(item => item.subject && item.date)) throw new Error('Há erro sem matéria ou data normalizada.');
-if (!redactions.some(item => /^RD\d{2,3}$/.test(item.rd))) throw new Error('Nenhum RD ID válido foi encontrado.');
 
 console.log(`Validação concluída: ${controls.length} controles, ${errors.length} erros, ${redactions.length} redações.`);

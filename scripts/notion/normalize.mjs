@@ -16,23 +16,24 @@ function prop(record, aliases) {
   }
   for (const alias of aliases) {
     const target = compact(alias);
+    if (target.length < 5) continue;
     const hit = entries.find(([name]) => compact(name).includes(target) || target.includes(compact(name)));
     if (hit) return hit[1];
   }
   return null;
 }
 
-function code(record, prefix) {
-  const regex = new RegExp(`\\b${prefix}\\s*0*(\\d{1,3})\\b`, 'i');
-  for (const value of [record.title, ...Object.values(record.properties || {}).flatMap(item => Array.isArray(item) ? item : [item])]) {
-    const match = String(value ?? '').match(regex);
-    if (match) return `${prefix.toUpperCase()}${String(Number(match[1])).padStart(2, '0')}`;
-  }
-  return '';
+function normalizeCode(value, prefix) {
+  const match = String(value ?? '').match(new RegExp(`\\b${prefix}\\s*0*(\\d{1,3})\\b`, 'i'));
+  return match ? `${prefix.toUpperCase()}${String(Number(match[1])).padStart(2, '0')}` : '';
+}
+
+function codeFromTitle(record, prefix) {
+  return normalizeCode(record.title, prefix);
 }
 
 export function control(record) {
-  const pe = code(record, 'PE') || text(prop(record, ['Dia ID', 'PE', 'Caso ID']));
+  const pe = normalizeCode(prop(record, ['Dia ID']), 'PE') || codeFromTitle(record, 'PE');
   const status = text(prop(record, ['Status', 'Situação', 'Resultado automático']));
   const qg = num(prop(record, ['Questões gerais', 'Q gerais'])) ?? 0;
   const qe = num(prop(record, ['Questões específicas', 'Q específicas'])) ?? 0;
@@ -40,7 +41,7 @@ export function control(record) {
   const ae = num(prop(record, ['Acertos específicas', 'Acertos específicos']));
   const acertos = num(prop(record, ['Acertos'])) ?? ((ag != null || ae != null) ? (ag || 0) + (ae || 0) : null);
   const attempted = num(prop(record, ['Questões feitas', 'Questões concluídas'])) ?? qg + qe;
-  const rd = code(record, 'RD') || text(prop(record, ['RD ID', 'Redação ID', 'RD', 'Redação']));
+  const rd = normalizeCode(prop(record, ['RD ID']), 'RD');
   return {
     id: record.id,
     pe,
@@ -77,7 +78,7 @@ function patterns(record) {
 export function error(record, markdown = '') {
   return {
     id: record.id,
-    origin: code(record, 'PE') || text(prop(record, ['Origem / Dia ID', 'Origem', 'Dia ID'])),
+    origin: normalizeCode(prop(record, ['Origem / Dia ID']), 'PE'),
     title: record.title.replace(/^\s*❌?\s*Erro\s*\d*\s*[—–-]\s*/i, '').trim() || record.title,
     fullTitle: record.title,
     subject: text(prop(record, ['Matéria', 'Disciplina', 'Assunto'])) || 'Não classificado',
@@ -99,15 +100,14 @@ export function error(record, markdown = '') {
 }
 
 export function redaction(record) {
-  const rd = code(record, 'RD') || text(prop(record, ['RD ID', 'RD', 'Redação ID', 'ID']));
-  const pe = code(record, 'PE') || text(prop(record, ['PE', 'Origem / Dia ID', 'Dia ID']));
+  const rd = normalizeCode(prop(record, ['RD ID']), 'RD');
   const rdNumber = Number(rd.replace(/\D/g, ''));
   const status = text(prop(record, ['Status', 'Resultado automático', 'Situação', 'Estado da versão']));
   const corrected = bool(prop(record, ['Diagnóstico feito?', 'Corrigida?', 'Correção feita?'])) || /(corrigid|diagnosticad|reescrit)/i.test(norm(status));
   return {
     id: record.id,
     rd,
-    pe,
+    pe: '',
     week: num(prop(record, ['Semana'])) ?? (rdNumber ? Math.ceil(rdNumber / 2) : null),
     date: text(prop(record, ['Data'])).slice(0, 10),
     theme: text(prop(record, ['Tema'])) || record.title.replace(/^\s*RD\s*\d+\s*[—–-]\s*/i, '').trim() || record.title,
