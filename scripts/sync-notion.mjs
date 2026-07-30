@@ -17,9 +17,16 @@ const [rawControls, rawErrors, rawRedactions] = await Promise.all([
   queryAll(SOURCES.redactions)
 ]);
 
-const controls = rawControls.map(control).filter(item => item.pe || item.title).sort((a, b) => String(a.pe).localeCompare(String(b.pe)) || a.id.localeCompare(b.id));
+const controls = rawControls
+  .map(control)
+  .filter(item => /^PE\d{2,3}$/.test(item.pe))
+  .sort((a, b) => a.pe.localeCompare(b.pe) || a.id.localeCompare(b.id));
 const rdToPe = new Map(controls.filter(item => item.rd && item.pe).map(item => [item.rd, item.pe]));
-const redactions = rawRedactions.map(redaction).map(item => ({ ...item, pe: item.pe || rdToPe.get(item.rd) || '' })).filter(item => item.rd || item.theme).sort((a, b) => String(a.rd).localeCompare(String(b.rd)) || a.id.localeCompare(b.id));
+const redactions = rawRedactions
+  .map(redaction)
+  .filter(item => /^RD\d{2,3}$/.test(item.rd))
+  .map(item => ({ ...item, pe: rdToPe.get(item.rd) || '' }))
+  .sort((a, b) => a.rd.localeCompare(b.rd) || a.id.localeCompare(b.id));
 
 const changedErrors = rawErrors.filter(item => previousState.pageVersions?.[item.id] !== item.last_edited_time || !oldMarkdown.has(item.id));
 console.log(`Erros: ${rawErrors.length}; conteúdo novo/alterado: ${changedErrors.length}.`);
@@ -46,6 +53,14 @@ for (const [name, records] of Object.entries({ controls, errors, redactions })) 
   const ids = new Set(records.map(item => item.id));
   if (ids.size !== records.length) throw new Error(`${name}: IDs duplicados detectados.`);
   if (records.some(item => !item.id || !item.url)) throw new Error(`${name}: registro sem ID ou URL oficial.`);
+}
+
+for (const [name, records, key] of [['controls', controls, 'pe'], ['redactions', redactions, 'rd']]) {
+  const codes = new Set();
+  for (const item of records) {
+    if (codes.has(item[key])) throw new Error(`${name}: código duplicado ${item[key]}.`);
+    codes.add(item[key]);
+  }
 }
 
 const semantic = {
