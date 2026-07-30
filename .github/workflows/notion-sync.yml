@@ -1,12 +1,9 @@
 name: Preparar correções TDAS v20
 
 on:
-  push:
-    branches:
-      - fix/v20-sync-corrections-20260729
-    paths:
-      - '.github/workflows/notion-sync.yml'
-      - 'scripts/.v20-corrections.tar.gz.b64'
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
 
 permissions:
   contents: write
@@ -17,11 +14,13 @@ concurrency:
 
 jobs:
   prepare:
+    if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: fix/v20-sync-corrections-20260729
           fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
@@ -50,8 +49,8 @@ jobs:
             status=${PIPESTATUS[0]}
           fi
           if [[ $status -ne 0 ]]; then
-            git reset --hard "$GITHUB_SHA"
             export SYNC_ERROR_DETAIL="$(tail -c 4800 /tmp/tdas-sync.log | tr '\n' ' ')"
+            git reset --hard origin/fix/v20-sync-corrections-20260729
             node --input-type=module -e "import fs from 'node:fs/promises';const f='data/sync-history.json';let d={entries:[]};try{d=JSON.parse(await fs.readFile(f,'utf8'))}catch{};d.entries=[{at:new Date().toISOString(),kind:'Preparação isolada',status:'error',summary:'Correções bloqueadas antes da publicação',detail:process.env.SYNC_ERROR_DETAIL},...(d.entries||[])].slice(0,40);await fs.writeFile(f,JSON.stringify(d)+'\n')"
             git add data/sync-history.json
             git commit -m 'Registrar falha isolada de preparação'
@@ -65,4 +64,3 @@ jobs:
           git add -A
           git commit -m 'Aplicar correções integrais da sincronização TDAS v20'
           git push origin HEAD:fix/v20-sync-corrections-20260729
-# disparo explícito da preparação isolada
