@@ -1,71 +1,89 @@
-name: Preparar correções TDAS v20
+name: Sincronizar Plataforma TDAS v20
 
 on:
-  pull_request:
-    branches: [main]
-    types: [opened, synchronize, reopened]
+  workflow_dispatch:
+  schedule:
+    - cron: '50 3,9,15,21 * * *'
 
 permissions:
   contents: write
 
 concurrency:
-  group: tdas-v20-correction-preparation
+  group: notion-sync-publication
   cancel-in-progress: false
 
 jobs:
-  prepare:
-    if: github.event.pull_request.head.repo.full_name == github.repository
+  sync:
     runs-on: ubuntu-latest
     timeout-minutes: 35
     steps:
-      - uses: actions/checkout@v4
+      - name: Baixar repositório
+        uses: actions/checkout@v4
         with:
-          ref: fix/v20-sync-corrections-20260729
           fetch-depth: 0
-      - uses: actions/setup-node@v4
+
+      - name: Preparar Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Instalar conjunto corrigido
+
+      - name: Preparar branch isolada
+        id: branch
         shell: bash
         run: |
           set -euo pipefail
-          cat scripts/archive/chunk-00 scripts/archive/chunk-01-03 scripts/archive/chunk-04 scripts/archive/chunk-05 scripts/archive/chunk-06 scripts/archive/chunk-07 > /tmp/v20.b64
-          test "$(wc -c < /tmp/v20.b64)" -eq 33240
-          base64 -d /tmp/v20.b64 > /tmp/v20.tar.gz
-          test "$(wc -c < /tmp/v20.tar.gz)" -eq 24929
-          tar -xzf /tmp/v20.tar.gz
-          rm -rf scripts/archive scripts/.v20-corrections.tar.gz.b64
           git config user.name 'tdas-notion-sync[bot]'
           git config user.email 'tdas-notion-sync[bot]@users.noreply.github.com'
-      - name: Sincronizar e validar na branch isolada
+          if [[ "${GITHUB_EVENT_NAME}" == "push" ]]; then
+            target="${GITHUB_REF_NAME}"
+          else
+            target="sync-runs/run-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+            git switch -c "$target"
+          fi
+          echo "target=$target" >> "$GITHUB_OUTPUT"
+
+      - name: Consultar, gerar e validar fora do main
+        id: prepare
         env:
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
-          SYNC_KIND: preparation
+          SYNC_KIND: ${{ github.event_name }}
           TZ: America/Sao_Paulo
         shell: bash
         run: |
           set -uo pipefail
           : > /tmp/tdas-sync.log
           node scripts/sync-notion.mjs 2>&1 | tee -a /tmp/tdas-sync.log
-          status=${PIPESTATUS[0]}
-          if [[ $status -eq 0 ]]; then
+          sync_status=${PIPESTATUS[0]}
+          if [[ $sync_status -eq 0 ]]; then
             node scripts/validate-platform.mjs 2>&1 | tee -a /tmp/tdas-sync.log
-            status=${PIPESTATUS[0]}
+            sync_status=${PIPESTATUS[0]}
           fi
-          if [[ $status -ne 0 ]]; then
+          if [[ $sync_status -ne 0 ]]; then
+            git reset --hard "$GITHUB_SHA"
             export SYNC_ERROR_DETAIL="$(tail -c 4800 /tmp/tdas-sync.log | tr '\n' ' ')"
-            git reset --hard origin/fix/v20-sync-corrections-20260729
-            node --input-type=module -e "import fs from 'node:fs/promises';const f='data/sync-history.json';let d={entries:[]};try{d=JSON.parse(await fs.readFile(f,'utf8'))}catch{};d.entries=[{at:new Date().toISOString(),kind:'Preparação isolada',status:'error',summary:'Correções bloqueadas antes da publicação',detail:process.env.SYNC_ERROR_DETAIL},...(d.entries||[])].slice(0,40);await fs.writeFile(f,JSON.stringify(d)+'\n')"
+            node scripts/record-sync-error.mjs
             git add data/sync-history.json
-            git commit -m 'Registrar falha isolada de preparação'
-            git push origin "HEAD:refs/heads/sync-errors/preparation-${GITHUB_RUN_ID}"
-            exit $status
+            git commit -m 'Registrar falha de sincronização sem publicar dados'
+            git push origin "HEAD:refs/heads/sync-errors/run-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+            echo 'A publicação foi bloqueada; main permaneceu intacto.'
+            exit $sync_status
           fi
-      - name: Consolidar branch validada
+
+      - name: Criar conjunto integral validado
         shell: bash
         run: |
           set -euo pipefail
-          git restore --source=origin/fix/v20-sync-corrections-20260729 -- .github/workflows/notion-sync.yml
-          git add -A
-          git commit -m 'Aplicar correções integrais da sincronização TDAS v20'
-          git push --force-with-lease origin HEAD:validated/v20-sync-corrections-20260729
+          git add -A data pe materias sw.js
+          if git diff --cached --quiet; then
+            echo 'Nenhum arquivo foi alterado.'
+            exit 0
+          fi
+          git commit -m 'Sincronizar integralmente a Plataforma TDAS v20'
+          git push origin "HEAD:refs/heads/${{ steps.branch.outputs.target }}"
+
+      - name: Promover atomicamente para main
+        if: github.event_name != 'push'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git push origin HEAD:main
