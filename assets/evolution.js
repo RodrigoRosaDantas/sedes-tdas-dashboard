@@ -29,7 +29,7 @@ function renderPlanChart(el,{total,plannedToDate,completed,startDate,snapshotDat
 
 try{
  const[d,home]=await Promise.all([loadJSON('data/evolution.json'),loadJSON('data/home.json')]);
- setupShell('evolucao',d.meta);
+ setupShell('evolucao',{...d.meta,version:'25.0'});
  const startDate=(d.actual.find(x=>x.pe==='PE01')||d.actual[0]).date;
  const snapshotDate=d.meta.snapshotDate;
  const examDate=d.meta.examDate;
@@ -63,6 +63,7 @@ try{
   return{week,planned,fulfilled,studied,rests,rate,status};
  });
  const bestBlock=d.blocks.slice().sort((a,b)=>b.accuracy-a.accuracy)[0];
+ const completedSimulations=d.simulations.filter(x=>x.status==='Concluído'&&/^Simulado/i.test(x.title)).length;
  document.querySelector('main').innerHTML=`
  <section class="hero"><span class="kicker">Desempenho e governança do ciclo</span><h1>Evolução</h1><p>Compare qualidade, volume e aderência ao planejamento para saber se o estudo está avançando no ritmo necessário.</p></section>
  <section class="section" id="planejado-executado">
@@ -84,7 +85,7 @@ try{
   </div>
  </section>
  <section class="section"><div class="section-head"><div><h2>Cumprimento semanal do plano</h2><p>Estudo e descanso aparecem separados, mas ambos compõem o total de PE cumpridos.</p></div></div><div class="table-wrap"><table><thead><tr><th>Semana</th><th>Planejados até o corte</th><th>Cumpridos</th><th>Estudo/execução</th><th>Descansos</th><th>Cumprimento</th><th>Situação</th></tr></thead><tbody>${weeklyPlan.map(x=>`<tr><td>Semana ${x.week}</td><td>${x.planned}</td><td>${x.fulfilled}</td><td>${x.studied}</td><td>${x.rests}</td><td>${fmtPct(x.rate,1)}</td><td><span class="status ${x.status.includes('crítico')?'critical':x.status.includes('Atraso')?'warning':''}">${x.status}</span></td></tr>`).join('')}</tbody></table></div></section>
- <section class="grid metrics">${metric('Histórico',fmtPct(d.summary.historical),`${d.summary.resultDays} dias com resultado`)}${metric('Últimas 4 semanas',fmtPct(d.summary.recent4),`${d.summary.trend>=0?'+':''}${d.summary.trend.toFixed(2).replace('.',',')} p.p.`)}${metric('Melhor bloco',bestBlock.block,fmtPct(bestBlock.accuracy))}${metric('Simulados consolidados',d.simulations.filter(x=>x.status==='Concluído').length,'registros com status concluído')}</section>
+ <section class="grid metrics">${metric('Histórico',fmtPct(d.summary.historical),`${d.summary.resultDays} dias com resultado`)}${metric('Últimas 4 semanas',fmtPct(d.summary.recent4),`${d.summary.trend>=0?'+':''}${d.summary.trend.toFixed(2).replace('.',',')} p.p.`)}${metric('Melhor bloco',bestBlock.block,fmtPct(bestBlock.accuracy))}${metric('Simulados consolidados',completedSimulations,'etapas objetivas principais concluídas')}</section>
  <section class="section"><div class="section-head"><div><h2>Evolução diária do aproveitamento</h2><p>O gráfico usa somente PE com resultado preenchido.</p></div></div><div class="toolbar"><label>Período<select id="period"><option value="7">Últimos 7</option><option value="15">Últimos 15</option><option value="30">Últimos 30</option><option value="all" selected>Ciclo completo</option></select></label><label>Bloco<select id="block"><option value="all">Todos</option>${[...new Set(d.actual.map(x=>x.block))].map(x=>`<option>${escapeHTML(x)}</option>`).join('')}</select></label></div><article class="card chart" id="daily-chart"></article></section>
  <section class="section grid two"><article class="card panel"><h3>Aproveitamento semanal</h3><div id="weekly-bars"></div></article><article class="card panel"><h3>Volume semanal</h3><div id="volume-bars"></div></article></section>
  <section class="section"><div class="section-head"><div><h2>Desempenho por bloco</h2><p>Comparação entre volume, acertos e taxa.</p></div></div><div class="table-wrap"><table><thead><tr><th>Bloco</th><th>Dias</th><th>Questões</th><th>Acertos</th><th>Aproveitamento</th></tr></thead><tbody>${d.blocks.map(x=>`<tr><td>${escapeHTML(x.block)}</td><td>${x.days}</td><td>${fmtNumber(x.meta)}</td><td>${fmtNumber(x.correct)}</td><td>${fmtPct(x.accuracy)}</td></tr>`).join('')}</tbody></table></div></section>
