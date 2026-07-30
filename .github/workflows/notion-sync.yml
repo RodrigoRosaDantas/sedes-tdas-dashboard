@@ -1,4 +1,4 @@
-name: Sincronizar Plataforma TDAS v20
+name: Sincronizar Plataforma TDAS v23
 
 on:
   workflow_dispatch:
@@ -55,6 +55,10 @@ jobs:
           node scripts/sync-notion.mjs 2>&1 | tee -a /tmp/tdas-sync.log
           sync_status=${PIPESTATUS[0]}
           if [[ $sync_status -eq 0 ]]; then
+            node scripts/postprocess-v23.mjs 2>&1 | tee -a /tmp/tdas-sync.log
+            sync_status=${PIPESTATUS[0]}
+          fi
+          if [[ $sync_status -eq 0 ]]; then
             node scripts/validate-platform.mjs 2>&1 | tee -a /tmp/tdas-sync.log
             sync_status=${PIPESTATUS[0]}
           fi
@@ -78,7 +82,7 @@ jobs:
             echo 'Nenhum arquivo foi alterado.'
             exit 0
           fi
-          git commit -m 'Sincronizar integralmente a Plataforma TDAS v20'
+          git commit -m 'Sincronizar integralmente a Plataforma TDAS v23'
           git push origin "HEAD:refs/heads/${{ steps.branch.outputs.target }}"
 
       - name: Promover atomicamente para main
