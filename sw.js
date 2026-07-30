@@ -1,4 +1,4 @@
-const VERSION='tdas-v24-1-20260730a';
+const VERSION='tdas-v25-20260730a';
 const BASE='/sedes-tdas-dashboard/';
 const PRECACHE=[
  BASE,BASE+'hoje/',BASE+'evolucao/',BASE+'riscos/',BASE+'agenda/',BASE+'redacoes/',BASE+'auditoria/',BASE+'mais/',BASE+'questoes-erros/',BASE+'pe/',BASE+'pe/73/',BASE+'pe/74/',BASE+'materias/',BASE+'offline.html',BASE+'manifest.webmanifest',
