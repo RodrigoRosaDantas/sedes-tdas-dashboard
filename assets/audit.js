@@ -1,4 +1,4 @@
-import{loadJSON,setupShell,fmtNumber,metric,escapeHTML,setLoadingError}from'./common.js';
+import{loadJSON,setupShell,fmtNumber,metric,escapeHTML,setLoadingError}from'./common.js?v=22';
 const exportPaths=['data/export/actual-01.json','data/export/actual-02.json','data/export/actual-03.json','data/export/future-01.json','data/export/future-02.json','data/export/redactions-01.json','data/export/redactions-02.json','data/export/errors.json','data/export/quality.json','data/export/summary.json'];
 const csvCell=v=>'"'+String(v??'').replaceAll('"','""')+'"';
 const csv=(headers,rows)=>'\ufeff'+[headers,...rows].map(r=>r.map(csvCell).join(';')).join('\r\n');
