@@ -1,9 +1,31 @@
 import {BASE, escapeHTML, loadJSON, setupShell, setLoadingError} from '../common.js?v=24.1';
 import {createAttemptRecord, saveAttempt} from './attempt-store.js?v=1.0.0';
+import {syncAttemptIndexes} from './classification-store.js?v=1.0.0';
 import {ANSWER_OPTIONS, canFinish, createSession, evaluateSession, formatElapsed, moveToQuestion, selectAnswer, sessionProgress} from './player-core.js?v=1.0.0';
+import {normalizeResponseMeta} from './response-classification.js?v=1.0.0';
 
 const main = document.querySelector('main');
-const state = {catalog: null, session: null, evaluation: null, savedAttempt: null, saveError: null, timerId: null};
+const CLASSIFICATION_LABELS = Object.freeze({
+  incorrect_confirmed: 'Erro confirmado',
+  correct_secure: 'Acerto seguro',
+  correct_with_doubt: 'Acerto com dúvida',
+  correct_by_guess: 'Acerto por chute',
+  marked: 'Marcada para revisão',
+  annulment_pending: 'Possível anulação',
+  source_error: 'Erro da fonte',
+});
+const state = {
+  catalog: null,
+  session: null,
+  evaluation: null,
+  responseMeta: {},
+  attemptRecord: null,
+  savedAttempt: null,
+  saveError: null,
+  indexStatus: null,
+  indexError: null,
+  timerId: null,
+};
 
 function stopTimer() {
   if (state.timerId) clearInterval(state.timerId);
@@ -21,12 +43,27 @@ function startTimer() {
   state.timerId = setInterval(updateTimer, 1000);
 }
 
+function responseMetaFor(questionId) {
+  return normalizeResponseMeta(state.responseMeta[questionId]);
+}
+
+function updateResponseMeta(questionId, patch) {
+  state.responseMeta = {
+    ...state.responseMeta,
+    [questionId]: normalizeResponseMeta({...responseMetaFor(questionId), ...patch}),
+  };
+}
+
 function renderIntro() {
   stopTimer();
   state.session = null;
   state.evaluation = null;
+  state.responseMeta = {};
+  state.attemptRecord = null;
   state.savedAttempt = null;
   state.saveError = null;
+  state.indexStatus = null;
+  state.indexError = null;
   main.innerHTML = `
     <section class="hero">
       <span class="kicker">Piloto técnico · PE76</span>
@@ -35,21 +72,22 @@ function renderIntro() {
       <div class="tags">
         <span class="tag">${state.catalog.quantidade_questoes} questões</span>
         <span class="tag">${state.catalog.tempo_sugerido_minutos} minutos sugeridos</span>
-        <span class="tag">Sessão ativa em memória</span>
+        <span class="tag">Classificação ativa</span>
       </div>
       <div class="hero-actions"><button class="btn primary" data-player-start>Iniciar piloto</button><a class="btn" href="${BASE}estudar/">Voltar ao catálogo</a></div>
     </section>
     <section class="section"><div class="grid two">
-      <article class="card panel"><h2>Como funciona</h2><p>Responda às dez questões. O gabarito só será solicitado quando você finalizar a sessão.</p></article>
-      <article class="card panel"><h2>Histórico local</h2><p>A sessão em andamento é descartada ao sair. Somente a tentativa concluída é salva neste dispositivo, como piloto e sem progresso oficial.</p></article>
+      <article class="card panel"><h2>Como funciona</h2><p>Além da alternativa, registre se respondeu com segurança, dúvida ou chute. Você também pode marcar a questão ou indicar possível anulação ou erro da fonte.</p></article>
+      <article class="card panel"><h2>Regra do caderno</h2><p>Somente a tentativa concluída é salva. Apenas <strong>erro confirmado</strong> entra no caderno; ressalvas editoriais ficam fora dele.</p></article>
     </div></section>
-    <footer class="footer"><span>Player piloto · Fase 5</span><span>Sem writeback</span></footer>`;
+    <footer class="footer"><span>Player piloto · Fase 6</span><span>Sem writeback</span></footer>`;
 }
 
 function renderQuestion() {
   const progress = sessionProgress(state.session);
   const question = state.catalog.questoes[state.session.currentIndex];
   const selected = state.session.answers[question.id] || '';
+  const meta = responseMetaFor(question.id);
   main.innerHTML = `
     <section class="hero pilot-shell">
       <div class="pilot-toolbar">
@@ -69,10 +107,29 @@ function renderQuestion() {
             <input type="radio" name="pilot-answer" value="${option}" ${selected === option ? 'checked' : ''}>
             <span><strong>${option})</strong> ${escapeHTML(question.alternativas[option])}</span>
           </label>`).join('')}</fieldset>
+        <fieldset class="pilot-meta">
+          <legend><strong>Como você chegou à resposta?</strong></legend>
+          <div class="pilot-meta-grid">
+            <label><input type="radio" name="pilot-confidence" value="secure" ${meta.confidence === 'secure' ? 'checked' : ''}> Segurança</label>
+            <label><input type="radio" name="pilot-confidence" value="doubt" ${meta.confidence === 'doubt' ? 'checked' : ''}> Dúvida</label>
+            <label><input type="radio" name="pilot-confidence" value="guess" ${meta.confidence === 'guess' ? 'checked' : ''}> Chute</label>
+          </div>
+          <label><input type="checkbox" data-player-marked ${meta.marked ? 'checked' : ''}> Marcar para revisão</label>
+          <label>Ressalva editorial
+            <select data-player-issue>
+              <option value="none" ${meta.issue === 'none' ? 'selected' : ''}>Nenhuma</option>
+              <option value="annulment_pending" ${meta.issue === 'annulment_pending' ? 'selected' : ''}>Possível anulação</option>
+              <option value="source_error" ${meta.issue === 'source_error' ? 'selected' : ''}>Possível erro da fonte/gabarito</option>
+            </select>
+          </label>
+        </fieldset>
       </article>
       <article class="card panel">
         <h2>Mapa da sessão</h2>
-        <div class="pilot-map">${state.catalog.questoes.map((item, index) => `<button class="btn ${state.session.answers[item.id] ? 'answered' : ''} ${index === state.session.currentIndex ? 'current' : ''}" data-player-index="${index}" aria-label="Ir para questão ${index + 1}">${index + 1}</button>`).join('')}</div>
+        <div class="pilot-map">${state.catalog.questoes.map((item, index) => {
+          const itemMeta = responseMetaFor(item.id);
+          return `<button class="btn ${state.session.answers[item.id] ? 'answered' : ''} ${itemMeta.marked ? 'marked' : ''} ${index === state.session.currentIndex ? 'current' : ''}" data-player-index="${index}" aria-label="Ir para questão ${index + 1}">${index + 1}</button>`;
+        }).join('')}</div>
       </article>
       <div class="pilot-actions">
         <button class="btn" data-player-prev ${state.session.currentIndex === 0 ? 'disabled' : ''}>← Anterior</button>
@@ -97,10 +154,24 @@ async function finishSession() {
     state.evaluation = evaluateSession(state.session, key, Date.now());
     state.session = state.evaluation.session;
     try {
-      const attempt = createAttemptRecord({catalog: state.catalog, evaluation: state.evaluation, savedAt: Date.now()});
-      state.savedAttempt = saveAttempt(attempt);
+      state.attemptRecord = createAttemptRecord({
+        catalog: state.catalog,
+        evaluation: state.evaluation,
+        responseMeta: state.responseMeta,
+        savedAt: Date.now(),
+      });
+      state.savedAttempt = saveAttempt(state.attemptRecord);
       state.saveError = null;
+      try {
+        state.indexStatus = syncAttemptIndexes(state.attemptRecord);
+        state.indexError = null;
+      } catch (error) {
+        state.indexStatus = null;
+        state.indexError = error;
+        console.error('Falha ao atualizar caderno e marcações', error);
+      }
     } catch (error) {
+      state.attemptRecord = null;
       state.savedAttempt = null;
       state.saveError = error;
       console.error('Falha ao salvar tentativa local', error);
@@ -116,33 +187,46 @@ async function finishSession() {
 function renderResult() {
   const evaluation = state.evaluation;
   const resultMap = new Map(evaluation.results.map(result => [result.id, result]));
+  const classifiedMap = new Map((state.attemptRecord?.questionResults || []).map(result => [result.id, result]));
   const storageMessage = state.savedAttempt
     ? `Tentativa salva neste dispositivo. Histórico local: ${state.savedAttempt.totalStored}.`
     : `Resultado calculado, mas não salvo neste dispositivo${state.saveError ? `: ${escapeHTML(state.saveError.message)}` : '.'}`;
+  const indexMessage = state.indexStatus
+    ? `Caderno local: ${state.indexStatus.totalErrors} erros confirmados; ${state.indexStatus.totalMarked} marcações.`
+    : state.indexError ? `Índices locais não atualizados: ${escapeHTML(state.indexError.message)}.` : '';
   main.innerHTML = `
     <section class="hero pilot-result">
-      <span class="kicker">Resultado local do piloto</span>
+      <span class="kicker">Resultado classificado do piloto</span>
       <h1>${evaluation.correct}/${evaluation.total} acertos · ${evaluation.percent.toFixed(0)}%</h1>
-      <p>Tempo: ${formatElapsed(evaluation.elapsedMs)}. ${storageMessage} Este resultado não foi enviado ao Notion nem ao progresso oficial.</p>
-      <div class="hero-actions"><button class="btn primary" data-player-restart>Refazer piloto</button><a class="btn" href="${BASE}estudar/">Voltar ao catálogo</a></div>
+      <p>Tempo: ${formatElapsed(evaluation.elapsedMs)}. ${storageMessage} ${indexMessage} Este resultado não foi enviado ao Notion nem ao progresso oficial.</p>
+      <div class="hero-actions"><button class="btn primary" data-player-restart>Refazer piloto</button><a class="btn" href="${BASE}caderno-erros/">Abrir caderno local</a><a class="btn" href="${BASE}estudar/">Voltar ao catálogo</a></div>
     </section>
     <section class="section"><div class="pilot-result-list">${state.catalog.questoes.map((question, index) => {
       const result = resultMap.get(question.id);
+      const classified = classifiedMap.get(question.id);
+      const classification = classified?.classification || (result.correct ? 'correct_secure' : 'incorrect_confirmed');
       return `<article class="card pilot-result-item" data-correct="${result.correct}">
         <strong>${index + 1}</strong>
-        <span>${escapeHTML(question.subassunto)}<br><small>Marcada: ${result.selected} · Gabarito: ${result.correctAnswer}</small></span>
-        <strong class="pilot-result-status">${result.correct ? 'Correta' : 'Incorreta'}</strong>
+        <span>${escapeHTML(question.subassunto)}<br><small>Marcada: ${result.selected} · Gabarito: ${result.correctAnswer}${classified?.marked ? ' · Revisar' : ''}</small></span>
+        <strong class="pilot-result-status">${escapeHTML(CLASSIFICATION_LABELS[classification] || classification)}</strong>
       </article>`;
     }).join('')}</div></section>
-    <section class="section"><article class="card panel"><h2>Escopo do histórico</h2><p>A tentativa foi identificada como piloto do PE76, Cargo 202, perfil Rodrigo, com <code>officialProgress=false</code> e <code>notionWriteback=false</code>.</p></article></section>
-    <footer class="footer"><span>Player piloto · correção concluída</span><span>Histórico somente local</span></footer>`;
+    <section class="section"><article class="card panel"><h2>Regra aplicada</h2><p>Possível anulação e erro da fonte não viram erro definitivo. Somente <code>incorrect_confirmed</code> é elegível ao caderno.</p></article></section>
+    <footer class="footer"><span>Player piloto · classificação concluída</span><span>Histórico e índices somente locais</span></footer>`;
 }
 
 main.addEventListener('change', event => {
-  const input = event.target.closest('input[name="pilot-answer"]');
-  if (!input || !state.session) return;
+  const answer = event.target.closest('input[name="pilot-answer"]');
+  const confidence = event.target.closest('input[name="pilot-confidence"]');
+  const marked = event.target.closest('[data-player-marked]');
+  const issue = event.target.closest('[data-player-issue]');
+  if (!state.session) return;
   const questionId = state.session.questionIds[state.session.currentIndex];
-  state.session = selectAnswer(state.session, questionId, input.value, Date.now());
+  if (answer) state.session = selectAnswer(state.session, questionId, answer.value, Date.now());
+  else if (confidence) updateResponseMeta(questionId, {confidence: confidence.value});
+  else if (marked) updateResponseMeta(questionId, {marked: marked.checked});
+  else if (issue) updateResponseMeta(questionId, {issue: issue.value});
+  else return;
   renderQuestion();
 });
 
