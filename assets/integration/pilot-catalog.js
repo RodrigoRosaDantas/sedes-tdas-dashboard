@@ -27,7 +27,7 @@ try {
     <div class="section-head">
       <div>
         <h2>Catálogo piloto PE76</h2>
-        <p>Recorte técnico isolado, sem alterar o progresso oficial e sem carregar o gabarito.</p>
+        <p>Recorte técnico isolado, sem alterar o progresso oficial e sem carregar o gabarito antes da correção.</p>
       </div>
       <span class="stamp">${catalog.quantidade_questoes} questões · ${catalog.tempo_sugerido_minutos} min</span>
     </div>
@@ -40,20 +40,21 @@ try {
       <article class="card panel">
         <small>Segurança operacional</small>
         <h3>Modo piloto</h3>
-        <p>Nenhum resultado será lançado no Notion ou incorporado ao corte oficial.</p>
+        <p>A sessão fica somente em memória e nenhum resultado é lançado no Notion ou no corte oficial.</p>
       </article>
     </div>
+    <div class="hero-actions"><a class="btn primary" href="${BASE}resolver/?pilot=pe76">Iniciar piloto</a></div>
     <div class="grid portal-grid">${catalog.questoes.map(question => `
       <article class="card portal">
         <small>Questão ${question.numero_original}</small>
         <b>${escapeHTML(question.assunto)}</b>
         <span>${escapeHTML(question.subassunto)}</span>
-        <em>Catalogada</em>
+        <em>Disponível no piloto</em>
       </article>`).join('')}
     </div>
     <article class="card panel">
-      <h3>Próxima ativação</h3>
-      <p>O player e a abertura de sessão serão implementados na Fase 4. Nesta fase, o catálogo permanece somente leitura.</p>
+      <h3>Resultado temporário</h3>
+      <p>O gabarito é solicitado apenas ao finalizar as dez respostas. Sair ou atualizar elimina a sessão e o resultado.</p>
     </article>`;
   footer?.before(section);
 } catch (error) {
