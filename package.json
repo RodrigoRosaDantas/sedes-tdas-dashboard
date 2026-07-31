@@ -1,15 +1,17 @@
 {
   "name": "sedes-tdas-dashboard",
-  "version": "24.1.0-integration.4",
+  "version": "24.1.0-integration.5",
   "private": true,
   "type": "module",
   "scripts": {
-    "check": "node scripts/validate-platform.mjs && node scripts/validate-integration-base.mjs && node scripts/validate-navigation.mjs && node scripts/validate-pilot-catalog.mjs && node scripts/validate-player.mjs && node scripts/test-player.mjs",
+    "check": "node scripts/validate-platform.mjs && node scripts/validate-integration-base.mjs && node scripts/validate-navigation.mjs && node scripts/validate-pilot-catalog.mjs && node scripts/validate-player.mjs && node scripts/test-player.mjs && node scripts/validate-attempt-store.mjs && node scripts/test-attempt-store.mjs",
     "check:integration": "node scripts/validate-integration-base.mjs",
     "check:navigation": "node scripts/validate-navigation.mjs",
     "check:pilot": "node scripts/validate-pilot-catalog.mjs",
     "check:player": "node scripts/validate-player.mjs",
     "test:player": "node scripts/test-player.mjs",
-    "test": "npm run check:integration && npm run check:navigation && npm run check:pilot && npm run check:player && npm run test:player"
+    "check:attempts": "node scripts/validate-attempt-store.mjs",
+    "test:attempts": "node scripts/test-attempt-store.mjs",
+    "test": "npm run check:integration && npm run check:navigation && npm run check:pilot && npm run check:player && npm run test:player && npm run check:attempts && npm run test:attempts"
   }
 }
