@@ -8,7 +8,7 @@ Os testes específicos da integração e a auditoria do diff foram aprovados. O 
 
 A incorporação é considerada de risco controlado porque:
 
-- todos os nove arquivos são novos;
+- todos os dez arquivos são novos;
 - nenhum arquivo de runtime foi alterado;
 - nenhuma rota, tela, automação, manifesto ou service worker foi modificado;
 - os novos contratos não são importados pelo site;
