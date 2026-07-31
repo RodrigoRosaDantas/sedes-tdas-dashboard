@@ -27,8 +27,8 @@ required(classification.includes("classification = 'marked'"), 'Classificação 
 required(attemptStore.includes('classifyQuestionResult'), 'Tentativa não incorpora a classificação.');
 required(attemptStore.includes('classificationSummary'), 'Resumo de classificações ausente da tentativa.');
 required(store.includes('STORAGE_KEYS.errors') && store.includes('STORAGE_KEYS.marked'), 'Índices não usam as chaves oficiais.');
-required(store.includes("question.classification === 'incorrect_confirmed'"), 'Caderno não filtra erro confirmado.');
-required(store.includes('question.marked === true'), 'Índice de marcações ausente.');
+required(/question\.classification\s*===\s*'incorrect_confirmed'/.test(store), 'Caderno não filtra erro confirmado.');
+required(/question\.marked\s*===\s*true/.test(store), 'Índice de marcações ausente.');
 for (const content of [classification, store, errorBook]) {
   required(!/notion\.com|api\.notion/i.test(content), 'Classificação não pode acessar o Notion.');
   required(!/fetch\s*\(/.test(content), 'Módulos de classificação não podem realizar requisições de rede.');
