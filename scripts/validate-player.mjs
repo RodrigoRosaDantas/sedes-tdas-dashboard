@@ -30,7 +30,7 @@ required(player.includes('Este resultado não foi salvo nem enviado'), 'A interf
 required(resolver.includes('/assets/integration/player.css'), 'A rota Resolver não carrega o CSS do player.');
 required(resolver.includes('/assets/integration/player.js'), 'A rota Resolver não carrega o player.');
 required(!resolver.includes('/assets/integration/navigation.js'), 'A rota Resolver ainda carrega a página estrutural antiga.');
-required(catalogUi.includes('/resolver/?pilot=pe76'), 'O catálogo não oferece entrada para o player.');
+required(catalogUi.includes('${BASE}resolver/?pilot=pe76'), 'O catálogo não oferece entrada para o player pela base oficial.');
 required(packageText.includes('test:player') && packageText.includes('check:player'), 'Comandos do player ausentes do package.json.');
 
 console.log('Player da Fase 4 validado: sessão em memória, gabarito tardio, rota ativa e ausência de writeback.');
