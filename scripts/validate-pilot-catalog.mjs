@@ -3,6 +3,8 @@ import crypto from 'node:crypto';
 
 const catalog = JSON.parse(await fs.readFile('data/integration/pilot/pe76-catalog.json', 'utf8'));
 const key = JSON.parse(await fs.readFile('data/integration/pilot/pe76-key.json', 'utf8'));
+const pilotScript = await fs.readFile('assets/integration/pilot-catalog.js', 'utf8');
+const studyHtml = await fs.readFile('estudar/index.html', 'utf8');
 const required = (condition, message) => { if (!condition) throw new Error(message); };
 const expectedNumbers = [1, 2, 3, 4, 5, 6, 13, 14, 15, 16];
 const expectedAnswers = new Map([[1,'D'],[2,'B'],[3,'A'],[4,'E'],[5,'C'],[6,'A'],[13,'C'],[14,'C'],[15,'A'],[16,'D']]);
@@ -40,4 +42,9 @@ for (const answer of key.answers) {
 
 const sharedText = catalog.questoes.filter(question => question.numero_original >= 13).map(question => question.texto_base);
 required(new Set(sharedText).size === 1 && sharedText[0], 'Texto-base das questões 13 a 16 divergente ou ausente.');
+required(studyHtml.includes('/assets/integration/pilot-catalog.js'), 'A rota Estudar não carrega o resumo do piloto.');
+required(pilotScript.includes('pe76-catalog.json'), 'O resumo não carrega o catálogo do piloto.');
+required(!pilotScript.includes('pe76-key.json'), 'O resumo do catálogo não pode carregar o gabarito.');
+required(!/localStorage|sessionStorage|indexedDB/.test(pilotScript), 'A Fase 3 não pode persistir resultados.');
+required(!/fetch\([^)]*notion/i.test(pilotScript), 'A Fase 3 não pode consultar o Notion em runtime.');
 console.log(`Catálogo piloto PE76 validado: ${catalog.questoes.length} questões, hash ${hash.slice(0, 12)}…, sem dados pessoais e sem writeback.`);
