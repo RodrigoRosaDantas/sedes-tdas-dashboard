@@ -1,12 +1,13 @@
 {
   "name": "sedes-tdas-dashboard",
-  "version": "24.1.0-integration.2",
+  "version": "24.1.0-integration.3",
   "private": true,
   "type": "module",
   "scripts": {
-    "check": "node scripts/validate-platform.mjs && node scripts/validate-integration-base.mjs && node scripts/validate-navigation.mjs",
+    "check": "node scripts/validate-platform.mjs && node scripts/validate-integration-base.mjs && node scripts/validate-navigation.mjs && node scripts/validate-pilot-catalog.mjs",
     "check:integration": "node scripts/validate-integration-base.mjs",
     "check:navigation": "node scripts/validate-navigation.mjs",
-    "test": "npm run check:integration && npm run check:navigation"
+    "check:pilot": "node scripts/validate-pilot-catalog.mjs",
+    "test": "npm run check:integration && npm run check:navigation && npm run check:pilot"
   }
 }
