@@ -1,8 +1,9 @@
 import {BASE, escapeHTML, loadJSON, setupShell, setLoadingError} from '../common.js?v=24.1';
+import {createAttemptRecord, saveAttempt} from './attempt-store.js?v=1.0.0';
 import {ANSWER_OPTIONS, canFinish, createSession, evaluateSession, formatElapsed, moveToQuestion, selectAnswer, sessionProgress} from './player-core.js?v=1.0.0';
 
 const main = document.querySelector('main');
-const state = {catalog: null, session: null, evaluation: null, timerId: null};
+const state = {catalog: null, session: null, evaluation: null, savedAttempt: null, saveError: null, timerId: null};
 
 function stopTimer() {
   if (state.timerId) clearInterval(state.timerId);
@@ -24,6 +25,8 @@ function renderIntro() {
   stopTimer();
   state.session = null;
   state.evaluation = null;
+  state.savedAttempt = null;
+  state.saveError = null;
   main.innerHTML = `
     <section class="hero">
       <span class="kicker">Piloto técnico · PE76</span>
@@ -32,15 +35,15 @@ function renderIntro() {
       <div class="tags">
         <span class="tag">${state.catalog.quantidade_questoes} questões</span>
         <span class="tag">${state.catalog.tempo_sugerido_minutos} minutos sugeridos</span>
-        <span class="tag">Sessão em memória</span>
+        <span class="tag">Sessão ativa em memória</span>
       </div>
       <div class="hero-actions"><button class="btn primary" data-player-start>Iniciar piloto</button><a class="btn" href="${BASE}estudar/">Voltar ao catálogo</a></div>
     </section>
     <section class="section"><div class="grid two">
       <article class="card panel"><h2>Como funciona</h2><p>Responda às dez questões. O gabarito só será solicitado quando você finalizar a sessão.</p></article>
-      <article class="card panel"><h2>Isolamento</h2><p>Ao fechar ou atualizar a página, a sessão será perdida. Nenhum dado será salvo no navegador, no GitHub ou no Notion.</p></article>
+      <article class="card panel"><h2>Histórico local</h2><p>A sessão em andamento é descartada ao sair. Somente a tentativa concluída é salva neste dispositivo, como piloto e sem progresso oficial.</p></article>
     </div></section>
-    <footer class="footer"><span>Player piloto · Fase 4</span><span>Sem progresso oficial</span></footer>`;
+    <footer class="footer"><span>Player piloto · Fase 5</span><span>Sem writeback</span></footer>`;
 }
 
 function renderQuestion() {
@@ -73,7 +76,7 @@ function renderQuestion() {
       </article>
       <div class="pilot-actions">
         <button class="btn" data-player-prev ${state.session.currentIndex === 0 ? 'disabled' : ''}>← Anterior</button>
-        <a class="btn" href="${BASE}estudar/">Sair sem salvar</a>
+        <a class="btn" href="${BASE}estudar/">Sair e descartar sessão</a>
         ${state.session.currentIndex < progress.total - 1
           ? '<button class="btn primary" data-player-next>Próxima →</button>'
           : `<button class="btn primary" data-player-finish ${canFinish(state.session) ? '' : 'disabled'}>Finalizar (${progress.remaining} pendentes)</button>`}
@@ -93,6 +96,15 @@ async function finishSession() {
     });
     state.evaluation = evaluateSession(state.session, key, Date.now());
     state.session = state.evaluation.session;
+    try {
+      const attempt = createAttemptRecord({catalog: state.catalog, evaluation: state.evaluation, savedAt: Date.now()});
+      state.savedAttempt = saveAttempt(attempt);
+      state.saveError = null;
+    } catch (error) {
+      state.savedAttempt = null;
+      state.saveError = error;
+      console.error('Falha ao salvar tentativa local', error);
+    }
     stopTimer();
     renderResult();
   } catch (error) {
@@ -104,11 +116,14 @@ async function finishSession() {
 function renderResult() {
   const evaluation = state.evaluation;
   const resultMap = new Map(evaluation.results.map(result => [result.id, result]));
+  const storageMessage = state.savedAttempt
+    ? `Tentativa salva neste dispositivo. Histórico local: ${state.savedAttempt.totalStored}.`
+    : `Resultado calculado, mas não salvo neste dispositivo${state.saveError ? `: ${escapeHTML(state.saveError.message)}` : '.'}`;
   main.innerHTML = `
     <section class="hero pilot-result">
-      <span class="kicker">Resultado local e temporário</span>
+      <span class="kicker">Resultado local do piloto</span>
       <h1>${evaluation.correct}/${evaluation.total} acertos · ${evaluation.percent.toFixed(0)}%</h1>
-      <p>Tempo: ${formatElapsed(evaluation.elapsedMs)}. Este resultado não foi salvo nem enviado.</p>
+      <p>Tempo: ${formatElapsed(evaluation.elapsedMs)}. ${storageMessage} Este resultado não foi enviado ao Notion nem ao progresso oficial.</p>
       <div class="hero-actions"><button class="btn primary" data-player-restart>Refazer piloto</button><a class="btn" href="${BASE}estudar/">Voltar ao catálogo</a></div>
     </section>
     <section class="section"><div class="pilot-result-list">${state.catalog.questoes.map((question, index) => {
@@ -119,8 +134,8 @@ function renderResult() {
         <strong class="pilot-result-status">${result.correct ? 'Correta' : 'Incorreta'}</strong>
       </article>`;
     }).join('')}</div></section>
-    <section class="section"><article class="card panel"><h2>Privacidade do piloto</h2><p>O resultado existe apenas nesta tela. Atualizar, fechar ou sair da página elimina a sessão.</p></article></section>
-    <footer class="footer"><span>Player piloto · correção concluída</span><span>Sem writeback</span></footer>`;
+    <section class="section"><article class="card panel"><h2>Escopo do histórico</h2><p>A tentativa foi identificada como piloto do PE76, Cargo 202, perfil Rodrigo, com `officialProgress=false` e `notionWriteback=false`.</p></article></section>
+    <footer class="footer"><span>Player piloto · correção concluída</span><span>Histórico somente local</span></footer>`;
 }
 
 main.addEventListener('change', event => {
