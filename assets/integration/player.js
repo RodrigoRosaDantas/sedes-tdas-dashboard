@@ -134,7 +134,7 @@ function renderResult() {
         <strong class="pilot-result-status">${result.correct ? 'Correta' : 'Incorreta'}</strong>
       </article>`;
     }).join('')}</div></section>
-    <section class="section"><article class="card panel"><h2>Escopo do histórico</h2><p>A tentativa foi identificada como piloto do PE76, Cargo 202, perfil Rodrigo, com `officialProgress=false` e `notionWriteback=false`.</p></article></section>
+    <section class="section"><article class="card panel"><h2>Escopo do histórico</h2><p>A tentativa foi identificada como piloto do PE76, Cargo 202, perfil Rodrigo, com <code>officialProgress=false</code> e <code>notionWriteback=false</code>.</p></article></section>
     <footer class="footer"><span>Player piloto · correção concluída</span><span>Histórico somente local</span></footer>`;
 }
 
