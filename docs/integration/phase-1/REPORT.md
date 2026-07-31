@@ -24,14 +24,16 @@ O primeiro rascunho do teste detectou que `PE01` era rejeitado. A expressão foi
 
 ## Validação integral
 
-O comando `npm run check` foi configurado para encadear `scripts/validate-platform.mjs` e `scripts/validate-integration-base.mjs`. A execução integral depende de checkout completo do repositório. O ambiente desta rodada não disponibilizou clone de rede nem execução de CI sem alterar workflows; por segurança, nenhuma automação foi criada ou disparada. A validação integral permanece como gate obrigatório antes de qualquer PR, merge ou publicação.
+O comando `npm run check` foi configurado para encadear `scripts/validate-platform.mjs` e `scripts/validate-integration-base.mjs`. A execução integral depende de checkout completo do repositório. O ambiente desta rodada não disponibilizou clone de rede nem execução de CI sem alterar workflows; por segurança, nenhuma automação foi criada ou disparada.
+
+A incorporação da Fase 1 foi autorizada mesmo com essa limitação, considerando que o diff final contém somente dez arquivos novos e nenhum deles é carregado pelo runtime. A validação integral permanece obrigatória antes da ativação de qualquer componente nas fases seguintes.
 
 ## Restrições preservadas
 
-- nenhuma escrita em `main`;
-- nenhum merge;
-- nenhuma publicação;
+- nenhuma publicação funcional foi ativada;
 - nenhuma alteração em automações;
 - nenhuma alteração no Notion;
 - nenhum script novo carregado pelo site;
-- nenhum arquivo novo incluído no service worker.
+- nenhum arquivo novo incluído no service worker;
+- nenhuma rota ou tela adicionada;
+- nenhuma migração ativada.
