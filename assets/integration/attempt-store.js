@@ -1,6 +1,7 @@
-import {STORAGE_KEYS} from './contracts.js?v=1.0.0';
+import {isKnownResponseClassification, STORAGE_KEYS} from './contracts.js?v=1.0.0';
+import {classifyQuestionResult} from './response-classification.js?v=1.0.0';
 
-export const ATTEMPT_SCHEMA_VERSION = '1.0.0';
+export const ATTEMPT_SCHEMA_VERSION = '1.1.0';
 export const ATTEMPT_ENVELOPE_VERSION = '1.0.0';
 export const MAX_LOCAL_ATTEMPTS = 100;
 
@@ -23,15 +24,22 @@ function validateAttempt(attempt) {
   if (!Array.isArray(attempt.questionResults) || attempt.questionResults.length !== attempt.total) {
     throw new TypeError('Resultados individuais da tentativa inválidos.');
   }
+  for (const question of attempt.questionResults) {
+    if (!isKnownResponseClassification(question.classification)) throw new TypeError(`Classificação inválida em ${question.id}.`);
+    if (question.errorBookEligible !== (question.classification === 'incorrect_confirmed')) {
+      throw new TypeError(`Elegibilidade inconsistente em ${question.id}.`);
+    }
+  }
   return attempt;
 }
 
-export function createAttemptRecord({catalog, evaluation, savedAt = Date.now()}) {
+export function createAttemptRecord({catalog, evaluation, responseMeta = {}, savedAt = Date.now()}) {
   if (!catalog || catalog.id !== evaluation?.session?.materialId) throw new TypeError('Catálogo e avaliação incompatíveis.');
   const questions = new Map(catalog.questoes.map(question => [question.id, question]));
   const questionResults = evaluation.results.map(result => {
     const question = questions.get(result.id);
     if (!question) throw new TypeError(`Questão ausente do catálogo: ${result.id}.`);
+    const classification = classifyQuestionResult(result, responseMeta[result.id]);
     return Object.freeze({
       id: result.id,
       numeroOriginal: question.numero_original,
@@ -40,8 +48,17 @@ export function createAttemptRecord({catalog, evaluation, savedAt = Date.now()})
       selected: result.selected,
       correctAnswer: result.correctAnswer,
       correct: result.correct,
+      confidence: classification.confidence,
+      marked: classification.marked,
+      issue: classification.issue,
+      classification: classification.classification,
+      errorBookEligible: classification.errorBookEligible,
     });
   });
+  const classificationSummary = questionResults.reduce((summary, question) => {
+    summary[question.classification] = (summary[question.classification] || 0) + 1;
+    return summary;
+  }, {});
   const record = Object.freeze({
     schemaVersion: ATTEMPT_SCHEMA_VERSION,
     id: `attempt:${catalog.id}:${evaluation.session.startedAt}`,
@@ -61,6 +78,7 @@ export function createAttemptRecord({catalog, evaluation, savedAt = Date.now()})
     total: evaluation.total,
     percent: evaluation.percent,
     elapsedMs: evaluation.elapsedMs,
+    classificationSummary: Object.freeze(classificationSummary),
     questionResults: Object.freeze(questionResults),
   });
   return validateAttempt(record);
