@@ -1,0 +1,72 @@
+{
+  "schemaVersion": "1.0.0",
+  "capturedAt": "2026-07-31T19:30:00-03:00",
+  "platform": {
+    "repository": "RodrigoRosaDantas/sedes-tdas-dashboard",
+    "baseBranch": "main",
+    "integrationBranch": "agent/integracao-base-fase-1",
+    "baseCommit": "db038c52203245bd20604f10b4203739008e55e7",
+    "profileId": "rodrigo",
+    "cargoCode": "202",
+    "persistenceMode": "local-first"
+  },
+  "questionSource": {
+    "repository": "RodrigoRosaDantas/sedes-df-questoes",
+    "referenceVersion": "2.12.4",
+    "role": "component-and-editorial-source",
+    "importPolicy": "selective-with-origin-record"
+  },
+  "storage": {
+    "prefix": "tdas.202.study.v1.",
+    "keys": {
+      "profile": "tdas.202.study.v1.profile",
+      "attempts": "tdas.202.study.v1.attempts",
+      "session": "tdas.202.study.v1.session",
+      "answers": "tdas.202.study.v1.answers",
+      "errors": "tdas.202.study.v1.errors",
+      "marked": "tdas.202.study.v1.marked",
+      "reviews": "tdas.202.study.v1.reviews",
+      "aiQueue": "tdas.202.study.v1.aiQueue",
+      "peProgress": "tdas.202.study.v1.peProgress",
+      "meta": "tdas.202.study.v1.meta"
+    }
+  },
+  "responseClassifications": [
+    "incorrect_confirmed",
+    "correct_secure",
+    "correct_with_doubt",
+    "correct_by_guess",
+    "marked",
+    "annulment_pending",
+    "source_error"
+  ],
+  "errorBookEligible": [
+    "incorrect_confirmed"
+  ],
+  "reviewPolicy": {
+    "immediateCorrection": true,
+    "stages": ["D+1", "D+7", "D+20"],
+    "exceptionalStage": "D0"
+  },
+  "invariants": [
+    "main-is-not-modified-by-phase-1",
+    "single-service-worker-owned-by-dashboard",
+    "single-manifest-owned-by-dashboard",
+    "no-notion-writeback",
+    "no-automatic-legacy-migration",
+    "cargo-202-only",
+    "profile-rodrigo-only",
+    "ambiguous-or-annulment-pending-is-not-a-definitive-error",
+    "blank-answer-is-not-an-error",
+    "runtime-remains-disconnected-in-phase-1"
+  ],
+  "phase1": {
+    "runtimeWiring": false,
+    "routesAdded": false,
+    "serviceWorkerChanged": false,
+    "manifestChanged": false,
+    "notionWrites": false,
+    "legacyMigrationEnabled": false,
+    "publicDeploymentEnabled": false
+  }
+}

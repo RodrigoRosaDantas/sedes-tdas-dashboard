@@ -1,0 +1,11 @@
+{
+  "name": "sedes-tdas-dashboard",
+  "version": "24.1.0-integration.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "node scripts/validate-platform.mjs && node scripts/validate-integration-base.mjs",
+    "check:integration": "node scripts/validate-integration-base.mjs",
+    "test": "npm run check:integration"
+  }
+}
