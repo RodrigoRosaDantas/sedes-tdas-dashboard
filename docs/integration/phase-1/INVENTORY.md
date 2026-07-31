@@ -13,6 +13,7 @@
 | `docs/integration/phase-1/INVENTORY.md` | registrar o escopo | nenhum |
 | `docs/integration/phase-1/PLAN.md` | registrar a intervenção aprovada | nenhum |
 | `docs/integration/phase-1/REPORT.md` | consolidar resultados | nenhum |
+| `docs/integration/phase-1/MERGE-NOTE.md` | registrar autorização e condição técnica da incorporação | nenhum |
 
 ## Arquivos deliberadamente não alterados
 
