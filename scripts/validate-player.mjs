@@ -11,7 +11,7 @@ const [player, core, resolver, catalogUi, packageText] = await Promise.all([
 ]);
 
 for (const [name, content] of [['player.js', player], ['player-core.js', core]]) {
-  required(!/localStorage|sessionStorage|indexedDB/.test(content), `${name} não pode persistir a sessão.`);
+  required(!/localStorage|sessionStorage|indexedDB/.test(content), `${name} não pode acessar diretamente o armazenamento da sessão.`);
   required(!/notion\.com|api\.notion/i.test(content), `${name} não pode acessar o Notion.`);
   required(!/method\s*:\s*['"](?:POST|PUT|PATCH|DELETE)/i.test(content), `${name} contém escrita por rede.`);
 }
@@ -25,7 +25,7 @@ const keyPosition = player.indexOf('pe76-key.json');
 required(finishStart >= 0 && keyPosition > finishStart, 'O gabarito deve ser carregado somente dentro da finalização.');
 required(!player.slice(0, finishStart).includes('pe76-key.json'), 'O gabarito é carregado antes da finalização.');
 required(player.includes('if (!canFinish(state.session)) return;'), 'A interface não bloqueia finalização incompleta.');
-required(player.includes('Este resultado não foi salvo nem enviado'), 'A interface não informa o caráter temporário do resultado.');
+required(player.includes('Este resultado não foi enviado ao Notion nem ao progresso oficial'), 'A interface não informa o isolamento do resultado.');
 
 required(resolver.includes('/assets/integration/player.css'), 'A rota Resolver não carrega o CSS do player.');
 required(resolver.includes('/assets/integration/player.js'), 'A rota Resolver não carrega o player.');
@@ -33,4 +33,4 @@ required(!resolver.includes('/assets/integration/navigation.js'), 'A rota Resolv
 required(catalogUi.includes('${BASE}resolver/?pilot=pe76'), 'O catálogo não oferece entrada para o player pela base oficial.');
 required(packageText.includes('test:player') && packageText.includes('check:player'), 'Comandos do player ausentes do package.json.');
 
-console.log('Player da Fase 4 validado: sessão em memória, gabarito tardio, rota ativa e ausência de writeback.');
+console.log('Player validado: sessão ativa em memória, gabarito tardio, rota funcional e ausência de writeback remoto.');
