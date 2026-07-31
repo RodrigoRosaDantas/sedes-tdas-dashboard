@@ -16,18 +16,19 @@
     "casesTotal": 12
   },
   "today": {
-    "sprint": "S03",
-    "title": "Missão, visão, objetivos, planejamento e APO",
-    "scheduledDate": "2026-07-29",
+    "sprint": "S04",
+    "title": "SWOT, BSC, processo decisório, GUT e 5W2H",
+    "scheduledDate": "2026-07-30",
     "status": "Não iniciada",
-    "planned": 40,
-    "block": "30 Material + 5 Comuns + 5 Português",
-    "review": "R24 do S02",
-    "time": 165,
-    "material": "S03 — Missão, visão, objetivos, planejamento e APO",
-    "common": "C3 — Lei Maria da Penha, PDPM e primeiros socorros",
-    "portuguese": "P3 — classes, coordenação e subordinação",
-    "deliverable": "Mapa dos níveis de planejamento"
+    "planned": 35,
+    "block": "25 Material + 5 Comuns + 5 Português",
+    "review": "R24 do S03 + R72 do S01",
+    "time": 210,
+    "material": "S04 — SWOT, BSC, processo decisório, GUT e 5W2H",
+    "common": "C4 — CF 203–204, LOAS, PNAS, SUAS e NOB/SUAS",
+    "portuguese": "P4 — concordância e colocação pronominal",
+    "deliverable": "Matriz ferramenta × finalidade",
+    "case": "SEC02 — manuscrito, 20–30 linhas"
   },
   "performance": [
     {"label": "Material do dia", "value": 89.09, "result": "49/55"},
@@ -47,24 +48,24 @@
   "alerts": [
     {
       "level": "critical",
-      "title": "S03 ainda não iniciado",
-      "detail": "O Sprint previsto para 29/07 permanece sem execução real registrada.",
-      "action": "Abrir foco do Sprint",
+      "title": "S03 vencido sem execução registrada",
+      "detail": "O Sprint previsto para 29/07 permanece Não iniciada, sem questões ou resultado real registrados.",
+      "action": "Ver agenda",
+      "href": "/sedes-tdas-dashboard/edas-administracao/agenda/"
+    },
+    {
+      "level": "warning",
+      "title": "S04 é o foco programado de hoje",
+      "detail": "O bloco de 35 questões, as revisões R24/R72 e o SEC02 ainda não foram iniciados.",
+      "action": "Abrir foco de hoje",
       "href": "/sedes-tdas-dashboard/edas-administracao/hoje/"
     },
     {
       "level": "warning",
       "title": "Conhecimentos comuns em 70% no acumulado",
-      "detail": "O bloco comum melhorou com 5/5 no S02, mas ainda concentra 3 dos 11 erros acumulados.",
+      "detail": "O bloco comum concentra 3 dos 11 erros acumulados e exige revisão ativa.",
       "action": "Ver riscos",
       "href": "/sedes-tdas-dashboard/edas-administracao/riscos/"
-    },
-    {
-      "level": "warning",
-      "title": "SEC01 pendente",
-      "detail": "O estudo de caso está pronto e auditado, mas ainda não foi executado nem corrigido.",
-      "action": "Ver estudos de caso",
-      "href": "/sedes-tdas-dashboard/edas-administracao/estudos-caso/"
     }
   ],
   "projections": [
@@ -73,8 +74,8 @@
     {"label": "Taxa de erro atual", "value": "14,67%", "formula": "11 erros ÷ 75 questões × 100"}
   ],
   "agenda": [
-    {"date": "2026-07-29", "id": "S03", "title": "Missão, visão, objetivos, planejamento e APO", "status": "Pendente", "detail": "40 questões · R24 S02"},
-    {"date": "2026-07-30", "id": "S04", "title": "Ferramentas administrativas", "status": "Planejado", "detail": "Inclui SEC02"},
+    {"date": "2026-07-29", "id": "S03", "title": "Missão, visão, objetivos, planejamento e APO", "status": "Atrasado", "detail": "40 questões · R24 S02 · sem execução registrada"},
+    {"date": "2026-07-30", "id": "S04", "title": "SWOT, BSC, processo decisório, GUT e 5W2H", "status": "Pendente", "detail": "35 questões · R24 S03 · R72 S01 · SEC02"},
     {"date": "2026-07-31", "id": "S05", "title": "Processos e indicadores", "status": "Planejado", "detail": "Material + Comuns + Português"},
     {"date": "2026-08-01", "id": "S06", "title": "Revisão estratégica", "status": "Planejado", "detail": "Amostra de até 20 questões"},
     {"date": "2026-08-02", "id": "S07", "title": "Descanso real", "status": "Planejado", "detail": "Nenhuma questão programada"},
@@ -82,7 +83,7 @@
   ],
   "cases": [
     {"id": "SEC01", "date": "2026-07-27", "theme": "TGA aplicada à reorganização de unidade pública", "status": "Não iniciado", "readiness": "Pronto — auditado", "next": "Executar manuscrito de 20–30 linhas e realizar o D+1."},
-    {"id": "SEC02", "date": "2026-07-30", "theme": "Ferramentas administrativas e decisão", "status": "Não iniciado", "readiness": "Planejado", "next": "Executar após concluir o conteúdo do S04."},
+    {"id": "SEC02", "date": "2026-07-30", "theme": "Ferramentas administrativas, decisão, demanda e indicadores", "status": "Não iniciado", "readiness": "Pronto — auditado", "next": "Executar após o conteúdo e o bloco objetivo do S04."},
     {"id": "SEC03", "date": "2026-08-03", "theme": "Estruturas, funções e descentralização", "status": "Não iniciado", "readiness": "Planejado", "next": "Executar no Sprint correspondente."},
     {"id": "SEC04", "date": "2026-08-06", "theme": "OS&M, fluxo, padronização e qualidade", "status": "Não iniciado", "readiness": "Planejado", "next": "Executar no Sprint correspondente."}
   ],
@@ -90,7 +91,7 @@
     {
       "level": "warning",
       "title": "S02 com bloco objetivo concluído e entregáveis não confirmados",
-      "detail": "O resultado objetivo foi registrado em 37/40, mas o quadro, a R24 do S01 e o D+1 do SEC01 continuam desmarcados na página."
+      "detail": "O resultado objetivo foi registrado em 37/40, mas o quadro, a R24 do S01 e o D+1 do SEC01 continuam desmarcados."
     },
     {
       "level": "critical",
@@ -98,9 +99,14 @@
       "detail": "A data prevista foi 29/07/2026 e o status permanece Não iniciada."
     },
     {
+      "level": "warning",
+      "title": "S04 programado para 30/07 ainda não iniciado",
+      "detail": "Não há execução real registrada para as 35 questões, revisões, entregável ou SEC02."
+    },
+    {
       "level": "info",
-      "title": "Fórmulas do Notion validadas por registros individuais",
-      "detail": "Os totais foram consolidados com campos brutos e observações dos Sprints e dos 11 erros, sem estimar referências formulaResult."
+      "title": "Leitura integral validada",
+      "detail": "As três visualizações oficiais foram percorridas até has_more=false; nenhuma falha de consulta foi convertida em zero ou exclusão."
     }
   ],
   "sources": [
