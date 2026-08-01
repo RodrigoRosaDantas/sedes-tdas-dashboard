@@ -2,10 +2,11 @@ import fs from 'node:fs/promises';
 
 const read = file => fs.readFile(file, 'utf8');
 const required = (condition, message) => { if (!condition) throw new Error(message); };
-const [classification, store, attemptStore, player, contracts, errorBook, errorPage, packageText] = await Promise.all([
+const [classification, store, attemptStore, transaction, player, contracts, errorBook, errorPage, packageText] = await Promise.all([
   read('assets/integration/response-classification.js'),
   read('assets/integration/classification-store.js'),
   read('assets/integration/attempt-store.js'),
+  read('assets/integration/completion-transaction.js'),
   read('assets/integration/player.js'),
   read('assets/integration/contracts.js'),
   read('assets/integration/error-book.js'),
@@ -29,14 +30,13 @@ required(attemptStore.includes('classificationSummary'), 'Resumo de classificaç
 required(store.includes('STORAGE_KEYS.errors') && store.includes('STORAGE_KEYS.marked'), 'Índices não usam as chaves oficiais.');
 required(/question\.classification\s*===\s*'incorrect_confirmed'/.test(store), 'Caderno não filtra erro confirmado.');
 required(/question\.marked\s*===\s*true/.test(store), 'Índice de marcações ausente.');
+required(transaction.includes('syncAttemptIndexes(attempt, target)'), 'Transação não atualiza os índices classificados.');
 for (const content of [classification, store, errorBook]) {
   required(!/notion\.com|api\.notion/i.test(content), 'Classificação não pode acessar o Notion.');
   required(!/fetch\s*\(/.test(content), 'Módulos de classificação não podem realizar requisições de rede.');
 }
 
-for (const marker of ['pilot-confidence','data-player-marked','data-player-issue','syncAttemptIndexes']) {
-  required(player.includes(marker), `Player sem integração de classificação: ${marker}.`);
-}
+for (const marker of ['pilot-confidence','data-player-marked','data-player-issue']) required(player.includes(marker), `Player sem integração de classificação: ${marker}.`);
 required(/responseMeta\s*:\s*state\.responseMeta/.test(player), 'Player não envia os metadados para a tentativa.');
 required(player.includes('Possível anulação') && player.includes('Possível erro da fonte/gabarito'), 'Ressalvas editoriais ausentes da interface.');
 required(errorPage.includes('/assets/integration/error-book.js'), 'Rota canônica não carrega o caderno local.');
@@ -45,4 +45,4 @@ required(errorBook.includes('<code>incorrect_confirmed</code>') && errorBook.inc
 required(errorBook.includes(`${'${BASE}'}questoes-erros/`), 'Atalho para o acervo oficial ausente.');
 required(packageText.includes('check:classification') && packageText.includes('test:classification'), 'Comandos da classificação ausentes.');
 
-console.log('Classificação validada: precedência editorial, erro definitivo exclusivo, marcações independentes e caderno local isolado.');
+console.log('Classificação validada: precedência editorial, tentativa classificada, índices via transação e caderno local isolado.');
