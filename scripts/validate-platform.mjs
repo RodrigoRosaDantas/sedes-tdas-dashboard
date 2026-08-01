@@ -68,9 +68,36 @@ for (const icon of manifest.icons || []) {
 }
 
 const sw = await fs.readFile(path.join(ROOT, 'sw.js'), 'utf8');
-const precacheMatch = sw.match(/const PRECACHE=(\[[^;]+\]);/);
-required(precacheMatch, 'Service worker sem lista PRECACHE válida.');
-const precache = JSON.parse(precacheMatch[1]);
+const stringArray = name => {
+  const match = sw.match(new RegExp(`const ${name}=\\[([\\s\\S]*?)\\];`));
+  required(match, `Service worker sem lista ${name} válida.`);
+  const values = [...match[1].matchAll(/(['"])(.*?)\1/g)].map(item => item[2]);
+  required(values.length || !match[1].trim(), `Service worker possui lista ${name} sem strings válidas.`);
+  return values;
+};
+const literalPrecache = sw.match(/const PRECACHE=\[([\s\S]*?)\];/);
+required(literalPrecache, 'Service worker sem lista PRECACHE válida.');
+let precache;
+if (literalPrecache[1].includes('...CORE_ROUTES.map')) {
+  const coreRoutes = stringArray('CORE_ROUTES');
+  const assets = stringArray('ASSETS');
+  const data = stringArray('DATA');
+  const icons = stringArray('ICONS');
+  const subjectsInSw = stringArray('SUBJECTS');
+  precache = [
+    ...coreRoutes.map(route => BASE + route),
+    ...assets.map(asset => BASE + asset),
+    ...data.map(file => BASE + file),
+    ...icons.map(icon => BASE + icon),
+    ...Array.from({length: 112}, (_, index) => BASE + `pe/${index + 1}/`),
+    ...subjectsInSw.map(slug => BASE + `materias/${slug}/`),
+    ...Array.from({length: 10}, (_, index) => BASE + `data/error-questions/part-${String(index + 1).padStart(2, '0')}.json`),
+  ];
+} else {
+  precache = [...literalPrecache[1].matchAll(/(['"])(.*?)\1/g)].map(item => item[2]);
+}
+required(precache.length, 'Service worker possui PRECACHE vazio.');
+required(!duplicates(precache).length, 'Service worker possui URLs duplicadas no PRECACHE.');
 for (const url of precache) {
   let target = String(url).replace(BASE, '');
   if (!target) target = 'index.html'; else if (target.endsWith('/')) target += 'index.html';
