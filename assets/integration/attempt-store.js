@@ -4,7 +4,8 @@ import {classifyQuestionResult} from './response-classification.js?v=1.0.0';
 export const ATTEMPT_SCHEMA_VERSION = '1.2.0';
 export const ATTEMPT_ENVELOPE_VERSION = '1.0.0';
 export const MAX_LOCAL_ATTEMPTS = 100;
-export const ATTEMPT_MODES = Object.freeze(['pilot', 'review']);
+export const ATTEMPT_MODES = Object.freeze(['pilot', 'review', 'legacy']);
+const INTERACTIVE_ATTEMPT_MODES = Object.freeze(['pilot', 'review']);
 
 function resolveStorage(storage) {
   const target = storage ?? globalThis.localStorage;
@@ -20,10 +21,13 @@ function validateAttempt(attempt) {
   if (!attempt.id || !attempt.materialId || !attempt.peId) throw new TypeError('Identificação da tentativa incompleta.');
   if (!ATTEMPT_MODES.includes(attempt.mode)) throw new TypeError('Modo da tentativa inválido.');
   if (attempt.mode === 'review' && !attempt.sourceReviewId) throw new TypeError('Tentativa de revisão sem item de origem.');
-  if (attempt.mode === 'pilot' && attempt.sourceReviewId !== null) throw new TypeError('Tentativa piloto não pode referenciar revisão.');
+  if (attempt.mode !== 'review' && attempt.sourceReviewId !== null) throw new TypeError('Tentativa sem revisão não pode referenciar item de origem.');
   if (attempt.profileId !== 'rodrigo' || attempt.cargoCode !== '202') throw new TypeError('Perfil ou cargo incompatível.');
-  if (attempt.pilot !== true || attempt.officialProgress !== false || attempt.notionWriteback !== false) {
-    throw new TypeError('Tentativa fora do isolamento do piloto.');
+  if (attempt.officialProgress !== false || attempt.notionWriteback !== false) throw new TypeError('Tentativa fora do isolamento local.');
+  if (attempt.mode === 'legacy') {
+    if (attempt.pilot !== false || attempt.sourceSystem !== 'sedes-df-questoes') throw new TypeError('Tentativa legada sem procedência válida.');
+  } else if (attempt.pilot !== true) {
+    throw new TypeError('Tentativa do módulo deve permanecer piloto.');
   }
   if (!Array.isArray(attempt.questionResults) || attempt.questionResults.length !== attempt.total) {
     throw new TypeError('Resultados individuais da tentativa inválidos.');
@@ -39,7 +43,7 @@ function validateAttempt(attempt) {
 
 export function createAttemptRecord({catalog, evaluation, responseMeta = {}, mode = 'pilot', sourceReviewId = null, savedAt = Date.now()}) {
   if (!catalog || catalog.id !== evaluation?.session?.materialId) throw new TypeError('Catálogo e avaliação incompatíveis.');
-  if (!ATTEMPT_MODES.includes(mode)) throw new TypeError('Modo da tentativa inválido.');
+  if (!INTERACTIVE_ATTEMPT_MODES.includes(mode)) throw new TypeError('Modo interativo da tentativa inválido.');
   if (mode === 'review' && !sourceReviewId) throw new TypeError('Revisão de origem obrigatória.');
   const questions = new Map(catalog.questoes.map(question => [question.id, question]));
   const questionResults = evaluation.results.map(result => {
