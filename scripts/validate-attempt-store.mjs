@@ -2,9 +2,10 @@ import fs from 'node:fs/promises';
 
 const read = file => fs.readFile(file, 'utf8');
 const required = (condition, message) => { if (!condition) throw new Error(message); };
-const [store, player, contracts, packageText] = await Promise.all([
+const [store, player, transaction, contracts, packageText] = await Promise.all([
   read('assets/integration/attempt-store.js'),
   read('assets/integration/player.js'),
+  read('assets/integration/completion-transaction.js'),
   read('assets/integration/contracts.js'),
   read('package.json'),
 ]);
@@ -24,13 +25,14 @@ required(!/sessionStorage|indexedDB/.test(store), 'Mecanismo de persistência n�
 required(store.includes('Histórico local de tentativas corrompido'), 'Proteção contra corrupção ausente.');
 required(store.includes('filter(item => item.id !== valid.id)'), 'Deduplicação por ID ausente.');
 
-required(player.includes("from './attempt-store.js?v=1.0.0'"), 'O player não usa o módulo controlado de tentativas.');
+required(player.includes("import {createAttemptRecord} from './attempt-store.js?v=1.0.0'"), 'O player não cria o registro pelo módulo controlado.');
 required(!/localStorage|sessionStorage|indexedDB/.test(player), 'O player acessa diretamente o armazenamento.');
 const evaluatePosition = player.indexOf('state.evaluation = evaluateSession');
-const savePosition = player.indexOf('state.savedAttempt = saveAttempt');
-required(evaluatePosition >= 0 && savePosition > evaluatePosition, 'A tentativa é salva antes da correção.');
-required(player.includes('Tentativa salva neste dispositivo'), 'A interface não informa o histórico local.');
+const recordPosition = player.indexOf('state.attemptRecord = createAttemptRecord');
+const commitPosition = player.indexOf('commitCompletedAttempt(state.attemptRecord');
+required(evaluatePosition >= 0 && recordPosition > evaluatePosition && commitPosition > recordPosition, 'Ordem correção → registro → commit inválida.');
+required(transaction.includes('const savedAttempt = saveAttempt(attempt, target)'), 'Transação não salva a tentativa pelo módulo oficial.');
 required(player.includes('Nenhum dado foi enviado ao Notion ou ao progresso oficial'), 'A interface não informa o isolamento externo.');
 required(packageText.includes('check:attempts') && packageText.includes('test:attempts'), 'Comandos de validação das tentativas ausentes.');
 
-console.log('Histórico local validado: piloto/revisão, namespace oficial, deduplicação, limite, corrupção protegida e zero writeback.');
+console.log('Histórico local validado: piloto/revisão, criação após correção, commit transacional, deduplicação, limite e zero writeback.');
