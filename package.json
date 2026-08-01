@@ -1,10 +1,10 @@
 {
   "name": "sedes-tdas-dashboard",
-  "version": "24.1.0-integration.9",
+  "version": "24.1.0-integration.10",
   "private": true,
   "type": "module",
   "scripts": {
-    "check": "node scripts/validate-platform.mjs && node scripts/validate-integration-base.mjs && node scripts/validate-navigation.mjs && node scripts/validate-pilot-catalog.mjs && node scripts/validate-player.mjs && node scripts/test-player.mjs && node scripts/validate-attempt-store.mjs && node scripts/test-attempt-store.mjs && node scripts/validate-classification.mjs && node scripts/test-response-classification.mjs && node scripts/test-classification-store.mjs && node scripts/validate-reviews.mjs && node scripts/test-review-scheduler.mjs && node scripts/test-review-store.mjs && node scripts/validate-pe-integration.mjs && node scripts/test-pe-progress-store.mjs && node scripts/test-completion-transaction.mjs && node scripts/validate-performance.mjs && node scripts/test-performance-metrics.mjs && node scripts/validate-backup-migration.mjs && node scripts/test-backup-migration.mjs",
+    "check": "node scripts/validate-platform.mjs && node scripts/validate-integration-base.mjs && node scripts/validate-navigation.mjs && node scripts/validate-pilot-catalog.mjs && node scripts/validate-player.mjs && node scripts/test-player.mjs && node scripts/validate-attempt-store.mjs && node scripts/test-attempt-store.mjs && node scripts/validate-classification.mjs && node scripts/test-response-classification.mjs && node scripts/test-classification-store.mjs && node scripts/validate-reviews.mjs && node scripts/test-review-scheduler.mjs && node scripts/test-review-store.mjs && node scripts/validate-pe-integration.mjs && node scripts/test-pe-progress-store.mjs && node scripts/test-completion-transaction.mjs && node scripts/validate-performance.mjs && node scripts/test-performance-metrics.mjs && node scripts/validate-backup-migration.mjs && node scripts/test-backup-migration.mjs && node scripts/validate-pwa-integration.mjs",
     "check:integration": "node scripts/validate-integration-base.mjs",
     "check:navigation": "node scripts/validate-navigation.mjs",
     "check:pilot": "node scripts/validate-pilot-catalog.mjs",
@@ -22,6 +22,7 @@
     "test:performance": "node scripts/test-performance-metrics.mjs",
     "check:backup": "node scripts/validate-backup-migration.mjs",
     "test:backup": "node scripts/test-backup-migration.mjs",
-    "test": "npm run check:integration && npm run check:navigation && npm run check:pilot && npm run check:player && npm run test:player && npm run check:attempts && npm run test:attempts && npm run check:classification && npm run test:classification && npm run check:reviews && npm run test:reviews && npm run check:pe && npm run test:pe && npm run check:performance && npm run test:performance && npm run check:backup && npm run test:backup"
+    "check:pwa": "node scripts/validate-pwa-integration.mjs",
+    "test": "npm run check:integration && npm run check:navigation && npm run check:pilot && npm run check:player && npm run test:player && npm run check:attempts && npm run test:attempts && npm run check:classification && npm run test:classification && npm run check:reviews && npm run test:reviews && npm run check:pe && npm run test:pe && npm run check:performance && npm run test:performance && npm run check:backup && npm run test:backup && npm run check:pwa"
   }
 }
