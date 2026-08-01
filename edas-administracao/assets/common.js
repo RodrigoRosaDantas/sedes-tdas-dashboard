@@ -1,124 +1,39 @@
+export const RELEASE='20260801.3';
 export const BASE='/sedes-tdas-dashboard/edas-administracao/';
 export const routes={home:BASE,hoje:BASE+'hoje/',evolucao:BASE+'evolucao/',riscos:BASE+'riscos/',agenda:BASE+'agenda/',casos:BASE+'estudos-caso/',auditoria:BASE+'auditoria/',mais:BASE+'mais/'};
 const icons={home:'⌂',hoje:'◎',evolucao:'↗',riscos:'!',agenda:'◷',casos:'✎',auditoria:'✓',mais:'•••'};
 const labels={home:'Início',hoje:'Hoje',evolucao:'Evolução',riscos:'Riscos',agenda:'Agenda',casos:'Estudos de caso',auditoria:'Auditoria',mais:'Mais'};
-let installPrompt=null;
-
-window.addEventListener('beforeinstallprompt',event=>{
- event.preventDefault();
- installPrompt=event;
- updateInstallButtons();
-});
-window.addEventListener('appinstalled',()=>{
- installPrompt=null;
- localStorage.setItem('edas-installed','1');
- updateInstallButtons();
-});
-
-export async function loadData(){
- const r=await fetch(BASE+'data/site.json?v=2',{cache:'no-store'});
- if(!r.ok)throw new Error('Falha ao carregar dados ('+r.status+')');
- return r.json();
-}
-export function fmtNumber(v){return new Intl.NumberFormat('pt-BR').format(v)}
-export function fmtPct(v,d=2){return new Intl.NumberFormat('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d}).format(v)+'%'}
+let installPrompt=null,registrationRef=null;
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();installPrompt=e;updateInstallUI()});
+window.addEventListener('appinstalled',()=>{installPrompt=null;updateInstallUI()});
+navigator.serviceWorker?.addEventListener('controllerchange',()=>{if(window.__EDAS_RELOAD__)return;window.__EDAS_RELOAD__=1;location.reload()});
+export function fmtNumber(v){return v===null||v===undefined||v===''?'—':new Intl.NumberFormat('pt-BR').format(v)}
+export function fmtPct(v,d=2){return v===null||v===undefined||v===''?'—':new Intl.NumberFormat('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d}).format(v)+'%'}
 export function fmtDate(iso){if(!iso)return'—';const[y,m,d]=iso.split('-').map(Number);return new Intl.DateTimeFormat('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric'}).format(new Date(y,m-1,d))}
 export function escapeHTML(s){return String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
 export function metric(label,value,detail){return`<article class="card metric"><small>${escapeHTML(label)}</small><strong>${escapeHTML(value)}</strong><span>${escapeHTML(detail)}</span></article>`}
 export function alertCard(a){return`<article class="card alert" data-level="${escapeHTML(a.level)}"><span class="alert-icon">${a.level==='critical'?'!':a.level==='warning'?'△':'i'}</span><div><b>${escapeHTML(a.title)}</b><p>${escapeHTML(a.detail)}</p></div>${a.href?`<a href="${a.href}">${escapeHTML(a.action||'Abrir')} →</a>`:''}</article>`}
-
-function isStandalone(){
- return window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone===true;
-}
-function ensureInstallUI(){
- const actions=document.querySelector('.actions');
- if(actions&&!actions.querySelector('[data-install-button]')){
-  const button=document.createElement('button');
-  button.type='button';
-  button.className='btn install-btn';
-  button.dataset.installButton='';
-  button.textContent='Instalar';
-  actions.appendChild(button);
- }
- if(!document.querySelector('#edas-install-fab')){
-  const style=document.createElement('style');
-  style.textContent='#edas-install-fab{display:none;position:fixed;left:14px;right:14px;bottom:calc(78px + env(safe-area-inset-bottom));z-index:90;align-items:center;justify-content:space-between;gap:12px;padding:12px 13px;border:1px solid color-mix(in srgb,var(--green) 48%,var(--line));border-radius:16px;background:color-mix(in srgb,var(--surface) 96%,transparent);box-shadow:0 16px 45px rgba(0,0,0,.32);backdrop-filter:blur(18px)}#edas-install-fab.show{display:flex}#edas-install-fab span{font-size:11px;color:var(--muted);line-height:1.35}#edas-install-fab b{display:block;color:var(--text);font-size:12px}@media(min-width:781px){#edas-install-fab{display:none!important}}';
-  document.head.appendChild(style);
-  const banner=document.createElement('div');
-  banner.id='edas-install-fab';
-  banner.dataset.install='';
-  banner.innerHTML='<span><b>Instalar EDAS no celular</b>Acesso rápido e último snapshot disponível offline.</span><button type="button" class="btn primary" data-install-button>Instalar</button>';
-  document.body.appendChild(banner);
- }
- updateInstallButtons();
-}
-function updateInstallButtons(){
- const installed=isStandalone()||localStorage.getItem('edas-installed')==='1';
- document.querySelectorAll('[data-install-button]').forEach(button=>{
-  if(installed){button.textContent='Instalado';button.disabled=true;button.hidden=true;return}
-  button.hidden=false;
-  button.disabled=false;
-  button.textContent=installPrompt?'Instalar aplicativo':'Instalar no celular';
- });
- document.querySelectorAll('[data-install]').forEach(banner=>banner.classList.toggle('show',!installed));
-}
-async function runInstall(){
- if(isStandalone())return;
- if(installPrompt){
-  const prompt=installPrompt;
-  installPrompt=null;
-  prompt.prompt();
-  await prompt.userChoice;
-  updateInstallButtons();
-  return;
- }
- const ios=/iphone|ipad|ipod/i.test(navigator.userAgent);
- if(ios){
-  alert('No Safari, toque em Compartilhar e depois em “Adicionar à Tela de Início”.');
- }else{
-  alert('No Chrome, abra o menu ⋮ e toque em “Instalar app” ou “Adicionar à tela inicial”.');
- }
-}
-function updateOnline(){document.querySelector('#offline')?.classList.toggle('show',!navigator.onLine)}
-
-export function setupShell(page,meta){
- const desktop=['home','hoje','evolucao','riscos','agenda','casos','auditoria'];
- const mobile=['home','hoje','evolucao','riscos','mais'];
- document.querySelector('#desktop-nav').innerHTML='<div class="nav-label">Plataforma de estudo</div>'+desktop.map(k=>`<a href="${routes[k]}" class="${k===page?'active':''}"><span class="nav-icon">${icons[k]}</span>${labels[k]}</a>`).join('');
- const mobileActive=['agenda','casos','auditoria'].includes(page)?'mais':page;
- document.querySelector('#mobile-nav').innerHTML=mobile.map(k=>`<a href="${routes[k]}" class="${k===mobileActive?'active':''}"><span>${icons[k]}</span><span>${labels[k]}</span></a>`).join('');
- document.querySelectorAll('[data-snapshot]').forEach(el=>el.textContent=fmtDate(meta.snapshotDate));
- document.querySelectorAll('[data-sync]').forEach(el=>el.textContent=meta.syncTimes.join(' · '));
- const stored=localStorage.getItem('edas-theme');if(stored)document.documentElement.dataset.theme=stored;
- ensureInstallUI();
- setTimeout(updateInstallButtons,0);
- if(!document.documentElement.dataset.edasControlsReady){
-  document.documentElement.dataset.edasControlsReady='1';
-  document.addEventListener('click',event=>{
-   const theme=event.target.closest('[data-theme-toggle]');
-   if(theme){const next=document.documentElement.dataset.theme==='light'?'dark':'light';document.documentElement.dataset.theme=next;localStorage.setItem('edas-theme',next);return}
-   const install=event.target.closest('[data-install-button]');
-   if(install){runInstall();return}
-   const dl=event.target.closest('[data-download]');
-   if(dl)download(dl.dataset.download,window.__EDAS_DATA__);
-  });
-  window.addEventListener('online',updateOnline);
-  window.addEventListener('offline',updateOnline);
- }
- updateOnline();
- if('serviceWorker'in navigator){
-  navigator.serviceWorker.register(BASE+'sw.js?v=2',{scope:BASE}).then(registration=>registration.update()).catch(console.error);
- }
-}
-function toCSV(rows){if(!rows.length)return'';const keys=[...new Set(rows.flatMap(Object.keys))];const q=v=>`"${String(v??'').replace(/"/g,'""')}"`;return [keys.map(q).join(','),...rows.map(r=>keys.map(k=>q(r[k])).join(','))].join('\n')}
-function download(type,d){
- if(!d)return;
- let name='edas-snapshot.json',mime='application/json;charset=utf-8',content=JSON.stringify(d,null,2);
- if(type==='sprints'){name='edas-sprints.csv';mime='text/csv;charset=utf-8';content=toCSV([{sprint:'S01',data:'2026-07-27',status:'Concluído',questoes:35,acertos:27,aproveitamento:77.14},{sprint:'S02',data:'2026-07-28',status:'Não iniciada',questoes:0,acertos:'',aproveitamento:''}])}
- if(type==='erros'){name='edas-erros.csv';mime='text/csv;charset=utf-8';content=toCSV(d.errorsByBlock||[])}
- if(type==='casos'){name='edas-estudos-de-caso.csv';mime='text/csv;charset=utf-8';content=toCSV(d.cases||[])}
- if(type==='qualidade'){name='edas-qualidade.csv';mime='text/csv;charset=utf-8';content=toCSV(d.quality||[])}
- const blob=new Blob(['\ufeff'+content],{type:mime});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
-}
-export function countdown(iso){const[y,m,d]=iso.split('-').map(Number),now=new Date(),days=Math.max(0,Math.ceil((Date.UTC(y,m-1,d)-Date.UTC(now.getFullYear(),now.getMonth(),now.getDate()))/86400000));return days}
+function valid(d){if(!d?.meta||!d?.metrics||!d?.today)throw new Error('Snapshot EDAS incompleto');return d}
+export async function loadData(){try{const r=await fetch(BASE+'data/site.json?v='+RELEASE,{cache:'no-store'});if(!r.ok)throw new Error('Falha ao carregar dados ('+r.status+')');const d=valid(await r.json());if('caches'in window){const c=await caches.open('edas-runtime-'+RELEASE);c.put(BASE+'data/site.json',new Response(JSON.stringify(d),{headers:{'Content-Type':'application/json'}})).catch(()=>{})}return d}catch(e){const r=await caches.match(BASE+'data/site.json');if(r){const d=valid(await r.json());d.meta.offlineFallback=true;return d}throw e}}
+export function countdown(iso){const[y,m,d]=iso.split('-').map(Number),n=new Date();return Math.max(0,Math.ceil((Date.UTC(y,m-1,d)-Date.UTC(n.getFullYear(),n.getMonth(),n.getDate()))/86400000))}
+function days(a,b){return Math.max(0,Math.round((new Date(b+'T00:00:00')-new Date(a+'T00:00:00'))/86400000))}
+export function planDiagnostics(d){const n=new Date(),today=[n.getFullYear(),String(n.getMonth()+1).padStart(2,'0'),String(n.getDate()).padStart(2,'0')].join('-'),start=d.plan?.startDate||'2026-07-27',total=Number(d.metrics.total),actual=Number(d.metrics.completed),span=days(start,d.meta.examDate)+1,elapsed=Math.min(span,days(start,today)+1),expected=Math.min(total,total*elapsed/span),gap=actual-expected,remaining=total-actual,left=Math.max(1,countdown(d.meta.examDate)+1),pace=remaining/left,level=gap>=-.5?'good':gap>=-2?'warn':'bad';return{actual,total,expected,gap,remaining,left,pace,level,label:level==='good'?'Ritmo alinhado':level==='warn'?'Atenção':'Recuperação necessária'}}
+export function recoveryAdvice(x,d){const falta=Math.max(0,Math.ceil(x.expected-x.actual));if(x.level==='good')return{level:'good',title:'Manter o ritmo',detail:`Concluir ${d.today.sprint} e preservar as revisões previstas.`};if(x.level==='warn')return{level:'warn',title:'Correção curta de rota',detail:`Concluir ${d.today.sprint} e recuperar ${Math.max(1,falta)} Sprint no próximo bloco flexível.`};return{level:'bad',title:'Plano de recuperação',detail:`Concluir ${d.today.sprint} e recuperar ${Math.max(1,falta)} Sprints em blocos separados, sem eliminar descanso ou correção ativa.`}}
+function standalone(){return matchMedia('(display-mode: standalone)').matches||navigator.standalone===true}
+function addStyles(){if(document.querySelector('style[data-edas-v3]'))return;const s=document.createElement('style');s.dataset.edasV3='1';s.textContent='.progress-compare{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.progress-card{padding:20px}.progress-card strong{display:block;font-size:38px;margin:8px 0}.progress-track{height:12px;border-radius:999px;background:var(--surface3);overflow:hidden;margin-top:14px}.progress-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--green))}.progress-fill.expected{background:linear-gradient(90deg,var(--yellow),var(--accent2))}.status-pill{padding:6px 9px;border-radius:999px;background:var(--surface3);font-size:10px}.status-pill.good{color:var(--green)}.status-pill.warn{color:var(--yellow)}.status-pill.bad{color:var(--red)}.recovery-plan{padding:20px;border-left:4px solid var(--yellow)}.recovery-plan[data-level=good]{border-color:var(--green)}.recovery-plan[data-level=bad]{border-color:var(--red)}.session{display:grid;grid-template-columns:1.2fr .8fr;gap:14px}.timer-card{text-align:center;padding:22px}.timer-display{font:800 clamp(42px,8vw,74px)/1 ui-monospace,monospace}.timer-controls,.quick-actions{display:flex;gap:8px;flex-wrap:wrap}.notes-card{padding:20px}.notes-card textarea{width:100%;min-height:170px;border:1px solid var(--line);border-radius:14px;background:var(--surface2);color:var(--text);padding:14px}.check{grid-template-columns:34px 1fr auto}.check-box{appearance:none;width:28px;height:28px;border:2px solid var(--green);border-radius:9px}.check-box:checked{background:var(--green);box-shadow:inset 0 0 0 6px var(--surface)}.session-progress b{display:flex;justify-content:space-between;font-size:11px}.coverage{padding:12px 15px;border:1px dashed var(--line);border-radius:14px;color:var(--muted);font-size:11px}.update-banner{display:none;position:fixed;right:16px;bottom:16px;z-index:110;max-width:420px;padding:14px;border:1px solid var(--line);border-radius:16px;background:var(--surface);box-shadow:var(--shadow)}.update-banner.show{display:flex;gap:12px;align-items:center}.case-grid{grid-template-columns:repeat(2,1fr)}.case-card{padding:20px}.case-detail{padding:22px}.score-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.score{padding:14px;background:var(--surface2);border-radius:14px}@media(max-width:900px){.progress-compare,.session{grid-template-columns:1fr}}@media(max-width:780px){.case-grid,.score-grid{grid-template-columns:1fr}.update-banner{left:12px;right:12px;bottom:82px;max-width:none}.check{grid-template-columns:32px 1fr}.check time{display:none}}';document.head.appendChild(s)}
+function installUI(){const a=document.querySelector('.actions');if(a&&!a.querySelector('[data-install-button]'))a.insertAdjacentHTML('beforeend','<button class="btn install-btn" data-install-button>Instalar</button>');if(!document.querySelector('#edas-install-banner'))document.querySelector('main')?.insertAdjacentHTML('afterbegin','<div id="edas-install-banner" class="install-banner" data-install><span><b>Instalar EDAS no celular</b><br>Janela própria e último snapshot offline.</span><button class="btn primary" data-install-button>Instalar</button></div>');if(!document.querySelector('#edas-update-banner'))document.body.insertAdjacentHTML('beforeend','<div id="edas-update-banner" class="update-banner"><span><b>Nova versão disponível</b><br>Atualize sem perder o progresso local.</span><button class="btn primary" data-update-app>Atualizar</button></div>');updateInstallUI()}
+function updateInstallUI(){document.querySelectorAll('[data-install-button]').forEach(b=>{b.hidden=standalone();b.textContent=installPrompt?'Instalar aplicativo':'Instalar no celular'});document.querySelectorAll('[data-install]').forEach(x=>x.classList.toggle('show',!standalone()))}
+async function install(){if(installPrompt){const p=installPrompt;installPrompt=null;p.prompt();await p.userChoice;updateInstallUI()}else alert(/iphone|ipad|ipod/i.test(navigator.userAgent)?'No Safari, toque em Compartilhar e depois em Adicionar à Tela de Início.':'No Chrome, abra o menu ⋮ e escolha Instalar app ou Adicionar à tela inicial.')}
+async function sw(){if(!('serviceWorker'in navigator))return;try{const r=await navigator.serviceWorker.register(BASE+'sw.js?v='+RELEASE,{scope:BASE});registrationRef=r;if(r.waiting)document.querySelector('#edas-update-banner')?.classList.add('show');r.addEventListener('updatefound',()=>r.installing?.addEventListener('statechange',()=>{if(r.installing?.state==='installed'&&navigator.serviceWorker.controller)document.querySelector('#edas-update-banner')?.classList.add('show')}));r.update().catch(()=>{})}catch(e){console.error(e)}}
+function csv(rows){if(!rows?.length)return'';const k=[...new Set(rows.flatMap(Object.keys))],q=v=>`"${String(typeof v==='object'?JSON.stringify(v):v??'').replace(/"/g,'""')}"`;return[k.map(q).join(','),...rows.map(r=>k.map(x=>q(r[x])).join(','))].join('\n')}
+function save(name,type,content){const u=URL.createObjectURL(new Blob(['\ufeff'+content],{type})),a=document.createElement('a');a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),1000)}
+function download(type,d){const rows=type==='sprints'?(d.sprints||[...d.evolution,...d.agenda]):type==='errors'?(d.errors||d.errorsByBlock):type==='cases'?d.cases:type==='quality'?d.quality:null;if(rows)return save('edas-'+type+'.csv','text/csv;charset=utf-8',csv(rows));save('edas-snapshot.json','application/json;charset=utf-8',JSON.stringify(d,null,2))}
+function online(){document.querySelector('#offline')?.classList.toggle('show',!navigator.onLine)}
+export function setupShell(page,meta){addStyles();const desktop=['home','hoje','evolucao','riscos','agenda','casos','auditoria'],mobile=['home','hoje','evolucao','riscos','mais'];document.querySelector('#desktop-nav').innerHTML='<div class="nav-label">Plataforma de estudo</div>'+desktop.map(k=>`<a href="${routes[k]}" class="${k===page?'active':''}"><span class="nav-icon">${icons[k]}</span>${labels[k]}</a>`).join('');const ma=['agenda','casos','auditoria'].includes(page)?'mais':page;document.querySelector('#mobile-nav').innerHTML=mobile.map(k=>`<a href="${routes[k]}" class="${k===ma?'active':''}"><span>${icons[k]}</span><span>${labels[k]}</span></a>`).join('');document.querySelectorAll('[data-snapshot]').forEach(x=>x.textContent=fmtDate(meta.snapshotDate));document.querySelectorAll('[data-sync]').forEach(x=>x.textContent=meta.syncTimes.join(' · '));const t=localStorage.getItem('edas-theme');if(t)document.documentElement.dataset.theme=t;installUI();if(!document.documentElement.dataset.edasReady){document.documentElement.dataset.edasReady='1';document.addEventListener('click',e=>{if(e.target.closest('[data-theme-toggle]')){const n=document.documentElement.dataset.theme==='light'?'dark':'light';document.documentElement.dataset.theme=n;localStorage.setItem('edas-theme',n)}else if(e.target.closest('[data-install-button]'))install();else if(e.target.closest('[data-update-app]'))registrationRef?.waiting?registrationRef.waiting.postMessage({type:'SKIP_WAITING'}):location.reload();else{const b=e.target.closest('[data-download]');if(b)download(b.dataset.download,window.__EDAS_DATA__)}});addEventListener('online',online);addEventListener('offline',online)}online();sw()}
+const key=s=>'edas-session-'+s;
+function session(s){try{return{checked:{},notes:'',timer:{elapsed:0,running:false,startedAt:null},...JSON.parse(localStorage.getItem(key(s))||'{}')}}catch{return{checked:{},notes:'',timer:{elapsed:0,running:false,startedAt:null}}}}
+function elapsed(t){return Number(t.elapsed||0)+(t.running&&t.startedAt?Date.now()-t.startedAt:0)}
+function duration(ms){const z=Math.floor(ms/1000),h=Math.floor(z/3600),m=Math.floor(z%3600/60),s=z%60;return[h,m,s].map(x=>String(x).padStart(2,'0')).join(':')}
+export function setupTodaySession(sprint,steps){const st=session(sprint),checks=[...document.querySelectorAll('[data-session-check]')],display=document.querySelector('[data-timer-display]'),notes=document.querySelector('[data-session-notes]');const saveState=()=>localStorage.setItem(key(sprint),JSON.stringify(st));const prog=()=>{const n=checks.filter(x=>x.checked).length,p=checks.length?n/checks.length*100:0;document.querySelector('[data-session-progress]').style.width=p+'%';document.querySelector('[data-session-progress-text]').textContent=`${n}/${checks.length} etapas · ${p.toFixed(0)}%`};checks.forEach(x=>{x.checked=!!st.checked[x.dataset.sessionCheck];x.onchange=()=>{st.checked[x.dataset.sessionCheck]=x.checked;saveState();prog()}});notes.value=st.notes||'';notes.oninput=()=>{st.notes=notes.value;saveState()};const tick=()=>display.textContent=duration(elapsed(st.timer));setInterval(tick,1000);tick();prog();document.querySelector('[data-timer-start]').onclick=()=>{if(!st.timer.running){st.timer.running=true;st.timer.startedAt=Date.now();saveState()}};document.querySelector('[data-timer-pause]').onclick=()=>{if(st.timer.running){st.timer.elapsed=elapsed(st.timer);st.timer.running=false;st.timer.startedAt=null;saveState();tick()}};document.querySelector('[data-timer-reset]').onclick=()=>{if(confirm('Zerar o cronômetro?')){st.timer={elapsed:0,running:false,startedAt:null};saveState();tick()}};document.querySelector('[data-session-reset]').onclick=()=>{if(confirm('Limpar esta sessão?')){localStorage.removeItem(key(sprint));location.reload()}};document.querySelector('[data-copy-summary]').onclick=async()=>{const done=checks.filter(x=>x.checked).map(x=>steps.find(s=>s.id===x.dataset.sessionCheck)?.label),pending=checks.filter(x=>!x.checked).map(x=>steps.find(s=>s.id===x.dataset.sessionCheck)?.label),text=`${sprint}\nTempo: ${duration(elapsed(st.timer))}\nConcluído: ${done.join('; ')||'—'}\nPendente: ${pending.join('; ')||'—'}\nNotas: ${notes.value||'—'}`;try{await navigator.clipboard.writeText(text);alert('Resumo copiado.')}catch{save(sprint.toLowerCase()+'-resumo.txt','text/plain',text)}}}
+export function renderLineChart(el,rows){if(!rows?.length){el.innerHTML='<div class="empty">Sem resultados.</div>';return}const W=900,H=280,p=42,v=rows.map(x=>Number(x.accuracy)),min=Math.max(0,Math.min(...v)-6),max=Math.min(100,Math.max(...v)+4),sx=i=>p+i*(W-2*p)/Math.max(1,rows.length-1),sy=x=>H-p-(x-min)*(H-2*p)/Math.max(1,max-min),points=rows.map((x,i)=>`${sx(i)},${sy(x.accuracy)}`).join(' ');el.innerHTML=`<svg viewBox="0 0 ${W} ${H}"><polyline fill="none" stroke="var(--accent)" stroke-width="4" points="${points}"/>${rows.map((x,i)=>`<circle cx="${sx(i)}" cy="${sy(x.accuracy)}" r="5" fill="var(--green)"><title>${x.sprint}: ${fmtPct(x.accuracy)}</title></circle><text x="${sx(i)}" y="${H-8}" text-anchor="middle" fill="var(--muted)" font-size="12">${x.sprint}</text>`).join('')}</svg>`}
 export function setLoadingError(e){document.querySelector('main').innerHTML=`<section class="card panel"><h1>Não foi possível carregar esta página.</h1><p>${escapeHTML(e.message)}</p><a class="btn" href="${routes.home}">Voltar ao início</a></section>`}
