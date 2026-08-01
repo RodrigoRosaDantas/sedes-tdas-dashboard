@@ -1,0 +1,65 @@
+{
+  "schemaVersion": "1.0.0",
+  "phase": 2,
+  "mode": "navigation-only",
+  "basePath": "/sedes-tdas-dashboard/",
+  "routes": [
+    {
+      "key": "estudar",
+      "path": "/sedes-tdas-dashboard/estudar/",
+      "title": "Estudar",
+      "description": "Entrada central do módulo de questões, preparada para receber catálogo e sessões de estudo.",
+      "status": "Estrutura criada",
+      "nextPhase": "Fase 3 — catálogo piloto do PE76"
+    },
+    {
+      "key": "resolver",
+      "path": "/sedes-tdas-dashboard/resolver/",
+      "title": "Resolver questões",
+      "description": "Rota reservada para o player de questões e controles de sessão.",
+      "status": "Estrutura criada",
+      "nextPhase": "Fase 4 — player"
+    },
+    {
+      "key": "revisar",
+      "path": "/sedes-tdas-dashboard/revisar/",
+      "title": "Revisar",
+      "description": "Rota reservada para revisões D+1, D+7 e D+20.",
+      "status": "Estrutura criada",
+      "nextPhase": "Fase 7 — revisões"
+    },
+    {
+      "key": "caderno-erros",
+      "path": "/sedes-tdas-dashboard/caderno-erros/",
+      "title": "Caderno de erros",
+      "description": "Nova rota canônica do caderno; o acervo oficial atual permanece preservado.",
+      "status": "Estrutura criada",
+      "nextPhase": "Fase 6 — classificação e erro definitivo",
+      "legacyPath": "/sedes-tdas-dashboard/questoes-erros/"
+    },
+    {
+      "key": "desempenho",
+      "path": "/sedes-tdas-dashboard/desempenho/",
+      "title": "Desempenho",
+      "description": "Rota reservada para métricas de tentativas, tempo, acertos, dúvidas e chutes.",
+      "status": "Estrutura criada",
+      "nextPhase": "Fase 9 — painéis"
+    },
+    {
+      "key": "fila-ia",
+      "path": "/sedes-tdas-dashboard/fila-ia/",
+      "title": "Fila de IA",
+      "description": "Rota reservada para itens que exigem auditoria, explicação ou decisão editorial.",
+      "status": "Estrutura criada",
+      "nextPhase": "Fase 11 — fila de IA"
+    }
+  ],
+  "invariants": [
+    "no-study-data-write",
+    "no-notion-writeback",
+    "no-legacy-migration",
+    "no-question-player",
+    "legacy-error-route-preserved",
+    "single-dashboard-service-worker"
+  ]
+}
