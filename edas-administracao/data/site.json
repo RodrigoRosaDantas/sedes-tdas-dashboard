@@ -1,83 +1,84 @@
 {
   "meta": {
-    "snapshotDate": "2026-07-31",
+    "snapshotDate": "2026-08-01",
     "syncTimes": ["01h20", "07h20", "13h20", "19h20"],
     "examDate": "2026-09-06",
     "source": "Notion EDAS/Administração"
   },
   "metrics": {
-    "completed": 2,
+    "completed": 3,
     "total": 42,
-    "questions": 75,
-    "correct": 64,
-    "accuracy": 85.33,
-    "errors": 11,
+    "questions": 115,
+    "correct": 94,
+    "accuracy": 81.74,
+    "errors": 21,
     "casesCompleted": 0,
     "casesTotal": 12
   },
   "today": {
-    "sprint": "S05",
-    "title": "Mapeamento, análise e distribuição de processos e do trabalho",
-    "scheduledDate": "2026-07-31",
+    "sprint": "S06",
+    "title": "Revisão semanal da Semana 1 + R7–R40",
+    "scheduledDate": "2026-08-01",
     "status": "Não iniciada",
-    "planned": 40,
-    "block": "30 Material + 5 Comuns + 5 Português",
-    "review": "R24 do S04 + R72 do S02 + D+1 do SEC02",
-    "time": 165,
-    "material": "S05 — Mapeamento, análise e distribuição de processos e do trabalho",
-    "common": "C5 — NOB-RH, Tipificação, CIT, CIB, conselhos e conferências",
-    "portuguese": "P5 — regência e crase",
-    "deliverable": "Fluxo AS-IS → TO-BE com indicadores",
-    "case": "D+1 do SEC02"
+    "planned": 20,
+    "block": "Amostra estratégica única de até 20 questões",
+    "review": "R24 do S05 + R72 do S03",
+    "time": 180,
+    "material": "S06 — Revisão semanal da Semana 1 + R7–R40",
+    "common": "C6 — Prato Cheio, Cartão Gás e erros comuns",
+    "portuguese": "P6 — erros da semana",
+    "deliverable": "Mapa semanal + varredura R7–R40 + amostra estratégica",
+    "case": "Revisar SEC01 e SEC02"
   },
   "performance": [
-    {"label": "Material do dia", "value": 89.09, "result": "49/55"},
-    {"label": "Conhecimentos comuns", "value": 70.0, "result": "7/10"},
-    {"label": "Português", "value": 80.0, "result": "8/10"},
-    {"label": "Total objetivo", "value": 85.33, "result": "64/75"}
+    {"label": "Material do dia", "value": 85.88, "result": "73/85"},
+    {"label": "Conhecimentos comuns", "value": 73.33, "result": "11/15"},
+    {"label": "Português", "value": 66.67, "result": "10/15"},
+    {"label": "Total objetivo", "value": 81.74, "result": "94/115"}
   ],
   "evolution": [
     {"sprint": "S01", "date": "2026-07-27", "accuracy": 77.14, "questions": 35, "correct": 27},
-    {"sprint": "S02", "date": "2026-07-28", "accuracy": 92.5, "questions": 40, "correct": 37}
+    {"sprint": "S02", "date": "2026-07-28", "accuracy": 92.5, "questions": 40, "correct": 37},
+    {"sprint": "S03", "date": "2026-07-31", "accuracy": 75.0, "questions": 40, "correct": 30}
   ],
   "errorsByBlock": [
-    {"label": "Material do dia", "errors": 6},
-    {"label": "Conhecimentos comuns", "errors": 3},
-    {"label": "Português", "errors": 2}
+    {"label": "Material do dia", "errors": 12},
+    {"label": "Conhecimentos comuns", "errors": 4},
+    {"label": "Português", "errors": 5}
   ],
   "alerts": [
     {
       "level": "critical",
-      "title": "S03 e S04 vencidos sem execução registrada",
-      "detail": "Os Sprints previstos para 29/07 e 30/07 permanecem Não iniciada, sem questões ou resultado real registrados.",
+      "title": "S04 e S05 vencidos sem execução registrada",
+      "detail": "Os Sprints previstos para 30/07 e 31/07 permanecem Não iniciada, sem questões ou resultado real registrados.",
       "action": "Ver agenda",
       "href": "/sedes-tdas-dashboard/edas-administracao/agenda/"
     },
     {
       "level": "warning",
-      "title": "S05 é o foco programado de hoje",
-      "detail": "O bloco de 40 questões, R24 do S04, R72 do S02 e D+1 do SEC02 ainda não foram iniciados.",
-      "action": "Abrir foco de hoje",
-      "href": "/sedes-tdas-dashboard/edas-administracao/hoje/"
+      "title": "S03 executado, mas ainda em andamento",
+      "detail": "O bloco objetivo foi concluído em 30/40; R24, mapa dos níveis de planejamento e fechamento integral permanecem pendentes.",
+      "action": "Ver evolução",
+      "href": "/sedes-tdas-dashboard/edas-administracao/evolucao/"
     },
     {
       "level": "warning",
-      "title": "Conhecimentos comuns em 70% no acumulado",
-      "detail": "O bloco comum concentra 3 dos 11 erros acumulados e exige revisão ativa.",
-      "action": "Ver riscos",
-      "href": "/sedes-tdas-dashboard/edas-administracao/riscos/"
+      "title": "S06 é o foco programado de hoje",
+      "detail": "Revisão semanal adaptativa com R24 do S05, R72 do S03, revisão de SEC01–SEC02 e amostra única de até 20 questões.",
+      "action": "Abrir foco de hoje",
+      "href": "/sedes-tdas-dashboard/edas-administracao/hoje/"
     }
   ],
   "projections": [
-    {"label": "Progresso do ciclo", "value": "4,76%", "formula": "2 Sprints concluídos ÷ 42 Sprints × 100"},
-    {"label": "Ritmo necessário", "value": "1,08 Sprint/dia", "formula": "40 Sprints restantes ÷ 37 dias até a prova"},
-    {"label": "Taxa de erro atual", "value": "14,67%", "formula": "11 erros ÷ 75 questões × 100"}
+    {"label": "Progresso do ciclo", "value": "7,14%", "formula": "3 Sprints com bloco objetivo concluído ÷ 42 Sprints × 100"},
+    {"label": "Ritmo necessário", "value": "1,08 Sprint/dia", "formula": "39 Sprints restantes ÷ 36 dias até a prova"},
+    {"label": "Taxa de erro atual", "value": "18,26%", "formula": "21 erros ÷ 115 questões × 100"}
   ],
   "agenda": [
-    {"date": "2026-07-29", "id": "S03", "title": "Missão, visão, objetivos, planejamento e APO", "status": "Atrasado", "detail": "40 questões · R24 S02 · sem execução registrada"},
+    {"date": "2026-07-29", "id": "S03", "title": "Missão, visão, objetivos, planejamento e APO", "status": "Em andamento", "detail": "40 questões concluídas · 30 acertos · pendentes R24, mapa e fechamento"},
     {"date": "2026-07-30", "id": "S04", "title": "SWOT, BSC, processo decisório, GUT e 5W2H", "status": "Atrasado", "detail": "35 questões · R24 S03 · R72 S01 · SEC02 · sem execução registrada"},
-    {"date": "2026-07-31", "id": "S05", "title": "Mapeamento, análise e distribuição de processos e do trabalho", "status": "Pendente", "detail": "40 questões · R24 S04 · R72 S02 · D+1 SEC02"},
-    {"date": "2026-08-01", "id": "S06", "title": "Revisão estratégica", "status": "Planejado", "detail": "Amostra estratégica de até 20 questões"},
+    {"date": "2026-07-31", "id": "S05", "title": "Mapeamento, análise e distribuição de processos e do trabalho", "status": "Atrasado", "detail": "40 questões · R24 S04 · R72 S02 · D+1 SEC02 · sem execução registrada"},
+    {"date": "2026-08-01", "id": "S06", "title": "Revisão semanal da Semana 1 + R7–R40", "status": "Pendente", "detail": "Amostra adaptativa de até 20 questões · R24 S05 · R72 S03"},
     {"date": "2026-08-02", "id": "S07", "title": "Descanso real", "status": "Planejado", "detail": "Nenhuma questão programada"},
     {"date": "2026-08-03", "id": "S08", "title": "Estruturas organizacionais", "status": "Planejado", "detail": "Inclui SEC03"}
   ],
@@ -90,23 +91,23 @@
   "quality": [
     {
       "level": "warning",
-      "title": "S02 com bloco objetivo concluído e entregáveis não confirmados",
-      "detail": "O resultado objetivo foi registrado em 37/40, mas o quadro, a R24 do S01 e o D+1 do SEC01 continuam desmarcados."
+      "title": "S03 com bloco objetivo concluído e entregáveis pendentes",
+      "detail": "O resultado foi registrado em 30/40, mas R24 do S02, mapa dos níveis de planejamento e fechamento integral continuam desmarcados."
     },
     {
       "level": "critical",
-      "title": "S03 e S04 vencidos sem execução registrada",
-      "detail": "As datas previstas foram 29/07 e 30/07/2026; ambos permanecem Não iniciada."
+      "title": "S04 e S05 vencidos sem execução registrada",
+      "detail": "As datas previstas foram 30/07 e 31/07/2026; ambos permanecem Não iniciada."
     },
     {
       "level": "warning",
-      "title": "S05 programado para 31/07 ainda não iniciado",
-      "detail": "Não há execução real registrada para as 40 questões, revisões, entregável ou D+1 do SEC02."
+      "title": "Português caiu para 66,67% no acumulado",
+      "detail": "O S03 registrou 2/5 em Português e determinou reforço semanal; o bloco soma 5 erros em 15 questões."
     },
     {
       "level": "info",
       "title": "Leitura integral validada",
-      "detail": "As três visualizações oficiais foram percorridas até has_more=false; nenhuma falha de consulta foi convertida em zero ou exclusão."
+      "detail": "As três visualizações oficiais foram percorridas até has_more=false; os registros individuais de S03 e S06 foram abertos para validar fórmulas e campos omitidos."
     }
   ],
   "sources": [
