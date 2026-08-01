@@ -41,7 +41,7 @@ required(/responseMeta\s*:\s*state\.responseMeta/.test(player), 'Player não env
 required(player.includes('Possível anulação') && player.includes('Possível erro da fonte/gabarito'), 'Ressalvas editoriais ausentes da interface.');
 required(errorPage.includes('/assets/integration/error-book.js'), 'Rota canônica não carrega o caderno local.');
 required(!errorPage.includes('/assets/integration/navigation.js'), 'Rota canônica ainda carrega a página estrutural.');
-required(errorBook.includes("classification <code>incorrect_confirmed</code>"), 'Caderno não declara a regra de erro confirmado.');
+required(errorBook.includes('<code>incorrect_confirmed</code>') && errorBook.includes('Registros elegíveis'), 'Caderno não declara a regra de erro confirmado.');
 required(errorBook.includes(`${'${BASE}'}questoes-erros/`), 'Atalho para o acervo oficial ausente.');
 required(packageText.includes('check:classification') && packageText.includes('test:classification'), 'Comandos da classificação ausentes.');
 
