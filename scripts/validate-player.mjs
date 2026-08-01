@@ -25,7 +25,7 @@ const keyPosition = player.indexOf('pe76-key.json');
 required(finishStart >= 0 && keyPosition > finishStart, 'O gabarito deve ser carregado somente dentro da finalização.');
 required(!player.slice(0, finishStart).includes('pe76-key.json'), 'O gabarito é carregado antes da finalização.');
 required(player.includes('if (!canFinish(state.session)) return;'), 'A interface não bloqueia finalização incompleta.');
-required(/(?:Este resultado|Nenhum dado) não foi enviado ao Notion (?:nem|ou) ao progresso oficial/.test(player), 'A interface não informa o isolamento do resultado.');
+required(/(?:Este resultado não foi enviado|Nenhum dado foi enviado) ao Notion (?:nem|ou) ao progresso oficial/.test(player), 'A interface não informa o isolamento do resultado.');
 
 required(resolver.includes('/assets/integration/player.css'), 'A rota Resolver não carrega o CSS do player.');
 required(resolver.includes('/assets/integration/player.js'), 'A rota Resolver não carrega o player.');
