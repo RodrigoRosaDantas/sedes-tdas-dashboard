@@ -1,4 +1,4 @@
-const VERSION='edas-pwa-v2-20260801b';
+const VERSION='edas-pwa-v2-20260801c';
 const BASE='/sedes-tdas-dashboard/edas-administracao/';
 const ESSENTIAL=[
  BASE,
