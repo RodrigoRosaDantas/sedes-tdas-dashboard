@@ -40,6 +40,16 @@ function ensureInstallUI(){
   button.textContent='Instalar';
   actions.appendChild(button);
  }
+ if(!document.querySelector('#edas-install-fab')){
+  const style=document.createElement('style');
+  style.textContent='#edas-install-fab{display:none;position:fixed;left:14px;right:14px;bottom:calc(78px + env(safe-area-inset-bottom));z-index:90;align-items:center;justify-content:space-between;gap:12px;padding:12px 13px;border:1px solid color-mix(in srgb,var(--green) 48%,var(--line));border-radius:16px;background:color-mix(in srgb,var(--surface) 96%,transparent);box-shadow:0 16px 45px rgba(0,0,0,.32);backdrop-filter:blur(18px)}#edas-install-fab.show{display:flex}#edas-install-fab span{font-size:11px;color:var(--muted);line-height:1.35}#edas-install-fab b{display:block;color:var(--text);font-size:12px}@media(min-width:781px){#edas-install-fab{display:none!important}}';
+  document.head.appendChild(style);
+  const banner=document.createElement('div');
+  banner.id='edas-install-fab';
+  banner.dataset.install='';
+  banner.innerHTML='<span><b>Instalar EDAS no celular</b>Acesso rápido e último snapshot disponível offline.</span><button type="button" class="btn primary" data-install-button>Instalar</button>';
+  document.body.appendChild(banner);
+ }
  updateInstallButtons();
 }
 function updateInstallButtons(){
