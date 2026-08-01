@@ -1,17 +1,50 @@
 {
-  "name": "EDAS — Administração | SEDES/DF",
+  "id": "/sedes-tdas-dashboard/edas-administracao/",
+  "name": "EDAS — Administração, Cargo 400 | SEDES/DF",
   "short_name": "EDAS 400",
-  "start_url": "/sedes-tdas-dashboard/edas-administracao/",
+  "description": "Plataforma de acompanhamento da preparação para EDAS — Administração, Cargo 400, da SEDES/DF.",
+  "start_url": "/sedes-tdas-dashboard/edas-administracao/?source=pwa",
   "scope": "/sedes-tdas-dashboard/edas-administracao/",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
   "background_color": "#07101b",
   "theme_color": "#07101b",
+  "lang": "pt-BR",
+  "categories": ["education", "productivity"],
   "icons": [
     {
       "src": "/sedes-tdas-dashboard/edas-administracao/icons/icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/sedes-tdas-dashboard/edas-administracao/icons/maskable.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Foco de hoje",
+      "short_name": "Hoje",
+      "url": "/sedes-tdas-dashboard/edas-administracao/hoje/"
+    },
+    {
+      "name": "Evolução",
+      "short_name": "Evolução",
+      "url": "/sedes-tdas-dashboard/edas-administracao/evolucao/"
+    },
+    {
+      "name": "Riscos e erros",
+      "short_name": "Riscos",
+      "url": "/sedes-tdas-dashboard/edas-administracao/riscos/"
+    },
+    {
+      "name": "Estudos de caso",
+      "short_name": "Casos",
+      "url": "/sedes-tdas-dashboard/edas-administracao/estudos-caso/"
     }
   ]
 }
