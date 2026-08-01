@@ -3,6 +3,7 @@ import {STORAGE_KEYS} from './contracts.js?v=1.0.0';
 const PE_PROGRESS_SCHEMA_VERSION = '1.0.0';
 const MAX_ATTEMPT_IDS = 100;
 const MAX_REVIEW_IDS = 500;
+const PE_ID_PATTERN = /^PE(?:0[1-9]|[1-9]\d|10\d|11[0-2])$/;
 
 function resolveStorage(storage) {
   const target = storage ?? globalThis.localStorage;
@@ -13,7 +14,7 @@ function resolveStorage(storage) {
 }
 
 function validateEntry(entry) {
-  if (!entry || entry.schemaVersion !== '1.0.0' || !/^PE(?:0[1-9]|[1-9]\d|1[01]\d|112)$/.test(entry.peId)) {
+  if (!entry || entry.schemaVersion !== '1.0.0' || !PE_ID_PATTERN.test(entry.peId)) {
     throw new TypeError('Progresso local do PE inválido.');
   }
   if (entry.scope !== 'pilot-local' || entry.officialCompleted !== false || entry.notionWriteback !== false) {
@@ -75,7 +76,7 @@ export function readAllPeProgress(storage) {
 }
 
 export function recordAttemptPeProgress(attempt, storage) {
-  if (!attempt || !attempt.id || !attempt.peId || !['pilot','review'].includes(attempt.mode)) throw new TypeError('Tentativa inválida para o progresso do PE.');
+  if (!attempt || !attempt.id || !PE_ID_PATTERN.test(attempt.peId) || !['pilot','review'].includes(attempt.mode)) throw new TypeError('Tentativa inválida para o progresso do PE.');
   if (attempt.officialProgress !== false || attempt.notionWriteback !== false || attempt.pilot !== true) throw new TypeError('Tentativa fora do escopo local.');
   const envelope = readEnvelope(storage);
   const current = envelope.byPe[attempt.peId] ? {...validateEntry(envelope.byPe[attempt.peId])} : emptyEntry(attempt.peId);
