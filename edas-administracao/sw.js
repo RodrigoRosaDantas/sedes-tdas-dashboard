@@ -1,85 +1,13 @@
-const VERSION='edas-pwa-v2-20260801c';
+const VERSION='edas-20260801.3';
 const BASE='/sedes-tdas-dashboard/edas-administracao/';
-const ESSENTIAL=[
- BASE,
- BASE+'offline.html',
- BASE+'manifest.webmanifest',
- BASE+'assets/common.js?v=1',
- BASE+'assets/common.js?v=2',
- BASE+'assets/app.js?v=1',
- BASE+'assets/app.js?v=2',
- BASE+'data/site.json?v=1',
- BASE+'data/site.json?v=2'
+const CORE=[
+ BASE,BASE+'hoje/',BASE+'evolucao/',BASE+'riscos/',BASE+'agenda/',BASE+'estudos-caso/',BASE+'auditoria/',BASE+'mais/',
+ BASE+'offline.html',BASE+'manifest.webmanifest?v=20260801.3',BASE+'icons/icon.svg',BASE+'icons/maskable.svg',
+ BASE+'assets/app.css?v=20260801.3',BASE+'assets/common.js?v=20260801.3',BASE+'assets/app.js?v=20260801.3',BASE+'data/site.json?v=20260801.3'
 ];
-const OPTIONAL=[
- BASE+'hoje/',
- BASE+'evolucao/',
- BASE+'riscos/',
- BASE+'agenda/',
- BASE+'estudos-caso/',
- BASE+'auditoria/',
- BASE+'mais/',
- BASE+'icons/icon.svg',
- BASE+'icons/maskable.svg',
- '/sedes-tdas-dashboard/assets/styles.css?v=20',
- '/sedes-tdas-dashboard/assets/v20.css?v=20'
-];
-self.addEventListener('install',event=>{
- event.waitUntil((async()=>{
-  const cache=await caches.open(VERSION);
-  await cache.addAll(ESSENTIAL);
-  await Promise.allSettled(OPTIONAL.map(url=>cache.add(url)));
-  await self.skipWaiting();
- })());
-});
-self.addEventListener('activate',event=>{
- event.waitUntil((async()=>{
-  const keys=await caches.keys();
-  await Promise.all(keys.filter(key=>key.startsWith('edas-')&&key!==VERSION).map(key=>caches.delete(key)));
-  await self.clients.claim();
- })());
-});
-self.addEventListener('fetch',event=>{
- if(event.request.method!=='GET')return;
- const url=new URL(event.request.url);
- if(url.origin!==self.location.origin)return;
- if(event.request.mode==='navigate'){
-  event.respondWith((async()=>{
-   try{
-    const fresh=await fetch(event.request);
-    const cache=await caches.open(VERSION);
-    cache.put(event.request,fresh.clone());
-    return fresh;
-   }catch{
-    return (await caches.match(event.request))||(await caches.match(BASE))||(await caches.match(BASE+'offline.html'));
-   }
-  })());
-  return;
- }
- const isLiveData=url.pathname.startsWith(BASE+'data/');
- if(isLiveData){
-  event.respondWith((async()=>{
-   try{
-    const fresh=await fetch(event.request,{cache:'no-store'});
-    const cache=await caches.open(VERSION);
-    cache.put(event.request,fresh.clone());
-    return fresh;
-   }catch{
-    return (await caches.match(event.request))||(await caches.match(BASE+'data/site.json?v=2'))||(await caches.match(BASE+'data/site.json?v=1'));
-   }
-  })());
-  return;
- }
- event.respondWith((async()=>{
-  const cached=await caches.match(event.request);
-  if(cached)return cached;
-  try{
-   const fresh=await fetch(event.request);
-   const cache=await caches.open(VERSION);
-   cache.put(event.request,fresh.clone());
-   return fresh;
-  }catch{
-   return cached;
-  }
- })());
-});
+self.addEventListener('install',event=>event.waitUntil((async()=>{const cache=await caches.open(VERSION);await cache.addAll(CORE);await self.skipWaiting()})()));
+self.addEventListener('activate',event=>event.waitUntil((async()=>{const keys=await caches.keys();await Promise.all(keys.filter(key=>key.startsWith('edas-')&&key!==VERSION).map(key=>caches.delete(key)));await self.clients.claim()})()));
+self.addEventListener('message',event=>{if(event.data?.type==='SKIP_WAITING')self.skipWaiting()});
+async function networkFirst(request,fallback){const cache=await caches.open(VERSION);try{const response=await fetch(request,{cache:'no-store'});if(response.ok)cache.put(request,response.clone());return response}catch{return(await caches.match(request,{ignoreSearch:true}))||(fallback?await caches.match(fallback,{ignoreSearch:true}):undefined)}}
+async function staleWhileRevalidate(request){const cache=await caches.open(VERSION),cached=await caches.match(request,{ignoreSearch:true});const fresh=fetch(request).then(response=>{if(response.ok)cache.put(request,response.clone());return response}).catch(()=>null);return cached||await fresh}
+self.addEventListener('fetch',event=>{if(event.request.method!=='GET')return;const url=new URL(event.request.url);if(url.origin!==location.origin||!url.pathname.startsWith(BASE))return;if(event.request.mode==='navigate'){event.respondWith(networkFirst(event.request,BASE+'offline.html'));return}if(url.pathname.includes('/data/')){event.respondWith(networkFirst(event.request,BASE+'data/site.json?v=20260801.3'));return}event.respondWith(staleWhileRevalidate(event.request))});
