@@ -3,6 +3,7 @@ import {createAttemptRecord, saveAttempt} from './attempt-store.js?v=1.0.0';
 import {syncAttemptIndexes} from './classification-store.js?v=1.0.0';
 import {ANSWER_OPTIONS, canFinish, createSession, evaluateSession, formatElapsed, moveToQuestion, selectAnswer, sessionProgress} from './player-core.js?v=1.0.0';
 import {normalizeResponseMeta} from './response-classification.js?v=1.0.0';
+import {completeReview, getReviewById, scheduleAttemptReviews} from './review-store.js?v=1.0.0';
 
 const main = document.querySelector('main');
 const CLASSIFICATION_LABELS = Object.freeze({
@@ -19,13 +20,20 @@ const state = {
   session: null,
   evaluation: null,
   responseMeta: {},
+  reviewContext: null,
   attemptRecord: null,
   savedAttempt: null,
   saveError: null,
   indexStatus: null,
   indexError: null,
+  reviewStatus: null,
+  reviewError: null,
   timerId: null,
 };
+
+function isReviewMode() {
+  return Boolean(state.reviewContext);
+}
 
 function stopTimer() {
   if (state.timerId) clearInterval(state.timerId);
@@ -54,7 +62,7 @@ function updateResponseMeta(questionId, patch) {
   };
 }
 
-function renderIntro() {
+function resetRunState() {
   stopTimer();
   state.session = null;
   state.evaluation = null;
@@ -64,23 +72,34 @@ function renderIntro() {
   state.saveError = null;
   state.indexStatus = null;
   state.indexError = null;
+  state.reviewStatus = null;
+  state.reviewError = null;
+}
+
+function renderIntro() {
+  resetRunState();
+  const review = state.reviewContext;
+  const title = review ? `Revisão ${review.stage} · questão ${review.numeroOriginal}` : 'Resolver questões';
+  const description = review
+    ? `${review.subassunto || review.assunto}. Esta execução encerra somente o item agendado.`
+    : state.catalog.nome;
   main.innerHTML = `
     <section class="hero">
-      <span class="kicker">Piloto técnico · PE76</span>
-      <h1>Resolver questões</h1>
-      <p>${escapeHTML(state.catalog.nome)}</p>
+      <span class="kicker">${review ? 'Revisão espaçada local' : 'Piloto técnico · PE76'}</span>
+      <h1>${escapeHTML(title)}</h1>
+      <p>${escapeHTML(description)}</p>
       <div class="tags">
-        <span class="tag">${state.catalog.quantidade_questoes} questões</span>
-        <span class="tag">${state.catalog.tempo_sugerido_minutos} minutos sugeridos</span>
+        <span class="tag">${state.catalog.quantidade_questoes} ${state.catalog.quantidade_questoes === 1 ? 'questão' : 'questões'}</span>
+        <span class="tag">${review ? review.stage : `${state.catalog.tempo_sugerido_minutos} minutos sugeridos`}</span>
         <span class="tag">Classificação ativa</span>
       </div>
-      <div class="hero-actions"><button class="btn primary" data-player-start>Iniciar piloto</button><a class="btn" href="${BASE}estudar/">Voltar ao catálogo</a></div>
+      <div class="hero-actions"><button class="btn primary" data-player-start>${review ? 'Iniciar revisão' : 'Iniciar piloto'}</button><a class="btn" href="${review ? `${BASE}revisar/` : `${BASE}estudar/`}">Voltar</a></div>
     </section>
     <section class="section"><div class="grid two">
-      <article class="card panel"><h2>Como funciona</h2><p>Além da alternativa, registre se respondeu com segurança, dúvida ou chute. Você também pode marcar a questão ou indicar possível anulação ou erro da fonte.</p></article>
-      <article class="card panel"><h2>Regra do caderno</h2><p>Somente a tentativa concluída é salva. Apenas <strong>erro confirmado</strong> entra no caderno; ressalvas editoriais ficam fora dele.</p></article>
+      <article class="card panel"><h2>Como funciona</h2><p>Registre a alternativa, sua confiança e qualquer ressalva editorial antes da correção.</p></article>
+      <article class="card panel"><h2>${review ? 'Conclusão da revisão' : 'Regra do caderno'}</h2><p>${review ? 'O resultado ficará local e marcará este item como concluído. Nenhuma nova agenda será criada a partir desta revisão.' : 'Apenas erro confirmado entra no caderno. Dúvidas, chutes, marcações e erros confirmados gerarão D+1, D+7 e D+20.'}</p></article>
     </div></section>
-    <footer class="footer"><span>Player piloto · Fase 6</span><span>Sem writeback</span></footer>`;
+    <footer class="footer"><span>${review ? `Revisão ${escapeHTML(review.stage)}` : 'Player piloto'} · Fase 7</span><span>Sem writeback</span></footer>`;
 }
 
 function renderQuestion() {
@@ -133,13 +152,43 @@ function renderQuestion() {
       </article>
       <div class="pilot-actions">
         <button class="btn" data-player-prev ${state.session.currentIndex === 0 ? 'disabled' : ''}>← Anterior</button>
-        <a class="btn" href="${BASE}estudar/">Sair e descartar sessão</a>
+        <a class="btn" href="${isReviewMode() ? `${BASE}revisar/` : `${BASE}estudar/`}">Sair e descartar sessão</a>
         ${state.session.currentIndex < progress.total - 1
           ? '<button class="btn primary" data-player-next>Próxima →</button>'
           : `<button class="btn primary" data-player-finish ${canFinish(state.session) ? '' : 'disabled'}>Finalizar (${progress.remaining} pendentes)</button>`}
       </div>
     </section>`;
   updateTimer();
+}
+
+function updateLocalStructures() {
+  state.savedAttempt = saveAttempt(state.attemptRecord);
+  state.saveError = null;
+  try {
+    state.indexStatus = syncAttemptIndexes(state.attemptRecord);
+    state.indexError = null;
+  } catch (error) {
+    state.indexStatus = null;
+    state.indexError = error;
+    console.error('Falha ao atualizar caderno e marcações', error);
+  }
+  try {
+    if (isReviewMode()) {
+      const outcome = state.attemptRecord.questionResults[0]?.classification;
+      state.reviewStatus = completeReview(state.reviewContext.id, {
+        reviewAttemptId: state.attemptRecord.id,
+        outcome,
+        completedAt: state.attemptRecord.finishedAt,
+      });
+    } else {
+      state.reviewStatus = scheduleAttemptReviews(state.attemptRecord, undefined, {includeD0: false});
+    }
+    state.reviewError = null;
+  } catch (error) {
+    state.reviewStatus = null;
+    state.reviewError = error;
+    console.error('Falha ao atualizar agenda de revisões', error);
+  }
 }
 
 async function finishSession() {
@@ -158,18 +207,11 @@ async function finishSession() {
         catalog: state.catalog,
         evaluation: state.evaluation,
         responseMeta: state.responseMeta,
+        mode: isReviewMode() ? 'review' : 'pilot',
+        sourceReviewId: state.reviewContext?.id || null,
         savedAt: Date.now(),
       });
-      state.savedAttempt = saveAttempt(state.attemptRecord);
-      state.saveError = null;
-      try {
-        state.indexStatus = syncAttemptIndexes(state.attemptRecord);
-        state.indexError = null;
-      } catch (error) {
-        state.indexStatus = null;
-        state.indexError = error;
-        console.error('Falha ao atualizar caderno e marcações', error);
-      }
+      updateLocalStructures();
     } catch (error) {
       state.attemptRecord = null;
       state.savedAttempt = null;
@@ -180,7 +222,7 @@ async function finishSession() {
     renderResult();
   } catch (error) {
     if (button) { button.disabled = false; button.textContent = 'Tentar finalizar novamente'; }
-    alert(`Não foi possível corrigir o piloto: ${error.message}`);
+    alert(`Não foi possível corrigir: ${error.message}`);
   }
 }
 
@@ -194,12 +236,18 @@ function renderResult() {
   const indexMessage = state.indexStatus
     ? `Caderno local: ${state.indexStatus.totalErrors} erros confirmados; ${state.indexStatus.totalMarked} marcações.`
     : state.indexError ? `Índices locais não atualizados: ${escapeHTML(state.indexError.message)}.` : '';
+  const reviewMessage = isReviewMode()
+    ? state.reviewStatus ? `Revisão ${escapeHTML(state.reviewContext.stage)} concluída.` : state.reviewError ? `Revisão não encerrada: ${escapeHTML(state.reviewError.message)}.` : ''
+    : state.reviewStatus ? `${state.reviewStatus.added} revisões D+1, D+7 e D+20 agendadas.` : state.reviewError ? `Agenda não atualizada: ${escapeHTML(state.reviewError.message)}.` : '';
+  const primaryAction = isReviewMode()
+    ? `<a class="btn primary" href="${BASE}revisar/">Voltar às revisões</a>`
+    : '<button class="btn primary" data-player-restart>Refazer piloto</button>';
   main.innerHTML = `
     <section class="hero pilot-result">
-      <span class="kicker">Resultado classificado do piloto</span>
+      <span class="kicker">${isReviewMode() ? 'Resultado da revisão local' : 'Resultado classificado do piloto'}</span>
       <h1>${evaluation.correct}/${evaluation.total} acertos · ${evaluation.percent.toFixed(0)}%</h1>
-      <p>Tempo: ${formatElapsed(evaluation.elapsedMs)}. ${storageMessage} ${indexMessage} Este resultado não foi enviado ao Notion nem ao progresso oficial.</p>
-      <div class="hero-actions"><button class="btn primary" data-player-restart>Refazer piloto</button><a class="btn" href="${BASE}caderno-erros/">Abrir caderno local</a><a class="btn" href="${BASE}estudar/">Voltar ao catálogo</a></div>
+      <p>Tempo: ${formatElapsed(evaluation.elapsedMs)}. ${storageMessage} ${indexMessage} ${reviewMessage} Nenhum dado foi enviado ao Notion ou ao progresso oficial.</p>
+      <div class="hero-actions">${primaryAction}<a class="btn" href="${BASE}caderno-erros/">Abrir caderno local</a><a class="btn" href="${BASE}estudar/">Voltar ao catálogo</a></div>
     </section>
     <section class="section"><div class="pilot-result-list">${state.catalog.questoes.map((question, index) => {
       const result = resultMap.get(question.id);
@@ -211,8 +259,8 @@ function renderResult() {
         <strong class="pilot-result-status">${escapeHTML(CLASSIFICATION_LABELS[classification] || classification)}</strong>
       </article>`;
     }).join('')}</div></section>
-    <section class="section"><article class="card panel"><h2>Regra aplicada</h2><p>Possível anulação e erro da fonte não viram erro definitivo. Somente <code>incorrect_confirmed</code> é elegível ao caderno.</p></article></section>
-    <footer class="footer"><span>Player piloto · classificação concluída</span><span>Histórico e índices somente locais</span></footer>`;
+    <section class="section"><article class="card panel"><h2>Regra aplicada</h2><p>${isReviewMode() ? 'Esta execução encerrou somente a revisão de origem e não gerou uma nova sequência de revisões.' : 'Erros confirmados, dúvidas, chutes e marcações geram D+1, D+7 e D+20. D0 permanece desativado.'}</p></article></section>
+    <footer class="footer"><span>${isReviewMode() ? 'Revisão local concluída' : 'Player piloto · agenda criada'}</span><span>Histórico somente local</span></footer>`;
 }
 
 main.addEventListener('change', event => {
@@ -251,14 +299,26 @@ main.addEventListener('click', event => {
 });
 
 try {
-  const [catalog, shell] = await Promise.all([
+  const reviewId = new URLSearchParams(globalThis.location?.search || '').get('review');
+  const [fullCatalog, shell] = await Promise.all([
     fetch(BASE + 'data/integration/pilot/pe76-catalog.json', {cache: 'no-store'}).then(response => {
       if (!response.ok) throw new Error(`Falha ao carregar catálogo (${response.status})`);
       return response.json();
     }),
     loadJSON('data/more.json'),
   ]);
-  state.catalog = catalog;
+  if (reviewId) {
+    const review = getReviewById(reviewId);
+    if (!review) throw new Error('Revisão local não encontrada neste dispositivo.');
+    if (review.status !== 'pending') throw new Error('Esta revisão já foi concluída.');
+    const question = fullCatalog.questoes.find(item => item.id === review.questionId);
+    if (!question) throw new Error('Questão da revisão não existe no catálogo piloto.');
+    state.reviewContext = review;
+    state.catalog = {...fullCatalog, nome: `Revisão ${review.stage} — questão ${review.numeroOriginal}`, quantidade_questoes: 1, tempo_sugerido_minutos: 3, questoes: [question]};
+  } else {
+    state.reviewContext = null;
+    state.catalog = fullCatalog;
+  }
   setupShell('mais', shell.meta);
   renderIntro();
 } catch (error) {
