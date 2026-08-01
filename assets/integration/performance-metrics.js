@@ -1,5 +1,6 @@
 const CONFIDENCE_KEYS = Object.freeze(['secure', 'doubt', 'guess']);
 const CLASSIFICATION_KEYS = Object.freeze(['incorrect_confirmed','correct_secure','correct_with_doubt','correct_by_guess','marked','annulment_pending','source_error']);
+const ATTEMPT_MODES = Object.freeze(['pilot', 'review', 'legacy']);
 
 const round = value => Math.round((Number(value) + Number.EPSILON) * 100) / 100;
 const ratio = (numerator, denominator) => denominator ? numerator / denominator * 100 : 0;
@@ -7,7 +8,7 @@ const ratio = (numerator, denominator) => denominator ? numerator / denominator 
 function validateAttempts(attempts) {
   if (!Array.isArray(attempts)) throw new TypeError('Tentativas inválidas para desempenho.');
   for (const attempt of attempts) {
-    if (!attempt || !['pilot','review'].includes(attempt.mode) || !Array.isArray(attempt.questionResults)) {
+    if (!attempt || !ATTEMPT_MODES.includes(attempt.mode) || !Array.isArray(attempt.questionResults)) {
       throw new TypeError('Tentativa incompatível com o painel.');
     }
   }
@@ -45,6 +46,7 @@ export function buildPerformanceSnapshot(attempts, reviews = [], peProgress = nu
 
   const pilotAttempts = ordered.filter(attempt => attempt.mode === 'pilot');
   const reviewAttempts = ordered.filter(attempt => attempt.mode === 'review');
+  const legacyAttempts = ordered.filter(attempt => attempt.mode === 'legacy');
   const elapsedMs = ordered.reduce((sum, attempt) => sum + attempt.elapsedMs, 0);
   const dueReviews = reviews.filter(review => review.status === 'pending' && review.dueAt <= Number(now)).length;
   const pendingReviews = reviews.filter(review => review.status === 'pending').length;
@@ -60,11 +62,12 @@ export function buildPerformanceSnapshot(attempts, reviews = [], peProgress = nu
   }));
 
   return Object.freeze({
-    schemaVersion: '1.0.0',
-    scope: 'pilot-local',
+    schemaVersion: '1.1.0',
+    scope: 'local-study',
     attempts: ordered.length,
     pilotAttempts: pilotAttempts.length,
     reviewAttempts: reviewAttempts.length,
+    legacyAttempts: legacyAttempts.length,
     questions: questions.length,
     correct,
     incorrect: questions.length - correct,
