@@ -1,11 +1,14 @@
-const VERSION='edas-pwa-v2-20260801';
+const VERSION='edas-pwa-v2-20260801b';
 const BASE='/sedes-tdas-dashboard/edas-administracao/';
 const ESSENTIAL=[
  BASE,
  BASE+'offline.html',
  BASE+'manifest.webmanifest',
+ BASE+'assets/common.js?v=1',
  BASE+'assets/common.js?v=2',
+ BASE+'assets/app.js?v=1',
  BASE+'assets/app.js?v=2',
+ BASE+'data/site.json?v=1',
  BASE+'data/site.json?v=2'
 ];
 const OPTIONAL=[
@@ -62,7 +65,7 @@ self.addEventListener('fetch',event=>{
     cache.put(event.request,fresh.clone());
     return fresh;
    }catch{
-    return caches.match(event.request);
+    return (await caches.match(event.request))||(await caches.match(BASE+'data/site.json?v=2'))||(await caches.match(BASE+'data/site.json?v=1'));
    }
   })());
   return;
