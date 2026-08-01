@@ -11,9 +11,11 @@ function formatDate(timestamp) {
 function reviewCard(review, now) {
   const due = review.status === 'pending' && review.dueAt <= now;
   const status = review.status === 'completed' ? 'Concluída' : due ? 'Disponível agora' : `Agendada para ${formatDate(review.dueAt)}`;
-  const action = review.status === 'pending'
-    ? `<a class="btn ${due ? 'primary' : ''}" href="${BASE}resolver/?review=${encodeURIComponent(review.id)}">Revisar questão</a>`
-    : `<span class="tag">Resultado: ${escapeHTML(review.outcome || 'registrado')}</span>`;
+  const action = review.status === 'completed'
+    ? `<span class="tag">Resultado: ${escapeHTML(review.outcome || 'registrado')}</span>`
+    : due
+      ? `<a class="btn primary" href="${BASE}resolver/?review=${encodeURIComponent(review.id)}">Revisar questão</a>`
+      : '<span class="tag">Ainda não disponível</span>';
   return `<article class="card panel"><small>${escapeHTML(review.stage)} · ${escapeHTML(review.peId)} · questão ${review.numeroOriginal}</small><h3>${escapeHTML(review.subassunto || review.assunto)}</h3><p>${escapeHTML(status)}<br>Origem: ${escapeHTML(review.sourceClassification)}</p>${action}</article>`;
 }
 
@@ -34,7 +36,7 @@ try {
       <div class="hero-actions"><a class="btn primary" href="${due[0] ? `${BASE}resolver/?review=${encodeURIComponent(due[0].id)}` : `${BASE}resolver/?pilot=pe76`}">${due.length ? 'Iniciar próxima revisão' : 'Resolver piloto'}</a><a class="btn" href="${BASE}caderno-erros/">Abrir caderno</a></div>
     </section>
     <section class="section"><div class="section-head"><div><h2>Disponíveis agora</h2><p>Itens vencidos ou previstos para hoje.</p></div></div>${due.length ? `<div class="grid two">${due.map(review => reviewCard(review, now)).join('')}</div>` : '<article class="card panel"><p>Nenhuma revisão está vencida neste dispositivo.</p></article>'}</section>
-    <section class="section"><div class="section-head"><div><h2>Próximas revisões</h2><p>Agenda futura ordenada por vencimento.</p></div></div>${upcoming.length ? `<div class="grid two">${upcoming.map(review => reviewCard(review, now)).join('')}</div>` : '<article class="card panel"><p>Nenhuma revisão futura agendada.</p></article>'}</section>
+    <section class="section"><div class="section-head"><div><h2>Próximas revisões</h2><p>Agenda futura ordenada por vencimento. A abertura fica bloqueada até a data prevista.</p></div></div>${upcoming.length ? `<div class="grid two">${upcoming.map(review => reviewCard(review, now)).join('')}</div>` : '<article class="card panel"><p>Nenhuma revisão futura agendada.</p></article>'}</section>
     <section class="section"><div class="section-head"><div><h2>Concluídas</h2><p>Últimos registros concluídos localmente.</p></div></div>${completed.length ? `<div class="grid two">${completed.slice(-20).reverse().map(review => reviewCard(review, now)).join('')}</div>` : '<article class="card panel"><p>Nenhuma revisão concluída ainda.</p></article>'}</section>
     <section class="section"><article class="card panel"><h2>Isolamento</h2><p>A agenda e os resultados de revisão permanecem neste dispositivo e não atualizam o PE oficial ou o Notion.</p></article></section>
     <footer class="footer"><span>Revisões locais · Fase 7</span><span>Snapshot <span data-snapshot></span></span></footer>`;
