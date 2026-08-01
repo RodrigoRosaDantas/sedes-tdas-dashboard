@@ -50,7 +50,7 @@ assert.equal(reviewAttempt.mode, 'review');
 assert.equal(reviewAttempt.sourceReviewId, 'review:source:1');
 assert.equal(reviewAttempt.total, 1);
 assert.throws(() => createAttemptRecord({catalog: reviewCatalog, evaluation: reviewEvaluation, mode: 'review'}), /Revisão de origem obrigatória/);
-assert.throws(() => createAttemptRecord({catalog, evaluation, mode: 'unknown'}), /Modo da tentativa inválido/);
+assert.throws(() => createAttemptRecord({catalog, evaluation, mode: 'unknown'}), /Modo interativo da tentativa inválido/);
 
 let mixedSession = createSession(catalog, 200_000);
 for (const id of mixedSession.questionIds) mixedSession = selectAnswer(mixedSession, id, answerMap.get(id), 201_000);
