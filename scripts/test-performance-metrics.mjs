@@ -26,10 +26,11 @@ const reviews = [
 const pe = {peId: 'PE76', pilotAttempts: 2, reviewAttempts: 1, bestPercent: 100};
 const snapshot = buildPerformanceSnapshot(attempts, reviews, pe, 2_000);
 
-assert.equal(snapshot.scope, 'pilot-local');
+assert.equal(snapshot.scope, 'local-study');
 assert.equal(snapshot.attempts, 3);
 assert.equal(snapshot.pilotAttempts, 2);
 assert.equal(snapshot.reviewAttempts, 1);
+assert.equal(snapshot.legacyAttempts, 0);
 assert.equal(snapshot.questions, 5);
 assert.equal(snapshot.correct, 3);
 assert.equal(snapshot.incorrect, 2);
@@ -54,9 +55,20 @@ assert.equal(snapshot.trend[0].id, 'pilot-1');
 assert.equal(snapshot.trend.at(-1).id, 'review-1');
 assert.equal(snapshot.peProgress.peId, 'PE76');
 
+const withLegacy = buildPerformanceSnapshot([...attempts, {
+  id: 'legacy-1', mode: 'legacy', finishedAt: 4_000, percent: 100, correct: 1, total: 1, elapsedMs: 500,
+  questionResults: [question('q6','Legado',true,'secure','correct_secure')],
+}], reviews, pe, 2_000);
+assert.equal(withLegacy.legacyAttempts, 1);
+assert.equal(withLegacy.attempts, 4);
+assert.equal(withLegacy.questions, 6);
+assert.equal(withLegacy.trend.at(-1).mode, 'legacy');
+assert.equal(withLegacy.bestPilotPercent, 100, 'Histórico legado não pode alterar o melhor piloto.');
+
 const empty = buildPerformanceSnapshot([], [], null, 0);
 assert.equal(empty.attempts, 0);
 assert.equal(empty.questions, 0);
+assert.equal(empty.legacyAttempts, 0);
 assert.equal(empty.accuracy, 0);
 assert.equal(empty.bestPilotPercent, null);
 assert.equal(empty.latestPercent, null);
@@ -64,4 +76,4 @@ assert.deepEqual(empty.subjects, []);
 assert.throws(() => buildPerformanceSnapshot(null), /Tentativas inválidas/);
 assert.throws(() => buildPerformanceSnapshot([{mode: 'invalid', questionResults: []}]), /incompatível/);
 
-console.log('Desempenho testado: piloto/revisão, 60% global, confiança, assuntos, tempo, tendência, agenda e cenário vazio.');
+console.log('Desempenho testado: piloto/revisão/legado, confiança, assuntos, tempo, tendência, agenda e cenário vazio.');
