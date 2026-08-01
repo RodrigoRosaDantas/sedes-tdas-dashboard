@@ -34,9 +34,10 @@ for (const content of [classification, store, errorBook]) {
   required(!/fetch\s*\(/.test(content), 'Módulos de classificação não podem realizar requisições de rede.');
 }
 
-for (const marker of ['pilot-confidence','data-player-marked','data-player-issue','responseMeta: state.responseMeta','syncAttemptIndexes']) {
+for (const marker of ['pilot-confidence','data-player-marked','data-player-issue','syncAttemptIndexes']) {
   required(player.includes(marker), `Player sem integração de classificação: ${marker}.`);
 }
+required(/responseMeta\s*:\s*state\.responseMeta/.test(player), 'Player não envia os metadados para a tentativa.');
 required(player.includes('Possível anulação') && player.includes('Possível erro da fonte/gabarito'), 'Ressalvas editoriais ausentes da interface.');
 required(errorPage.includes('/assets/integration/error-book.js'), 'Rota canônica não carrega o caderno local.');
 required(!errorPage.includes('/assets/integration/navigation.js'), 'Rota canônica ainda carrega a página estrutural.');
