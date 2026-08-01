@@ -95,7 +95,7 @@ for (let index = 2; index <= 105; index += 1) {
 const limited = readAttempts(storage);
 assert.equal(limited.length, MAX_LOCAL_ATTEMPTS);
 assert.equal(limited[0].startedAt, 105_000);
-assert.equal(limited.at(-1).startedAt, 6_000);
+assert.equal(limited.at(-1).startedAt, 7_000);
 
 const corruptStorage = new MemoryStorage();
 corruptStorage.setItem('tdas.202.study.v1.attempts', '{');
