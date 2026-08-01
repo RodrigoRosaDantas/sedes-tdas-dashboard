@@ -15,15 +15,17 @@ const key = JSON.parse(await fs.readFile('data/integration/pilot/pe76-key.json',
 const answerMap = new Map(key.answers.map(item => [item.id, item.gabarito]));
 const storage = new MemoryStorage();
 
-function completedEvaluation(startedAt, finishedAt = startedAt + 60_000) {
-  let session = createSession(catalog, startedAt);
+function completedEvaluation(startedAt, finishedAt = startedAt + 60_000, sourceCatalog = catalog) {
+  let session = createSession(sourceCatalog, startedAt);
   for (const id of session.questionIds) session = selectAnswer(session, id, answerMap.get(id), startedAt + 1_000);
   return evaluateSession(session, key, finishedAt);
 }
 
 const evaluation = completedEvaluation(1_000, 61_000);
 const attempt = createAttemptRecord({catalog, evaluation, savedAt: 62_000});
-assert.equal(attempt.id, `attempt:${catalog.id}:1000`);
+assert.equal(attempt.id, `attempt:pilot:${catalog.id}:1000`);
+assert.equal(attempt.mode, 'pilot');
+assert.equal(attempt.sourceReviewId, null);
 assert.equal(attempt.profileId, 'rodrigo');
 assert.equal(attempt.cargoCode, '202');
 assert.equal(attempt.peId, 'PE76');
@@ -33,6 +35,22 @@ assert.equal(attempt.notionWriteback, false);
 assert.equal(attempt.questionResults.length, 10);
 assert.equal(attempt.questionResults.every(item => item.classification === 'correct_secure'), true);
 assert.deepEqual(attempt.classificationSummary, {correct_secure: 10});
+
+const reviewCatalog = {...catalog, quantidade_questoes: 1, questoes: [catalog.questoes[0]]};
+const reviewEvaluation = completedEvaluation(80_000, 90_000, reviewCatalog);
+const reviewAttempt = createAttemptRecord({
+  catalog: reviewCatalog,
+  evaluation: reviewEvaluation,
+  mode: 'review',
+  sourceReviewId: 'review:source:1',
+  savedAt: 91_000,
+});
+assert.equal(reviewAttempt.id, `attempt:review:${catalog.id}:80000`);
+assert.equal(reviewAttempt.mode, 'review');
+assert.equal(reviewAttempt.sourceReviewId, 'review:source:1');
+assert.equal(reviewAttempt.total, 1);
+assert.throws(() => createAttemptRecord({catalog: reviewCatalog, evaluation: reviewEvaluation, mode: 'review'}), /Revisão de origem obrigatória/);
+assert.throws(() => createAttemptRecord({catalog, evaluation, mode: 'unknown'}), /Modo da tentativa inválido/);
 
 let mixedSession = createSession(catalog, 200_000);
 for (const id of mixedSession.questionIds) mixedSession = selectAnswer(mixedSession, id, answerMap.get(id), 201_000);
@@ -66,8 +84,9 @@ assert.equal(mixedById.get(sixth).errorBookEligible, false);
 
 assert.deepEqual(readAttempts(storage), []);
 assert.equal(saveAttempt(attempt, storage).totalStored, 1);
-assert.equal(readAttempts(storage).length, 1);
-assert.equal(saveAttempt(attempt, storage).totalStored, 1, 'Tentativa duplicada não foi substituída.');
+assert.equal(saveAttempt(reviewAttempt, storage).totalStored, 2);
+assert.equal(readAttempts(storage).length, 2);
+assert.equal(saveAttempt(attempt, storage).totalStored, 2, 'Tentativa duplicada não foi substituída.');
 
 for (let index = 2; index <= 105; index += 1) {
   const next = createAttemptRecord({catalog, evaluation: completedEvaluation(index * 1_000), savedAt: index * 1_000 + 70_000});
@@ -86,4 +105,4 @@ assert.equal(corruptStorage.getItem('tdas.202.study.v1.attempts'), '{', 'Histór
 
 clearAttempts(storage);
 assert.deepEqual(readAttempts(storage), []);
-console.log('Tentativas locais testadas: criação, classificações, deduplicação, limite de 100, ordenação e proteção contra corrupção.');
+console.log('Tentativas locais testadas: piloto, revisão, classificações, deduplicação, limite, ordenação e corrupção protegida.');
