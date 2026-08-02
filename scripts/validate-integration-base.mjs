@@ -100,11 +100,16 @@ requireValue(!blankError.valid && blankError.reason === "blank-answer-cannot-be-
 
 if (await exists("index.html")) {
   const index = await read("index.html");
-  requireValue(!index.includes("assets/integration/contracts.js"), "contrato foi ligado ao runtime antes da fase apropriada");
+  requireValue(!index.includes("assets/integration/contracts.js"), "contrato não pode ser carregado diretamente pela página inicial");
 }
 if (await exists("sw.js")) {
   const worker = await read("sw.js");
-  requireValue(!worker.includes("assets/integration/contracts.js"), "contrato foi incluído no service worker na fase 1");
+  const pwaGateEnabled = packageData.scripts?.["check:pwa"] === "node scripts/validate-pwa-integration.mjs" && await exists("scripts/validate-pwa-integration.mjs");
+  if (pwaGateEnabled) {
+    requireValue(worker.includes("assets/integration/contracts.js"), "Fase 12 ativa sem contrato disponível no precache");
+  } else {
+    requireValue(!worker.includes("assets/integration/contracts.js"), "contrato foi incluído no service worker sem gate PWA autorizado");
+  }
 }
 
 const snapshot = await read("docs/integration/phase-1/SNAPSHOT.md");
@@ -112,4 +117,4 @@ requireValue(snapshot.includes(contract.platform.baseCommit), "snapshot não reg
 const origin = await read("docs/integration/ORIGIN.md");
 requireValue(origin.includes(contract.questionSource.repository), "registro de origem não contém o repositório fonte");
 
-console.log("✓ Base de integração validada: contratos, namespace, estados de resposta e isolamento da fase 1.");
+console.log("✓ Base de integração validada: contratos, namespace, estados de resposta e ativação PWA controlada.");
