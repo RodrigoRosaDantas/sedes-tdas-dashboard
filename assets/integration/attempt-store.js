@@ -1,4 +1,4 @@
-import {isKnownResponseClassification, STORAGE_KEYS} from './contracts.js?v=1.0.0';
+import {isKnownResponseClassification, isValidPeId, STORAGE_KEYS} from './contracts.js?v=1.0.0';
 import {classifyQuestionResult} from './response-classification.js?v=1.0.0';
 
 export const ATTEMPT_SCHEMA_VERSION = '1.2.0';
@@ -6,6 +6,7 @@ export const ATTEMPT_ENVELOPE_VERSION = '1.0.0';
 export const MAX_LOCAL_ATTEMPTS = 100;
 export const ATTEMPT_MODES = Object.freeze(['pilot', 'review', 'legacy']);
 const INTERACTIVE_ATTEMPT_MODES = Object.freeze(['pilot', 'review']);
+const CORRECT_CLASSIFICATIONS = Object.freeze(['correct_secure', 'correct_with_doubt', 'correct_by_guess', 'marked']);
 
 function resolveStorage(storage) {
   const target = storage ?? globalThis.localStorage;
@@ -18,7 +19,7 @@ function resolveStorage(storage) {
 function validateAttempt(attempt) {
   if (!attempt || typeof attempt !== 'object' || Array.isArray(attempt)) throw new TypeError('Tentativa inválida.');
   if (attempt.schemaVersion !== ATTEMPT_SCHEMA_VERSION) throw new TypeError('Versão da tentativa inválida.');
-  if (!attempt.id || !attempt.materialId || !attempt.peId) throw new TypeError('Identificação da tentativa incompleta.');
+  if (!attempt.id || !attempt.materialId || !isValidPeId(attempt.peId)) throw new TypeError('Identificação da tentativa incompleta ou inválida.');
   if (!ATTEMPT_MODES.includes(attempt.mode)) throw new TypeError('Modo da tentativa inválido.');
   if (attempt.mode === 'review' && !attempt.sourceReviewId) throw new TypeError('Tentativa de revisão sem item de origem.');
   if (attempt.mode !== 'review' && attempt.sourceReviewId !== null) throw new TypeError('Tentativa sem revisão não pode referenciar item de origem.');
@@ -32,12 +33,43 @@ function validateAttempt(attempt) {
   if (!Array.isArray(attempt.questionResults) || attempt.questionResults.length !== attempt.total) {
     throw new TypeError('Resultados individuais da tentativa inválidos.');
   }
+  if (!Number.isInteger(attempt.total) || attempt.total < 1 || !Number.isInteger(attempt.correct) || !Number.isInteger(attempt.incorrect)
+    || attempt.correct < 0 || attempt.incorrect < 0 || attempt.correct + attempt.incorrect !== attempt.total) {
+    throw new TypeError('Totais da tentativa inválidos.');
+  }
+  if (![attempt.startedAt, attempt.finishedAt, attempt.savedAt, attempt.elapsedMs, attempt.percent].every(Number.isFinite)
+    || attempt.finishedAt < attempt.startedAt || attempt.elapsedMs < 0 || attempt.percent < 0 || attempt.percent > 100) {
+    throw new TypeError('Tempos ou percentual da tentativa inválidos.');
+  }
+  const questionIds = new Set();
   for (const question of attempt.questionResults) {
+    if (!question?.id || questionIds.has(question.id)) throw new TypeError('Questão ausente ou duplicada na tentativa.');
+    questionIds.add(question.id);
+    if (!String(question.selected ?? '').trim()) throw new TypeError(`Resposta em branco em ${question.id}.`);
+    if (typeof question.correct !== 'boolean') throw new TypeError(`Resultado objetivo inválido em ${question.id}.`);
     if (!isKnownResponseClassification(question.classification)) throw new TypeError(`Classificação inválida em ${question.id}.`);
     if (question.errorBookEligible !== (question.classification === 'incorrect_confirmed')) {
       throw new TypeError(`Elegibilidade inconsistente em ${question.id}.`);
     }
+    if (question.classification === 'incorrect_confirmed' && question.correct !== false) {
+      throw new TypeError(`Erro confirmado incompatível com o resultado em ${question.id}.`);
+    }
+    if (CORRECT_CLASSIFICATIONS.includes(question.classification) && question.correct !== true) {
+      throw new TypeError(`Classificação de acerto incompatível com o resultado em ${question.id}.`);
+    }
+    if (question.classification === 'annulment_pending' && question.issue !== 'annulment_pending') {
+      throw new TypeError(`Possível anulação sem ressalva correspondente em ${question.id}.`);
+    }
+    if (question.classification === 'source_error' && question.issue !== 'source_error') {
+      throw new TypeError(`Erro da fonte sem ressalva correspondente em ${question.id}.`);
+    }
+    if (question.classification === 'marked' && question.marked !== true) {
+      throw new TypeError(`Classificação de marcação inconsistente em ${question.id}.`);
+    }
   }
+  if (attempt.questionResults.filter(question => question.correct).length !== attempt.correct) throw new TypeError('Total de acertos divergente.');
+  const expectedPercent = attempt.correct / attempt.total * 100;
+  if (Math.abs(attempt.percent - expectedPercent) > 1e-9) throw new TypeError('Percentual da tentativa divergente.');
   return attempt;
 }
 

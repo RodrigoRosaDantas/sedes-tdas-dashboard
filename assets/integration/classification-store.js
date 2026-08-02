@@ -1,4 +1,4 @@
-import {STORAGE_KEYS} from './contracts.js?v=1.0.0';
+import {isKnownResponseClassification, isValidPeId, STORAGE_KEYS} from './contracts.js?v=1.0.0';
 
 const INDEX_SCHEMA_VERSION = '1.0.0';
 const MAX_INDEX_ITEMS = 500;
@@ -11,6 +11,27 @@ function resolveStorage(storage) {
   return target;
 }
 
+function validateIndexItem(item, key, label) {
+  if (!item || typeof item !== 'object' || !item.id || !item.attemptId || !item.questionId) {
+    throw new TypeError(`${label} local contém registro inválido.`);
+  }
+  if (item.profileId !== 'rodrigo' || item.cargoCode !== '202' || item.pilot !== true || !isValidPeId(item.peId)
+    || item.officialProgress !== false || item.notionWriteback !== false || !Number.isFinite(item.createdAt)) {
+    throw new TypeError(`${label} local contém registro fora do escopo piloto.`);
+  }
+  if (!String(item.selected ?? '').trim() || !isKnownResponseClassification(item.classification)) {
+    throw new TypeError(`${label} local contém resposta ou classificação inválida.`);
+  }
+  if (key === STORAGE_KEYS.errors && (item.classification !== 'incorrect_confirmed'
+    || item.issue === 'annulment_pending' || item.issue === 'source_error')) {
+    throw new TypeError('Caderno de erros local contém registro que não é erro confirmado.');
+  }
+  if (key === STORAGE_KEYS.marked && item.marked !== true) {
+    throw new TypeError('Índice de marcações contém registro não marcado.');
+  }
+  return item;
+}
+
 function readEnvelope(storage, key, label) {
   const target = resolveStorage(storage);
   const raw = target.getItem(key);
@@ -21,7 +42,7 @@ function readEnvelope(storage, key, label) {
   if (!envelope || envelope.schemaVersion !== INDEX_SCHEMA_VERSION || !Array.isArray(envelope.items)) {
     throw new Error(`Estrutura do ${label.toLowerCase()} local inválida.`);
   }
-  return {target, items: envelope.items};
+  return {target, items: envelope.items.map(item => validateIndexItem(item, key, label))};
 }
 
 function writeEnvelope(target, key, items) {

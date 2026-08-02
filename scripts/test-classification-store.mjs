@@ -45,6 +45,23 @@ const second = syncAttemptIndexes(attempt, storage);
 assert.equal(second.totalErrors, 2);
 assert.equal(second.totalMarked, 2);
 
+const storedError = JSON.parse(storage.getItem('tdas.202.study.v1.errors')).items[0];
+const invalidClassification = new MemoryStorage();
+invalidClassification.setItem('tdas.202.study.v1.errors', JSON.stringify({
+  schemaVersion: '1.0.0',
+  items: [{...storedError, classification: 'source_error', issue: 'source_error'}],
+}));
+assert.throws(() => readErrors(invalidClassification), /não é erro confirmado/);
+
+const blankError = new MemoryStorage();
+blankError.setItem('tdas.202.study.v1.errors', JSON.stringify({schemaVersion: '1.0.0', items: [{...storedError, selected: ''}]}));
+assert.throws(() => readErrors(blankError), /resposta ou classificação inválida/);
+
+const storedMarked = JSON.parse(storage.getItem('tdas.202.study.v1.marked')).items[0];
+const invalidMarked = new MemoryStorage();
+invalidMarked.setItem('tdas.202.study.v1.marked', JSON.stringify({schemaVersion: '1.0.0', items: [{...storedMarked, marked: false}]}));
+assert.throws(() => readMarked(invalidMarked), /registro não marcado/);
+
 const corrupt = new MemoryStorage();
 corrupt.setItem('tdas.202.study.v1.errors', '{');
 assert.throws(() => readErrors(corrupt), /corrompido/);

@@ -1,4 +1,8 @@
 import {STORAGE_KEYS, isKnownResponseClassification, isValidPeId} from './contracts.js?v=1.0.0';
+import {readAttempts} from './attempt-store.js?v=1.0.0';
+import {readErrors, readMarked} from './classification-store.js?v=1.0.0';
+import {readAllPeProgress} from './pe-progress-store.js?v=1.0.0';
+import {readReviews} from './review-store.js?v=1.0.0';
 
 export const BACKUP_SCHEMA_VERSION = '1.0.0';
 export const LEGACY_MIGRATION_VERSION = '1.0.0';
@@ -10,6 +14,7 @@ export const LEGACY_KEYS = Object.freeze({
   marked: 'sedes.questoes.rodrigo.marked.v3',
 });
 const TDAS_KEYS = Object.freeze(Object.values(STORAGE_KEYS));
+const LEGACY_STORAGE_KEYS = Object.freeze(Object.values(LEGACY_KEYS));
 
 function resolveStorage(storage) {
   const target = storage ?? globalThis.localStorage;
@@ -37,11 +42,31 @@ function readRawMap(target, keys) {
   return Object.fromEntries(keys.map(key => [key, target.getItem(key)]));
 }
 
-function assertRawMap(map, label) {
+function assertRawMap(map, label, expectedKeys) {
   if (!map || typeof map !== 'object' || Array.isArray(map)) throw new TypeError(`${label} inválido.`);
+  const actual = Object.keys(map).sort();
+  const expected = [...expectedKeys].sort();
+  if (JSON.stringify(actual) !== JSON.stringify(expected)) throw new TypeError(`${label} contém chaves ausentes ou não autorizadas.`);
   for (const value of Object.values(map)) {
     if (value !== null && typeof value !== 'string') throw new TypeError(`${label} contém valor inválido.`);
   }
+}
+
+function rawMapStorage(map) {
+  return {
+    getItem: key => Object.hasOwn(map, key) ? map[key] : null,
+    setItem: () => { throw new Error('Validação de backup tentou escrever no armazenamento.'); },
+    removeItem: () => { throw new Error('Validação de backup tentou remover dado do armazenamento.'); },
+  };
+}
+
+function validateCriticalTdasState(map) {
+  const storage = rawMapStorage(map);
+  readAttempts(storage);
+  readErrors(storage);
+  readMarked(storage);
+  readReviews(storage);
+  readAllPeProgress(storage);
 }
 
 export async function createStudyBackup(storage, createdAt = Date.now()) {
@@ -51,8 +76,9 @@ export async function createStudyBackup(storage, createdAt = Date.now()) {
     createdAt: Number(createdAt),
     scope: 'rodrigo-202-local',
     tdas: readRawMap(target, TDAS_KEYS),
-    legacy: readRawMap(target, Object.values(LEGACY_KEYS)),
+    legacy: readRawMap(target, LEGACY_STORAGE_KEYS),
   };
+  validateCriticalTdasState(payload.tdas);
   return Object.freeze({...payload, checksum: await sha256(canonical(payload))});
 }
 
@@ -60,11 +86,13 @@ export async function validateStudyBackup(backup) {
   if (!backup || backup.schemaVersion !== BACKUP_SCHEMA_VERSION || backup.scope !== 'rodrigo-202-local') {
     throw new TypeError('Arquivo de backup incompatível.');
   }
-  assertRawMap(backup.tdas, 'Namespace TDAS');
-  assertRawMap(backup.legacy, 'Namespace legado');
+  assertRawMap(backup.tdas, 'Namespace TDAS', TDAS_KEYS);
+  assertRawMap(backup.legacy, 'Namespace legado', LEGACY_STORAGE_KEYS);
+  if (!Number.isFinite(backup.createdAt)) throw new TypeError('Data do backup inválida.');
   const {checksum, ...payload} = backup;
   if (!/^[a-f0-9]{64}$/.test(String(checksum || ''))) throw new TypeError('Checksum ausente ou inválido.');
   if (await sha256(canonical(payload)) !== checksum) throw new Error('Checksum do backup divergente.');
+  validateCriticalTdasState(backup.tdas);
   return Object.freeze(backup);
 }
 
@@ -84,7 +112,13 @@ export async function restoreStudyBackup(backup, storage, {includeLegacy = false
     applyRawMap(target, valid.tdas);
     if (includeLegacy) applyRawMap(target, valid.legacy);
   } catch (error) {
-    applyRawMap(target, before);
+    try {
+      applyRawMap(target, before);
+    } catch (rollbackError) {
+      const aggregate = new AggregateError([error, rollbackError], 'Falha na restauração e no rollback local.');
+      aggregate.cause = error;
+      throw aggregate;
+    }
     throw new Error(`Restauração revertida: ${error.message}`);
   }
   return Object.freeze({
@@ -116,10 +150,17 @@ function correctAnswerOf(result) {
   return result?.correctAnswer ?? result?.gabarito ?? null;
 }
 
-function normalizeClassification(result) {
-  if (isKnownResponseClassification(result?.classification)) return result.classification;
+function normalizeLegacyMeta(result) {
   if (typeof result?.correct !== 'boolean') return null;
-  return result.correct ? 'correct_secure' : 'incorrect_confirmed';
+  const original = isKnownResponseClassification(result.classification) ? result.classification : null;
+  const marked = result.marked === true || original === 'marked';
+  if (original === 'source_error') return {classification: 'source_error', confidence: 'secure', issue: 'source_error', marked};
+  if (original === 'annulment_pending') return {classification: 'annulment_pending', confidence: 'secure', issue: 'annulment_pending', marked};
+  if (!result.correct) return {classification: 'incorrect_confirmed', confidence: 'secure', issue: 'none', marked};
+  if (marked) return {classification: 'marked', confidence: 'secure', issue: 'none', marked: true};
+  if (original === 'correct_by_guess') return {classification: 'correct_by_guess', confidence: 'guess', issue: 'none', marked: false};
+  if (original === 'correct_with_doubt') return {classification: 'correct_with_doubt', confidence: 'doubt', issue: 'none', marked: false};
+  return {classification: 'correct_secure', confidence: 'secure', issue: 'none', marked: false};
 }
 
 function block(index, reason) {
@@ -156,8 +197,8 @@ export function previewLegacyMigration(storage) {
     for (const result of attempt.questionResults) {
       const selected = selectedOf(result);
       const correctAnswer = correctAnswerOf(result);
-      const classification = normalizeClassification(result);
-      if (!result?.id || !selected || typeof result.correct !== 'boolean' || !classification) {
+      const meta = normalizeLegacyMeta(result);
+      if (!result?.id || !String(selected ?? '').trim() || !meta) {
         normalized.length = 0;
         break;
       }
@@ -169,11 +210,11 @@ export function previewLegacyMigration(storage) {
         selected: String(selected),
         correctAnswer: correctAnswer === null ? null : String(correctAnswer),
         correct: result.correct,
-        confidence: 'secure',
-        marked: false,
-        issue: null,
-        classification,
-        errorBookEligible: classification === 'incorrect_confirmed',
+        confidence: meta.confidence,
+        marked: meta.marked,
+        issue: meta.issue,
+        classification: meta.classification,
+        errorBookEligible: meta.classification === 'incorrect_confirmed',
       });
     }
     if (!normalized.length) {
@@ -238,8 +279,14 @@ export function applyLegacyMigration(plan, readAttempts, saveAttempt, storage) {
   try {
     for (const attempt of plan.compatible) saveAttempt(attempt, target);
   } catch (error) {
-    if (before === null) target.removeItem(STORAGE_KEYS.attempts);
-    else target.setItem(STORAGE_KEYS.attempts, before);
+    try {
+      if (before === null) target.removeItem(STORAGE_KEYS.attempts);
+      else target.setItem(STORAGE_KEYS.attempts, before);
+    } catch (rollbackError) {
+      const aggregate = new AggregateError([error, rollbackError], 'Falha na migração e no rollback local.');
+      aggregate.cause = error;
+      throw aggregate;
+    }
     throw new Error(`Migração revertida: ${error.message}`);
   }
   return Object.freeze({

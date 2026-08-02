@@ -8,6 +8,8 @@ A Fase 10 implementou backup local verificável, restauração transacional e mi
 
 - checksum SHA-256;
 - representação explícita de chaves ausentes por `null`;
+- lista exata de chaves permitidas, com rejeição de chaves externas ao namespace autorizado;
+- validação semântica de tentativas, caderno, marcações, revisões e progresso antes da exportação ou restauração;
 - rollback em falha de restauração;
 - rollback em falha de migração;
 - preservação da fonte legada;
@@ -23,6 +25,7 @@ A Fase 10 implementou backup local verificável, restauração transacional e mi
 - verificação sintática do núcleo e armazenamento;
 - backup com chave presente e ausente;
 - rejeição de checksum adulterado;
+- rejeição de chave não autorizada, erro não confirmado no caderno e resposta em branco restaurada;
 - restauração do namespace TDAS;
 - preservação das chaves legadas por padrão;
 - uma tentativa compatível importada;

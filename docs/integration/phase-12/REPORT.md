@@ -5,8 +5,8 @@
 A candidata cumulativa das Fases 2–12 foi reconciliada com a `main` v26 e aprovada no GitHub Actions.
 
 - PR cumulativo: nº 23;
-- execução aprovada: `30724530608`;
-- run number: `13`;
+- execução aprovada: `30724563457`;
+- run number: `14`;
 - Node.js: 22;
 - conclusão: `success`;
 - permissões do workflow: `contents: read`;
@@ -18,7 +18,7 @@ A candidata cumulativa das Fases 2–12 foi reconciliada com a `main` v26 e apro
 - 166 erros oficiais;
 - 32 redações;
 - 154 páginas HTML;
-- 330 arquivos verificados;
+- 331 arquivos verificados;
 - contratos e namespace;
 - seis rotas funcionais;
 - catálogo PE76 com dez questões e hash conferido;

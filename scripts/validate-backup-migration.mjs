@@ -16,6 +16,8 @@ for (const name of ['createStudyBackup','validateStudyBackup','restoreStudyBacku
 }
 required(core.includes("digest('SHA-256'"), 'Backup não usa checksum SHA-256.');
 required(core.includes("scope: 'rodrigo-202-local'"), 'Escopo do backup não está fixado.');
+required(core.includes('expectedKeys') && core.includes('chaves ausentes ou não autorizadas'), 'Restauração não restringe as chaves permitidas.');
+required(core.includes('validateCriticalTdasState') && core.includes('readErrors(storage)') && core.includes('readAttempts(storage)'), 'Backup não valida semanticamente os dados críticos antes de exportar ou restaurar.');
 required(core.includes("cargo-not-202") && core.includes("profile-not-rodrigo"), 'Filtros de perfil e cargo ausentes.');
 required(core.includes("question-result-incomplete") && core.includes("pe-missing-or-invalid"), 'Registros incompletos não são bloqueados.');
 required(core.includes("destructive: false"), 'Plano não declara migração não destrutiva.');

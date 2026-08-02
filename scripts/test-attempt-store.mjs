@@ -103,6 +103,17 @@ assert.throws(() => readAttempts(corruptStorage), /corrompido/);
 assert.throws(() => saveAttempt(attempt, corruptStorage), /corrompido/);
 assert.equal(corruptStorage.getItem('tdas.202.study.v1.attempts'), '{', 'Histórico corrompido foi sobrescrito silenciosamente.');
 
+const semanticStorage = value => {
+  const target = new MemoryStorage();
+  target.setItem('tdas.202.study.v1.attempts', JSON.stringify({schemaVersion: '1.0.0', attempts: [value]}));
+  return target;
+};
+const blankStoredAttempt = {...attempt, questionResults: attempt.questionResults.map((item, index) => index === 0 ? {...item, selected: ''} : item)};
+assert.throws(() => readAttempts(semanticStorage(blankStoredAttempt)), /Resposta em branco/);
+const falseConfirmedError = {...attempt, questionResults: attempt.questionResults.map((item, index) => index === 0 ? {...item, classification: 'incorrect_confirmed', errorBookEligible: true} : item)};
+assert.throws(() => readAttempts(semanticStorage(falseConfirmedError)), /Erro confirmado incompatível/);
+assert.throws(() => readAttempts(semanticStorage({...attempt, peId: 'PE113'})), /incompleta ou inválida/);
+
 clearAttempts(storage);
 assert.deepEqual(readAttempts(storage), []);
 console.log('Tentativas locais testadas: piloto, revisão, classificações, deduplicação, limite, ordenação e corrupção protegida.');
