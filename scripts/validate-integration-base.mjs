@@ -23,7 +23,16 @@ for (const file of requiredFiles) requireValue(await exists(file), `arquivo obri
 const packageData = JSON.parse(await read("package.json"));
 requireValue(packageData.private === true, "package.json deve permanecer privado");
 requireValue(packageData.type === "module", "package.json deve usar módulos ES");
-requireValue(packageData.scripts?.check === "node scripts/validate-platform.mjs && node scripts/validate-integration-base.mjs", "npm run check não encadeia as validações esperadas");
+const checkCommands = String(packageData.scripts?.check || "").split("&&").map(command => command.trim()).filter(Boolean);
+const requiredCheckPrefix = ["node scripts/validate-platform.mjs", "node scripts/validate-integration-base.mjs"];
+requireValue(checkCommands.length >= requiredCheckPrefix.length, "npm run check não encadeia as validações esperadas");
+requireValue(requiredCheckPrefix.every((command, index) => checkCommands[index] === command), "npm run check deve iniciar pelas validações da plataforma e da base");
+requireValue(new Set(checkCommands).size === checkCommands.length, "npm run check contém comandos duplicados");
+for (const command of checkCommands) {
+  const match = /^node\s+(scripts\/[\w.-]+\.(?:mjs|js))$/.exec(command);
+  requireValue(match, `comando não autorizado no npm run check: ${command}`);
+  requireValue(await exists(match[1]), `script encadeado ausente: ${match[1]}`);
+}
 requireValue(packageData.scripts?.["check:integration"] === "node scripts/validate-integration-base.mjs", "check:integration ausente");
 
 const contract = JSON.parse(await read("data/integration/base-contract.json"));
@@ -91,11 +100,16 @@ requireValue(!blankError.valid && blankError.reason === "blank-answer-cannot-be-
 
 if (await exists("index.html")) {
   const index = await read("index.html");
-  requireValue(!index.includes("assets/integration/contracts.js"), "contrato foi ligado ao runtime antes da fase apropriada");
+  requireValue(!index.includes("assets/integration/contracts.js"), "contrato não pode ser carregado diretamente pela página inicial");
 }
 if (await exists("sw.js")) {
   const worker = await read("sw.js");
-  requireValue(!worker.includes("assets/integration/contracts.js"), "contrato foi incluído no service worker na fase 1");
+  const pwaGateEnabled = packageData.scripts?.["check:pwa"] === "node scripts/validate-pwa-integration.mjs" && await exists("scripts/validate-pwa-integration.mjs");
+  if (pwaGateEnabled) {
+    requireValue(worker.includes("assets/integration/contracts.js"), "Fase 12 ativa sem contrato disponível no precache");
+  } else {
+    requireValue(!worker.includes("assets/integration/contracts.js"), "contrato foi incluído no service worker sem gate PWA autorizado");
+  }
 }
 
 const snapshot = await read("docs/integration/phase-1/SNAPSHOT.md");
@@ -103,4 +117,4 @@ requireValue(snapshot.includes(contract.platform.baseCommit), "snapshot não reg
 const origin = await read("docs/integration/ORIGIN.md");
 requireValue(origin.includes(contract.questionSource.repository), "registro de origem não contém o repositório fonte");
 
-console.log("✓ Base de integração validada: contratos, namespace, estados de resposta e isolamento da fase 1.");
+console.log("✓ Base de integração validada: contratos, namespace, estados de resposta e ativação PWA controlada.");

@@ -1,0 +1,17 @@
+{
+  "schema_version": "1.0",
+  "material_id": "pilot-pe76-2026-tdas",
+  "loaded_by_catalog": false,
+  "answers": [
+    {"id": "pilot-pe76-2026-tdas-01", "gabarito": "D"},
+    {"id": "pilot-pe76-2026-tdas-02", "gabarito": "B"},
+    {"id": "pilot-pe76-2026-tdas-03", "gabarito": "A"},
+    {"id": "pilot-pe76-2026-tdas-04", "gabarito": "E"},
+    {"id": "pilot-pe76-2026-tdas-05", "gabarito": "C"},
+    {"id": "pilot-pe76-2026-tdas-06", "gabarito": "A"},
+    {"id": "pilot-pe76-2026-tdas-13", "gabarito": "C"},
+    {"id": "pilot-pe76-2026-tdas-14", "gabarito": "C"},
+    {"id": "pilot-pe76-2026-tdas-15", "gabarito": "A"},
+    {"id": "pilot-pe76-2026-tdas-16", "gabarito": "D"}
+  ]
+}

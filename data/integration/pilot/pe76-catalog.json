@@ -1,0 +1,197 @@
+{
+  "schema_version": "1.0",
+  "id": "pilot-pe76-2026-tdas",
+  "tipo_material": "piloto_tecnico",
+  "fonte": "Notion — PE76",
+  "nome": "Piloto PE76 — Assistência Social e Português aplicado",
+  "ano": 2026,
+  "orgao": "SEDES/DF",
+  "cargo": "TDAS — Técnico Administrativo",
+  "codigo_cargo": "202",
+  "disciplina": "Assistência Social e Língua Portuguesa",
+  "tempo_sugerido_minutos": 20,
+  "pilotMode": true,
+  "officialProgressWrite": false,
+  "notionWriteback": false,
+  "source": {
+    "page": "https://app.notion.com/p/364cf5a26731810e929fe919d7d5b37b",
+    "page_version": "v2.2",
+    "captured_at": "2026-07-31T20:25:17-03:00",
+    "selection": [1, 2, 3, 4, 5, 6, 13, 14, 15, 16],
+    "excluded_personal_data": ["respostas registradas", "percentual", "erros efetivos", "anotações pessoais"]
+  },
+  "content_sha256": "5c8c38687a03f5af7b0bf23e64ba9c67ef37393901044eae3ae52da93f21975c",
+  "quantidade_questoes": 10,
+  "questoes": [
+    {
+      "id": "pilot-pe76-2026-tdas-01",
+      "codigo": "PILOT-PE76-2026-TDAS-01",
+      "numero_original": 1,
+      "assunto": "Assistência Social e SUAS",
+      "subassunto": "LOAS — natureza da assistência social",
+      "texto_base": null,
+      "enunciado": "Nos termos da Lei Orgânica da Assistência Social, assinale a alternativa que apresenta corretamente a natureza da assistência social.",
+      "alternativas": {
+        "A": "Política de seguridade social não contributiva, executada exclusivamente por órgãos públicos e destinada às famílias inscritas no Cadastro Único.",
+        "B": "Política de proteção estatal subsidiária, acionada somente quando a família demonstrar incapacidade permanente de prover suas necessidades.",
+        "C": "Direito do cidadão e dever compartilhado entre Estado e sociedade, cuja prestação depende de contribuição indireta ao sistema de seguridade social.",
+        "D": "Direito do cidadão e dever do Estado, política de seguridade social não contributiva que provê mínimos sociais por meio de conjunto integrado de ações de iniciativa pública e da sociedade.",
+        "E": "Direito social destinado a substituir a proteção previdenciária de pessoas que não tenham cumprido período contributivo mínimo."
+      },
+      "fonte_url": "https://app.notion.com/p/364cf5a26731810e929fe919d7d5b37b"
+    },
+    {
+      "id": "pilot-pe76-2026-tdas-02",
+      "codigo": "PILOT-PE76-2026-TDAS-02",
+      "numero_original": 2,
+      "assunto": "Assistência Social e SUAS",
+      "subassunto": "LOAS — objetivos da assistência social",
+      "texto_base": null,
+      "enunciado": "Constituem objetivos da assistência social expressamente previstos na LOAS:",
+      "alternativas": {
+        "A": "proteção social, participação popular e gestão do trabalho.",
+        "B": "proteção social, vigilância socioassistencial e defesa de direitos.",
+        "C": "proteção social básica, proteção social especial e controle social.",
+        "D": "vigilância socioassistencial, segurança alimentar e participação comunitária.",
+        "E": "proteção social, vigilância sanitária e defesa dos usuários."
+      },
+      "fonte_url": "https://app.notion.com/p/364cf5a26731810e929fe919d7d5b37b"
+    },
+    {
+      "id": "pilot-pe76-2026-tdas-03",
+      "codigo": "PILOT-PE76-2026-TDAS-03",
+      "numero_original": 3,
+      "assunto": "Assistência Social e SUAS",
+      "subassunto": "LOAS — princípios e diretrizes",
+      "texto_base": null,
+      "enunciado": "Assinale a alternativa que apresenta um princípio da assistência social, e não uma diretriz de sua organização ou um objetivo do SUAS.",
+      "alternativas": {
+        "A": "Supremacia do atendimento às necessidades sociais sobre as exigências de rentabilidade econômica.",
+        "B": "Descentralização político-administrativa e comando único das ações em cada esfera de governo.",
+        "C": "Participação da população na formulação das políticas e no controle das ações em todos os níveis.",
+        "D": "Primazia da responsabilidade do Estado na condução da política em cada esfera de governo.",
+        "E": "Gestão compartilhada, cofinanciamento e cooperação técnica entre os entes federativos."
+      },
+      "fonte_url": "https://app.notion.com/p/364cf5a26731810e929fe919d7d5b37b"
+    },
+    {
+      "id": "pilot-pe76-2026-tdas-04",
+      "codigo": "PILOT-PE76-2026-TDAS-04",
+      "numero_original": 4,
+      "assunto": "Assistência Social e SUAS",
+      "subassunto": "SUAS — organização e gestão",
+      "texto_base": null,
+      "enunciado": "A respeito da organização e da gestão do Sistema Único de Assistência Social, assinale a alternativa correta.",
+      "alternativas": {
+        "A": "O SUAS constitui estrutura administrativa federal centralizada, cabendo aos demais entes apenas executar as ações definidas nacionalmente.",
+        "B": "A participação de entidades e organizações de assistência social ocorre fora do SUAS, que é integrado exclusivamente por unidades estatais.",
+        "C": "Os conselhos de assistência social exercem a gestão administrativa direta dos serviços e benefícios ofertados em sua esfera.",
+        "D": "O território serve apenas para delimitar a unidade competente, sem interferir no planejamento das proteções e da rede.",
+        "E": "O SUAS é sistema descentralizado e participativo, orientado pela gestão compartilhada, pelo cofinanciamento, pela cooperação federativa e pela integração da rede pública e privada."
+      },
+      "fonte_url": "https://app.notion.com/p/364cf5a26731810e929fe919d7d5b37b"
+    },
+    {
+      "id": "pilot-pe76-2026-tdas-05",
+      "codigo": "PILOT-PE76-2026-TDAS-05",
+      "numero_original": 5,
+      "assunto": "Assistência Social e SUAS",
+      "subassunto": "Proteção social básica",
+      "texto_base": null,
+      "enunciado": "Uma família apresenta insegurança de renda, isolamento comunitário e fragilização de vínculos, sem registro atual de ameaça ou violação de direitos. A resposta mais coerente com a organização das proteções no SUAS é",
+      "alternativas": {
+        "A": "o acolhimento institucional, para impedir o agravamento preventivo da situação.",
+        "B": "o acompanhamento pela proteção especial de média complexidade, pois a fragilidade de vínculos equivale à violação de direitos.",
+        "C": "a proteção social básica, com atuação preventiva, desenvolvimento de aquisições e fortalecimento dos vínculos familiares e comunitários.",
+        "D": "a concessão isolada de benefício eventual, pois os serviços não integram a prevenção de vulnerabilidades.",
+        "E": "a proteção especial de alta complexidade, ainda que a permanência familiar seja possível e segura."
+      },
+      "fonte_url": "https://app.notion.com/p/364cf5a26731810e929fe919d7d5b37b"
+    },
+    {
+      "id": "pilot-pe76-2026-tdas-06",
+      "codigo": "PILOT-PE76-2026-TDAS-06",
+      "numero_original": 6,
+      "assunto": "Assistência Social e SUAS",
+      "subassunto": "Proteção social especial de média complexidade",
+      "texto_base": null,
+      "enunciado": "A proteção social especial de média complexidade é corretamente caracterizada pela oferta de",
+      "alternativas": {
+        "A": "acompanhamento especializado a famílias e indivíduos em situação de ameaça ou violação de direitos, quando os vínculos familiares e comunitários não foram rompidos.",
+        "B": "proteção integral às pessoas afastadas do convívio familiar e comunitário, independentemente da existência de medida protetiva.",
+        "C": "ações territoriais preventivas voltadas a famílias vulneráveis nas quais ainda não exista ameaça ou violação de direitos.",
+        "D": "benefícios financeiros continuados destinados a substituir o acompanhamento especializado.",
+        "E": "acolhimento institucional obrigatório em toda situação de violência ou exploração identificada pela rede."
+      },
+      "fonte_url": "https://app.notion.com/p/364cf5a26731810e929fe919d7d5b37b"
+    },
+    {
+      "id": "pilot-pe76-2026-tdas-13",
+      "codigo": "PILOT-PE76-2026-TDAS-13",
+      "numero_original": 13,
+      "assunto": "Língua Portuguesa aplicada",
+      "subassunto": "Interpretação de texto — ideia central",
+      "texto_base": "Em políticas socioassistenciais, registrar não significa burocratizar o cuidado. Quando produzidos com finalidade definida, dados atualizados permitem reconhecer demandas, planejar ofertas e acompanhar resultados. O problema surge quando o registro se transforma em mero acúmulo de formulários ou quando informações sensíveis circulam sem necessidade. Nesse cenário, a qualidade da gestão depende de duas exigências simultâneas: informação suficiente para orientar a ação pública e proteção rigorosa da privacidade dos usuários. Uma exigência não elimina a outra; ambas limitam o improviso e favorecem decisões justificáveis.",
+      "enunciado": "A ideia central do texto está corretamente expressa em:",
+      "alternativas": {
+        "A": "A proteção da privacidade impede que registros administrativos sejam utilizados no planejamento socioassistencial.",
+        "B": "O atendimento humanizado exige o abandono de sistemas, formulários e demais registros produzidos pelas unidades.",
+        "C": "A informação qualificada e a proteção da privacidade são exigências complementares para uma gestão pública orientada e justificável.",
+        "D": "A quantidade de dados armazenados é o principal critério de qualidade da gestão socioassistencial.",
+        "E": "O registro administrativo burocratiza necessariamente o cuidado, ainda que possua finalidade definida."
+      },
+      "fonte_url": "https://app.notion.com/p/364cf5a26731810e929fe919d7d5b37b"
+    },
+    {
+      "id": "pilot-pe76-2026-tdas-14",
+      "codigo": "PILOT-PE76-2026-TDAS-14",
+      "numero_original": 14,
+      "assunto": "Língua Portuguesa aplicada",
+      "subassunto": "Interpretação de texto — inferência",
+      "texto_base": "Em políticas socioassistenciais, registrar não significa burocratizar o cuidado. Quando produzidos com finalidade definida, dados atualizados permitem reconhecer demandas, planejar ofertas e acompanhar resultados. O problema surge quando o registro se transforma em mero acúmulo de formulários ou quando informações sensíveis circulam sem necessidade. Nesse cenário, a qualidade da gestão depende de duas exigências simultâneas: informação suficiente para orientar a ação pública e proteção rigorosa da privacidade dos usuários. Uma exigência não elimina a outra; ambas limitam o improviso e favorecem decisões justificáveis.",
+      "enunciado": "Infere-se do texto que",
+      "alternativas": {
+        "A": "a circulação de informações sensíveis é legítima sempre que ocorrer entre órgãos públicos.",
+        "B": "a ausência de registros constitui condição suficiente para assegurar atendimento humanizado.",
+        "C": "o problema não está no registro em si, mas em seu uso sem finalidade ou na circulação desnecessária de informações sensíveis.",
+        "D": "a proteção da privacidade deve prevalecer de forma absoluta, mesmo quando inviabilizar a continuidade do atendimento.",
+        "E": "decisões públicas justificáveis independem da qualidade e da finalidade das informações utilizadas."
+      },
+      "fonte_url": "https://app.notion.com/p/364cf5a26731810e929fe919d7d5b37b"
+    },
+    {
+      "id": "pilot-pe76-2026-tdas-15",
+      "codigo": "PILOT-PE76-2026-TDAS-15",
+      "numero_original": 15,
+      "assunto": "Língua Portuguesa aplicada",
+      "subassunto": "Sintaxe — concordância e oração adverbial",
+      "texto_base": "Em políticas socioassistenciais, registrar não significa burocratizar o cuidado. Quando produzidos com finalidade definida, dados atualizados permitem reconhecer demandas, planejar ofertas e acompanhar resultados. O problema surge quando o registro se transforma em mero acúmulo de formulários ou quando informações sensíveis circulam sem necessidade. Nesse cenário, a qualidade da gestão depende de duas exigências simultâneas: informação suficiente para orientar a ação pública e proteção rigorosa da privacidade dos usuários. Uma exigência não elimina a outra; ambas limitam o improviso e favorecem decisões justificáveis.",
+      "enunciado": "No período “Quando produzidos com finalidade definida, dados atualizados permitem reconhecer demandas, planejar ofertas e acompanhar resultados”, é correto afirmar que",
+      "alternativas": {
+        "A": "“produzidos” concorda com “dados atualizados”, e a vírgula separa a oração adverbial antecipada da oração principal.",
+        "B": "“dados atualizados” exerce a função de objeto direto da forma verbal “produzidos”.",
+        "C": "a retirada da vírgula é obrigatória, pois não se separa oração subordinada de oração principal.",
+        "D": "as formas “reconhecer”, “planejar” e “acompanhar” exercem funções sintáticas distintas no período.",
+        "E": "a expressão “com finalidade definida” funciona como sujeito da forma verbal “permitem”."
+      },
+      "fonte_url": "https://app.notion.com/p/364cf5a26731810e929fe919d7d5b37b"
+    },
+    {
+      "id": "pilot-pe76-2026-tdas-16",
+      "codigo": "PILOT-PE76-2026-TDAS-16",
+      "numero_original": 16,
+      "assunto": "Língua Portuguesa aplicada",
+      "subassunto": "Pontuação — dois-pontos",
+      "texto_base": "Em políticas socioassistenciais, registrar não significa burocratizar o cuidado. Quando produzidos com finalidade definida, dados atualizados permitem reconhecer demandas, planejar ofertas e acompanhar resultados. O problema surge quando o registro se transforma em mero acúmulo de formulários ou quando informações sensíveis circulam sem necessidade. Nesse cenário, a qualidade da gestão depende de duas exigências simultâneas: informação suficiente para orientar a ação pública e proteção rigorosa da privacidade dos usuários. Uma exigência não elimina a outra; ambas limitam o improviso e favorecem decisões justificáveis.",
+      "enunciado": "No quarto período do texto, os dois-pontos foram empregados para",
+      "alternativas": {
+        "A": "introduzir uma conclusão que contraria a afirmação imediatamente anterior.",
+        "B": "indicar a omissão de uma forma verbal já expressa no período.",
+        "C": "separar uma oração subordinada adverbial de sua oração principal.",
+        "D": "especificar as duas exigências simultâneas das quais depende a qualidade da gestão.",
+        "E": "apresentar uma fala atribuída aos usuários da política socioassistencial."
+      },
+      "fonte_url": "https://app.notion.com/p/364cf5a26731810e929fe919d7d5b37b"
+    }
+  ]
+}
