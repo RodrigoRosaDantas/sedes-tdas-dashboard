@@ -91,6 +91,17 @@ try {
     connectionType: 'none',
   });
 
+  const networkProbe = await page.evaluate(async url => {
+    try {
+      const response = await fetch(url, {cache: 'no-store'});
+      return {rejected: false, status: response.status, ok: response.ok};
+    } catch (error) {
+      return {rejected: true, message: error instanceof Error ? error.message : String(error)};
+    }
+  }, `${BASE}__offline-probe-${Date.now()}.txt`);
+  assert.equal(networkProbe.rejected, true, `A requisição inédita não comprovou o corte da rede: ${JSON.stringify(networkProbe)}`);
+  report.networkProbe = networkProbe;
+
   for (const [route, marker] of ROUTES) {
     const nonce = `${Date.now()}-${marker}`;
     const response = await page.goto(`${BASE}${route}?offline-smoke=${nonce}`, {waitUntil: 'domcontentloaded'});
@@ -102,11 +113,10 @@ try {
       await page.waitForFunction(() => document.body.innerText.includes('10 questões'), {timeout: 30_000});
     }
     const state = await page.evaluate(() => ({
-      online: navigator.onLine,
+      navigatorOnline: navigator.onLine,
       bodyLength: document.body.innerText.trim().length,
       offlineText: document.querySelector('#offline')?.textContent?.trim() || '',
     }));
-    assert.equal(state.online, false, `${route} não refletiu o estado offline`);
     assert.ok(state.bodyLength > 80, `${route} offline carregou conteúdo insuficiente (${state.bodyLength} caracteres)`);
     report.offline.push({route, status: response.status(), fromServiceWorker: true, marker, ...state});
   }
