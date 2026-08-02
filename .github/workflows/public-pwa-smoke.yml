@@ -1,0 +1,31 @@
+name: Validar PWA público offline
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - scripts/test-public-pwa.mjs
+      - .github/workflows/public-pwa-smoke.yml
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Baixar repositório
+        uses: actions/checkout@v4
+
+      - name: Preparar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Instalar navegador de automação
+        run: npm install --no-save --package-lock=false puppeteer-core@24.16.0
+
+      - name: Testar site publicado com perda de conexão
+        run: node scripts/test-public-pwa.mjs
