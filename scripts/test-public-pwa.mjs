@@ -1,8 +1,11 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import puppeteer from 'puppeteer-core';
 
 const BASE = 'https://rodrigorosadantas.github.io/sedes-tdas-dashboard/';
+const HOST = 'rodrigorosadantas.github.io';
 const EXPECTED_CACHE = 'tdas-v26-20260801-questions1';
 const ROUTES = [
   ['estudar/', 'estudar'],
@@ -22,17 +25,27 @@ const chromeCandidates = [
 const executablePath = chromeCandidates.find(candidate => fs.existsSync(candidate));
 assert.ok(executablePath, `Chrome/Chromium não encontrado. Candidatos: ${chromeCandidates.join(', ')}`);
 
-const report = {base: BASE, cache: EXPECTED_CACHE, chrome: executablePath, online: [], offline: []};
-const browser = await puppeteer.launch({
+const profileDir = fs.mkdtempSync(path.join(os.tmpdir(), 'tdas-pwa-smoke-'));
+const report = {base: BASE, cache: EXPECTED_CACHE, chrome: executablePath, profileDir, online: [], offline: []};
+
+const launchBrowser = extraArgs => puppeteer.launch({
   executablePath,
   headless: true,
-  args: ['--no-sandbox', '--disable-dev-shm-usage'],
+  userDataDir: profileDir,
+  args: ['--no-sandbox', '--disable-dev-shm-usage', ...extraArgs],
 });
 
-try {
+const configurePage = async browser => {
   const page = await browser.newPage();
   page.setDefaultNavigationTimeout(90_000);
   page.setDefaultTimeout(30_000);
+  return page;
+};
+
+let browser;
+try {
+  browser = await launchBrowser([]);
+  let page = await configurePage(browser);
 
   const firstResponse = await page.goto(BASE, {waitUntil: 'networkidle2'});
   assert.ok(firstResponse?.ok(), `Página inicial retornou ${firstResponse?.status() ?? 'sem resposta'}`);
@@ -80,27 +93,12 @@ try {
     report.online.push({route, status: response.status(), marker, bodyLength});
   }
 
-  const cdp = await page.createCDPSession();
-  await cdp.send('Network.enable');
-  await cdp.send('Network.setCacheDisabled', {cacheDisabled: true});
-  await cdp.send('Network.emulateNetworkConditions', {
-    offline: true,
-    latency: 0,
-    downloadThroughput: 0,
-    uploadThroughput: 0,
-    connectionType: 'none',
-  });
+  await browser.close();
+  browser = undefined;
 
-  const networkProbe = await page.evaluate(async url => {
-    try {
-      const response = await fetch(url, {cache: 'no-store'});
-      return {rejected: false, status: response.status, ok: response.ok};
-    } catch (error) {
-      return {rejected: true, message: error instanceof Error ? error.message : String(error)};
-    }
-  }, `${BASE}__offline-probe-${Date.now()}.txt`);
-  assert.equal(networkProbe.rejected, true, `A requisição inédita não comprovou o corte da rede: ${JSON.stringify(networkProbe)}`);
-  report.networkProbe = networkProbe;
+  browser = await launchBrowser([`--host-resolver-rules=MAP ${HOST} 127.0.0.1`]);
+  page = await configurePage(browser);
+  await page.setCacheEnabled(false);
 
   for (const [route, marker] of ROUTES) {
     const nonce = `${Date.now()}-${marker}`;
@@ -121,6 +119,17 @@ try {
     report.offline.push({route, status: response.status(), fromServiceWorker: true, marker, ...state});
   }
 
+  const networkProbe = await page.evaluate(async url => {
+    try {
+      const response = await fetch(url, {cache: 'no-store'});
+      return {rejected: false, status: response.status, ok: response.ok};
+    } catch (error) {
+      return {rejected: true, message: error instanceof Error ? error.message : String(error)};
+    }
+  }, `${BASE}__offline-probe-${Date.now()}.txt`);
+  assert.equal(networkProbe.rejected, true, `O domínio bloqueado ainda respondeu à requisição inédita: ${JSON.stringify(networkProbe)}`);
+  report.networkProbe = networkProbe;
+
   const catalog = await page.evaluate(async url => {
     const response = await fetch(`${url}?offline-smoke=${Date.now()}`, {cache: 'no-store'});
     return {status: response.status, ok: response.ok, data: await response.json()};
@@ -133,5 +142,6 @@ try {
   console.log('SMOKE PWA PÚBLICO APROVADO');
   console.log(JSON.stringify(report, null, 2));
 } finally {
-  await browser.close();
+  if (browser) await browser.close();
+  fs.rmSync(profileDir, {recursive: true, force: true});
 }
