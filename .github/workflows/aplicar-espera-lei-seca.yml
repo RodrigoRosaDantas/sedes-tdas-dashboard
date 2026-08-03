@@ -1,0 +1,59 @@
+name: Aplicar espera da Lei Seca
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/aplicar-espera-lei-seca.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Propagar versões e validar
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          def rep(file,old,new,count=1):
+              p=Path(file); s=p.read_text(encoding='utf-8')
+              if old not in s: raise SystemExit(f'{file}: trecho ausente {old}')
+              p.write_text(s.replace(old,new,count),encoding='utf-8')
+          rep('assets/integration/daily-execution.js','daily-law.js?v=1.0.1','daily-law.js?v=1.0.2')
+          for file in ['assets/integration/daily-question-page.js','assets/integration/today-execution.js','assets/integration/module-dashboard.js','assets/enhance-v20.js']:
+              rep(file,'daily-execution.js?v=1.1.1','daily-execution.js?v=1.1.2')
+          rep('resolver/index.html','daily-question-page.js?v=1.0.1','daily-question-page.js?v=1.0.2')
+          rep('hoje/index.html','today-execution.js?v=1.0.1','today-execution.js?v=1.0.2')
+          rep('estudar/index.html','module-dashboard.js?v=3.0.1','module-dashboard.js?v=3.0.2')
+          rep('scripts/postprocess-v26.mjs','assets/enhance-v20.js?v=26.1','assets/enhance-v20.js?v=26.2')
+          rep('scripts/postprocess-v26.mjs','notion-daily-content-law-101','notion-daily-content-law-102')
+          test=Path('scripts/test-daily-law-integration.mjs'); s=test.read_text(encoding='utf-8')
+          s=s.replace('daily-execution.js?v=1.1.1','daily-execution.js?v=1.1.2').replace('daily-law.js?v=1.0.1','daily-law.js?v=1.0.2').replace('daily-question-page.js?v=1.0.1','daily-question-page.js?v=1.0.2').replace('today-execution.js?v=1.0.1','today-execution.js?v=1.0.2').replace('module-dashboard.js?v=3.0.1','module-dashboard.js?v=3.0.2').replace('notion-daily-content-law-101','notion-daily-content-law-102')
+          marker="assert.ok(law.includes('daily-execution.js?v=1.1.2'));"
+          if marker not in s: raise SystemExit('Teste da Lei Seca não localizado')
+          s=s.replace(marker,marker+"\nassert.ok(law.includes('async function waitForPe()'));\nassert.ok(law.includes('const pe=await waitForPe()'));",1)
+          test.write_text(s,encoding='utf-8')
+          PY
+          npm run check
+      - name: Consolidar
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add assets/integration/daily-execution.js assets/integration/daily-question-page.js assets/integration/today-execution.js assets/integration/module-dashboard.js assets/enhance-v20.js resolver/index.html hoje/index.html estudar/index.html scripts/postprocess-v26.mjs scripts/test-daily-law-integration.mjs
+          git commit -m 'Aguardar o PE antes de instalar a Lei Seca'
+          git push origin "HEAD:${{ github.event.pull_request.head.ref }}"
