@@ -1,16 +1,19 @@
 {
   "name": "sedes-tdas-dashboard",
-  "version": "26.8.1-daily-permission-fallback",
+  "version": "26.9.0-command-center",
   "private": true,
   "type": "module",
   "scripts": {
-    "check": "node scripts/test-calendar-refresh.mjs && node scripts/test-control-normalization.mjs && node scripts/test-schedule-partition.mjs && node scripts/test-dashboard-freshness.mjs && node scripts/test-daily-law-integration.mjs && node scripts/test-sync-decision.mjs && node scripts/test-daily-access.mjs && node scripts/test-daily-content.mjs && node scripts/validate-calendar-snapshot.mjs && node scripts/validate-daily-content.mjs && node scripts/validate-platform.mjs && node scripts/validate-daily-execution.mjs && node scripts/validate-daily-progress.mjs && node scripts/test-daily-progress.mjs && node scripts/validate-local-backup.mjs && node scripts/test-local-backup.mjs && node scripts/validate-question-module.mjs && node scripts/test-question-module.mjs && node scripts/validate-pwa-integration.mjs",
+    "check": "node scripts/test-calendar-refresh.mjs && node scripts/test-control-normalization.mjs && node scripts/test-schedule-partition.mjs && node scripts/test-dashboard-freshness.mjs && node scripts/test-daily-law-integration.mjs && node scripts/test-session-draft.mjs && node scripts/test-command-center.mjs && node scripts/test-sync-decision.mjs && node scripts/test-daily-access.mjs && node scripts/test-daily-content.mjs && node scripts/validate-calendar-snapshot.mjs && node scripts/validate-daily-content.mjs && node scripts/validate-platform.mjs && node scripts/validate-daily-execution.mjs && node scripts/validate-daily-progress.mjs && node scripts/test-daily-progress.mjs && node scripts/validate-local-backup.mjs && node scripts/test-local-backup.mjs && node scripts/validate-question-module.mjs && node scripts/test-question-module.mjs && node scripts/validate-pwa-integration.mjs",
     "audit:daily-cycle": "node scripts/audit-daily-cycle.mjs",
     "check:calendar": "node scripts/validate-calendar-snapshot.mjs",
     "test:calendar": "node scripts/test-calendar-refresh.mjs",
     "test:control": "node scripts/test-control-normalization.mjs",
     "test:schedule": "node scripts/test-schedule-partition.mjs",
     "test:freshness": "node scripts/test-dashboard-freshness.mjs",
+    "test:daily-law": "node scripts/test-daily-law-integration.mjs",
+    "test:session-draft": "node scripts/test-session-draft.mjs",
+    "test:command-center": "node scripts/test-command-center.mjs",
     "test:sync-decision": "node scripts/test-sync-decision.mjs",
     "test:daily-access": "node scripts/test-daily-access.mjs",
     "test:daily-content": "node scripts/test-daily-content.mjs",
@@ -24,7 +27,6 @@
     "check:module": "node scripts/validate-question-module.mjs",
     "test:module": "node scripts/test-question-module.mjs",
     "check:pwa": "node scripts/validate-pwa-integration.mjs",
-    "test": "npm run check",
-    "test:daily-law": "node scripts/test-daily-law-integration.mjs"
+    "test": "npm run check"
   }
 }
