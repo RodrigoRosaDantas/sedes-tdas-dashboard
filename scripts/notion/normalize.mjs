@@ -7,6 +7,7 @@ const num = value => {
   return Number.isFinite(parsed) ? parsed : null;
 };
 const bool = value => value === true || ['sim', 'true', 'yes', 'concluido', 'concluida', 'revisado', 'revisada'].includes(norm(value));
+const explicitlyPending = status => /nao iniciad|planejad|a fazer|pendente|futuro/.test(norm(status));
 
 export function prop(record, aliases) {
   const entries = Object.entries(record.properties || {});
@@ -46,12 +47,15 @@ function patterns(record) {
 export function control(record) {
   const pe = exactCode(record, ['Dia ID'], 'PE');
   const status = text(prop(record, ['Status', 'Situação', 'Resultado automático']));
+  const pending = explicitlyPending(status);
   const qg = num(prop(record, ['Questões gerais', 'Q gerais'])) ?? 0;
   const qe = num(prop(record, ['Questões específicas', 'Q específicas'])) ?? 0;
   const ag = num(prop(record, ['Acertos gerais']));
   const ae = num(prop(record, ['Acertos específicas', 'Acertos específicos']));
-  const acertos = num(prop(record, ['Acertos'])) ?? ((ag != null || ae != null) ? (ag || 0) + (ae || 0) : null);
-  const attempted = num(prop(record, ['Questões feitas', 'Questões concluídas'])) ?? qg + qe;
+  const rawCorrect = num(prop(record, ['Acertos'])) ?? ((ag != null || ae != null) ? (ag || 0) + (ae || 0) : null);
+  const rawAttempted = num(prop(record, ['Questões feitas', 'Questões concluídas'])) ?? qg + qe;
+  const attempted = pending ? 0 : rawAttempted;
+  const acertos = pending ? null : rawCorrect;
   const rd = exactCode(record, ['RD ID'], 'RD');
   return {
     id: record.id,
@@ -60,11 +64,11 @@ export function control(record) {
     week: num(prop(record, ['Semana'])) ?? null,
     title: record.title.replace(/^\s*PE\s*\d+\s*[—–-]\s*/i, '').trim() || record.title,
     status,
-    meta: num(prop(record, ['Meta de questões', 'Meta'])) ?? attempted,
+    meta: num(prop(record, ['Meta de questões', 'Meta'])) ?? rawAttempted,
     qg,
     qe,
-    ag,
-    ae,
+    ag: pending ? null : ag,
+    ae: pending ? null : ae,
     acertos,
     attempted,
     block: text(prop(record, ['Bloco predominante', 'Bloco do dia', 'Bloco'])),
