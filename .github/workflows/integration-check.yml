@@ -21,3 +21,48 @@ jobs:
         with:
           node-version: 22
       - run: npm run check
+      - name: Conferir Lei Seca publicada
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://rodrigorosadantas.github.io/sedes-tdas-dashboard'
+          nonce="${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          validate() {
+            helper="$(curl -fsSL -H 'Cache-Control: no-cache' "$base/assets/integration/daily-execution.js?v=$nonce")"
+            grep -q '36acf5a2673181fa8fffc8d1d4236d53' <<<"$helper"
+            grep -q 'lawUrl:LAW_LIBRARY_URL' <<<"$helper"
+            grep -q 'daily-law.js' <<<"$helper"
+            law="$(curl -fsSL -H 'Cache-Control: no-cache' "$base/assets/integration/daily-law.js?v=$nonce")"
+            grep -q 'Lei Seca e Banco de Leis' <<<"$law"
+            grep -q 'Quando indicado' <<<"$law"
+            grep -q 'Material + Lei Seca indicada' <<<"$law"
+            grep -q '/estudar/' <<<"$law"
+            grep -q '/resolver/' <<<"$law"
+            grep -q 'data-daily-pe-execution' <<<"$law"
+            ! grep -q 'api.notion' <<<"$law"
+            today="$(curl -fsSL -H 'Cache-Control: no-cache' "$base/assets/integration/today-execution.js?v=$nonce")"
+            grep -q 'Lei Seca e Banco de Leis' <<<"$today"
+            grep -q '1B' <<<"$today"
+            sw="$(curl -fsSL -H 'Cache-Control: no-cache' "$base/sw.js?v=$nonce")"
+            grep -q '"assets/integration/daily-law.js"' <<<"$sw"
+            grep -q '"dados-locais/"' <<<"$sw"
+            grep -q '"assets/integration/local-backup.js"' <<<"$sw"
+            grep -q 'law-library' <<<"$sw"
+            generator="$(curl -fsSL -H 'Cache-Control: no-cache' "$base/scripts/postprocess-v26.mjs?v=$nonce")"
+            grep -q 'dados-locais/' <<<"$generator"
+            grep -q 'assets/integration/local-backup.js' <<<"$generator"
+            grep -q 'assets/integration/daily-law.js' <<<"$generator"
+            grep -q 'law-library' <<<"$generator"
+            curl -fsSL -H 'Cache-Control: no-cache' "$base/hoje/?v=$nonce" | grep -q 'today-execution.js'
+            curl -fsSL -H 'Cache-Control: no-cache' "$base/estudar/?pe=PE77&v=$nonce" | grep -q 'module-dashboard.js'
+            curl -fsSL -H 'Cache-Control: no-cache' "$base/resolver/?pe=PE77&v=$nonce" | grep -q 'daily-question-page.js'
+            curl -fsSL -H 'Cache-Control: no-cache' "$base/pe/77/?v=$nonce" | grep -q 'enhance-v20.js'
+          }
+          for attempt in $(seq 1 12); do
+            if validate; then
+              echo '{"publicacao":"ok","lei_seca":"condicionada","inferencia_por_pe":"nenhuma","backup":"preservado","gerador_pwa":"ok","pwa":"ok"}'
+              exit 0
+            fi
+            sleep 10
+          done
+          exit 1
