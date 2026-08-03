@@ -1,5 +1,5 @@
-import {BASE, escapeHTML, loadJSON, setupShell, setLoadingError} from '../common.js?v=24.1';
-import {findDailyExecution, loadDailyExecution, normalizePe, peDetailPath, peNumber, selectedPe} from './daily-execution.js?v=1.0.0';
+import {BASE, escapeHTML, loadJSON, setupShell, setLoadingError} from '../common.js?v=26.1';
+import {findDailyExecution, loadDailyExecution, normalizePe, peDetailPath, peNumber, selectedPe} from './daily-execution.js?v=1.1.1';
 import {readModuleState} from './module-store.js?v=2.0.0';
 
 const optionalJson=path=>fetch(BASE+path,{cache:'no-store'}).then(response=>response.ok?response.json():null).catch(()=>null);
