@@ -1,5 +1,5 @@
 import {BASE, escapeHTML, loadJSON} from '../common.js?v=26.1';
-import {findDailyExecution, loadDailyExecution, peDetailPath} from './daily-execution.js?v=1.1.1';
+import {findDailyExecution, loadDailyExecution, peDetailPath} from './daily-execution.js?v=1.1.2';
 const waitForToday=()=>new Promise((resolve,reject)=>{let attempts=0;const tick=()=>{const main=document.querySelector('main');if(main?.querySelector('.hero h1')?.textContent.trim().startsWith('Hoje:'))return resolve(main);if(attempts++>120)return reject(new Error('A página Hoje não ficou pronta para a execução diária.'));setTimeout(tick,40)};tick()});
 try{
  const[main,today,contract]=await Promise.all([waitForToday(),loadJSON('data/today.json'),loadDailyExecution()]);
