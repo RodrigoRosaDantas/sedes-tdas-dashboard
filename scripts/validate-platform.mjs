@@ -67,6 +67,7 @@ for (const icon of manifest.icons || []) {
   required(target && await exists(target), `Ícone do manifesto ausente: ${icon.src}.`);
 }
 
+const errorIndexForSw = await readJson('data/error-questions/index.json');
 const sw = await fs.readFile(path.join(ROOT, 'sw.js'), 'utf8');
 const stringArray = name => {
   const match = sw.match(new RegExp(`const ${name}=\\[([\\s\\S]*?)\\];`));
@@ -91,7 +92,7 @@ if (literalPrecache[1].includes('...CORE_ROUTES.map')) {
     ...icons.map(icon => BASE + icon),
     ...Array.from({length: 112}, (_, index) => BASE + `pe/${index + 1}/`),
     ...subjectsInSw.map(slug => BASE + `materias/${slug}/`),
-    ...Array.from({length: 10}, (_, index) => BASE + `data/error-questions/part-${String(index + 1).padStart(2, '0')}.json`),
+    ...(errorIndexForSw.parts || []).map(part => BASE + `data/error-questions/${part.file}`),
   ];
 } else {
   precache = [...literalPrecache[1].matchAll(/(['"])(.*?)\1/g)].map(item => item[2]);
@@ -147,7 +148,7 @@ required(redactions.redactions.every(item => /^RD[0-9]+$/.test(item.rd) && item.
 for (const item of allControls) required(await exists(`pe/${codeNumber(item.pe)}/index.html`), `Rota ausente para ${item.pe}.`);
 for (const item of subjects.subjects) required(await exists(`materias/${item.slug}/index.html`), `Rota ausente para matéria ${item.subject}.`);
 
-const errorIndex = await readJson('data/error-questions/index.json');
+const errorIndex = errorIndexForSw;
 required(errorIndex.total === risks.summary.total, 'Índice de questões erradas diverge do total oficial.');
 required(errorIndex.materias === subjects.subjects.length, 'Total de matérias diverge no índice de questões erradas.');
 let errorRecords = [];
