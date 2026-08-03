@@ -1,0 +1,11 @@
+import {BASE, escapeHTML, loadJSON, setupShell, setLoadingError} from '../common.js?v=24.1';
+import {readModuleState} from './module-store.js?v=2.0.0';
+
+try {
+  const shell = await loadJSON('data/more.json');
+  setupShell('mais', shell.meta);
+  const queue = readModuleState().aiQueue;
+  document.querySelector('main').innerHTML = `<section class="hero"><span class="kicker">Ressalvas do módulo</span><h1>Fila de IA</h1><p>Possíveis anulações e erros de fonte registrados nas sessões locais, sem alterar gabaritos automaticamente.</p><div class="tags"><span class="tag">${queue.length} itens pendentes</span><span class="tag">Decisão humana obrigatória</span><span class="tag">Sem writeback</span></div><div class="hero-actions"><a class="btn primary" href="${BASE}resolver/">Resolver questões</a><a class="btn" href="${BASE}caderno-erros/">Abrir caderno</a></div></section><section class="section">${queue.length ? `<div class="grid two">${queue.map(item => `<article class="card panel"><small>${item.peId ? escapeHTML(item.peId) : 'Sessão local'} · questão ${item.numeroOriginal ?? '—'}</small><h3>${escapeHTML(item.subassunto || item.assunto)}</h3><p>${item.classification === 'annulment_pending' ? 'Possível anulação' : 'Possível erro da fonte'} · marcada ${escapeHTML(item.selected)} · referência ${escapeHTML(item.correctAnswer)}</p></article>`).join('')}</div>` : '<article class="card panel"><h2>Fila vazia</h2><p>Nenhuma ressalva foi registrada neste módulo.</p></article>'}</section><section class="section"><article class="card panel"><h2>Regra operacional</h2><p>A fila apenas organiza a análise. Nenhum item é corrigido, anulado ou enviado ao Notion automaticamente.</p></article></section>`;
+} catch (error) {
+  setLoadingError(error);
+}

@@ -1,0 +1,13 @@
+{
+  "schemaVersion": "2.0.0",
+  "mode": "operational-empty",
+  "catalogId": "tdas-question-module",
+  "title": "Módulo de questões TDAS",
+  "description": "Estrutura operacional sem questões incorporadas.",
+  "peId": null,
+  "questionCount": 0,
+  "suggestedMinutes": 0,
+  "keyPath": null,
+  "authorizedSource": null,
+  "questions": []
+}

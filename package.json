@@ -1,12 +1,14 @@
 {
   "name": "sedes-tdas-dashboard",
-  "version": "26.1.0-real",
+  "version": "26.2.0-question-module",
   "private": true,
   "type": "module",
   "scripts": {
-    "check": "node scripts/validate-platform.mjs && node scripts/validate-real-operations.mjs",
+    "check": "node scripts/validate-platform.mjs && node scripts/validate-question-module.mjs && node scripts/test-question-module.mjs && node scripts/validate-pwa-integration.mjs",
     "check:platform": "node scripts/validate-platform.mjs",
-    "check:real": "node scripts/validate-real-operations.mjs",
+    "check:module": "node scripts/validate-question-module.mjs",
+    "test:module": "node scripts/test-question-module.mjs",
+    "check:pwa": "node scripts/validate-pwa-integration.mjs",
     "test": "npm run check"
   }
 }

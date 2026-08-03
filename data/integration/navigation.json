@@ -1,63 +1,59 @@
 {
-  "schemaVersion": "2.0.0",
-  "mode": "real-operations",
+  "schemaVersion": "2.1.0",
+  "phase": "operational",
+  "mode": "module-ready-empty",
   "basePath": "/sedes-tdas-dashboard/",
-  "sources": [
-    "Controle de Questões TDAS",
-    "Caderno de Erros TDAS / PRO",
-    "Banco de Redações TDAS"
-  ],
   "routes": [
     {
       "key": "estudar",
       "path": "/sedes-tdas-dashboard/estudar/",
-      "title": "Central de estudo",
-      "status": "Ativa",
-      "source": "Snapshot validado dos três bancos oficiais"
+      "title": "Estudar",
+      "description": "Entrada do módulo, catálogo autorizado e início de sessões.",
+      "status": "Operacional, sem catálogo autorizado"
     },
     {
       "key": "resolver",
       "path": "/sedes-tdas-dashboard/resolver/",
-      "title": "Execução do dia",
-      "status": "Alias para Hoje",
-      "target": "/sedes-tdas-dashboard/hoje/"
+      "title": "Resolver questões",
+      "description": "Player real de sessões locais, ativado somente quando houver catálogo autorizado.",
+      "status": "Operacional, aguardando catálogo"
     },
     {
       "key": "revisar",
       "path": "/sedes-tdas-dashboard/revisar/",
       "title": "Revisar",
-      "status": "Alias para o caderno oficial",
-      "target": "/sedes-tdas-dashboard/questoes-erros/"
+      "description": "Agenda local D+1, D+7 e D+20 gerada pelas sessões reais do módulo.",
+      "status": "Operacional"
     },
     {
       "key": "caderno-erros",
       "path": "/sedes-tdas-dashboard/caderno-erros/",
       "title": "Caderno de erros",
-      "status": "Alias para o caderno oficial",
-      "target": "/sedes-tdas-dashboard/questoes-erros/"
+      "description": "Erros confirmados e marcações produzidos pelas sessões reais do módulo.",
+      "status": "Operacional"
     },
     {
       "key": "desempenho",
       "path": "/sedes-tdas-dashboard/desempenho/",
       "title": "Desempenho",
-      "status": "Alias para Evolução",
-      "target": "/sedes-tdas-dashboard/evolucao/"
+      "description": "Métricas locais de tentativas, acertos, tempo, confiança e revisões.",
+      "status": "Operacional"
     },
     {
       "key": "fila-ia",
       "path": "/sedes-tdas-dashboard/fila-ia/",
-      "title": "Auditoria",
-      "status": "Alias para Auditoria",
-      "target": "/sedes-tdas-dashboard/auditoria/"
+      "title": "Fila de IA",
+      "description": "Ressalvas de possível anulação ou erro de fonte que exigem análise.",
+      "status": "Operacional"
     }
   ],
   "invariants": [
-    "official-notion-sources-only",
-    "no-question-bank-read",
-    "no-question-catalog",
-    "no-answer-key-load",
-    "no-notion-writeback-from-site",
-    "public-snapshot-read-only",
+    "no-example-question-bank",
+    "no-master-bank-runtime-read",
+    "no-answer-key-when-catalog-empty",
+    "authorized-catalog-only",
+    "local-storage-v2-only",
+    "no-notion-writeback",
     "single-dashboard-service-worker"
   ]
 }
