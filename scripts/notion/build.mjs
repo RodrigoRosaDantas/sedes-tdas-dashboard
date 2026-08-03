@@ -201,8 +201,8 @@ export function build(controls, errors, redactions, date, syncedAt) {
   const sortedRedactions = [...redactions].sort(byCode);
   const completedControls = sortedControls.filter(item => done(item.status));
   const activeControls = sortedControls.filter(item => started(item.status));
-  const actualControls = sortedControls.filter(item => started(item.status));
-  const futureControls = sortedControls.filter(item => !started(item.status));
+  const actualControls = sortedControls.filter(item => started(item.status) || Boolean(item.date && item.date < date));
+  const futureControls = sortedControls.filter(item => !started(item.status) && Boolean(item.date && item.date >= date)).sort(byDate);
   const actual = actualControls.map(item => publicControl(item, errors));
   const future = futureControls.map(publicFuture);
   const results = actual.filter(item => item.acertos != null && item.attempted > 0);
