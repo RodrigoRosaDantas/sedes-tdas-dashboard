@@ -69,25 +69,45 @@ jobs:
           };"""
           if old not in source:
             raise SystemExit('Trecho de peCode não localizado para correção segura.')
-          module.write_text(source.replace(old, new, 1), encoding='utf-8')
+          source = source.replace(old, new, 1)
+
+          marker = "export async function discoverDailyPages(root, {expected = PE_LIMIT} = {}) {"
+          helper = """export function isAuxiliaryDailyPage(value) {
+            const normalized = String(value ?? '').normalize('NFD').replace(/[\\u0300-\\u036f]/g, '');
+            return /\\bauditoria\\b/i.test(normalized);
+          }
+
+          """
+          if marker not in source:
+            raise SystemExit('Ponto de inserção do filtro auxiliar não localizado.')
+          source = source.replace(marker, helper + marker, 1)
+
+          old_candidates = "const candidates = [...direct, ...nestedGroups.flat()].filter(page => peCode(page.title));"
+          new_candidates = "const candidates = [...direct, ...nestedGroups.flat()].filter(page => peCode(page.title) && !isAuxiliaryDailyPage(page.title));"
+          if old_candidates not in source:
+            raise SystemExit('Filtro de candidatos não localizado.')
+          source = source.replace(old_candidates, new_candidates, 1)
+          module.write_text(source, encoding='utf-8')
 
           test = Path('scripts/test-daily-content.mjs')
           test_source = test.read_text(encoding='utf-8')
           test_source = test_source.replace(
             "import {parseDailyQuestions, renderMaterialMarkdown} from './notion/daily-content.mjs';",
-            "import {parseDailyQuestions, peCode, renderMaterialMarkdown} from './notion/daily-content.mjs';",
+            "import {isAuxiliaryDailyPage, parseDailyQuestions, peCode, renderMaterialMarkdown} from './notion/daily-content.mjs';",
             1
           )
-          marker = "\nconst markdown = `"
+          test_marker = "\nconst markdown = `"
           assertions = """
           assert.equal(peCode('PE01 — Virada pós-edital'), 'PE01');
           assert.equal(peCode('PE78'), 'PE78');
           assert.equal(peCode('01 — Micro PE01–PE07 | Semana 1'), null);
           assert.equal(peCode('PE01–PE07'), null);
+          assert.equal(isAuxiliaryDailyPage('PE27 — Auditoria do simulado parcial 1 + RD08'), true);
+          assert.equal(isAuxiliaryDailyPage('PE27 — Simulado parcial 1 + RD08'), false);
           """
-          if marker not in test_source:
+          if test_marker not in test_source:
             raise SystemExit('Ponto de inserção dos testes não localizado.')
-          test.write_text(test_source.replace(marker, assertions + marker, 1), encoding='utf-8')
+          test.write_text(test_source.replace(test_marker, assertions + test_marker, 1), encoding='utf-8')
           PY
           node scripts/test-daily-content.mjs
       - name: Gerar conteúdo diário
