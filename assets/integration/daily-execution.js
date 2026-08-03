@@ -1,4 +1,4 @@
-import {BASE} from '../common.js?v=24.1';
+import {BASE} from '../common.js?v=26.1';
 const NOTION='https://app.notion.com/p/';
 export const LAW_LIBRARY_URL=NOTION+'36acf5a2673181fa8fffc8d1d4236d53';
 let contractPromise=null;
@@ -15,4 +15,4 @@ export async function loadDailyExecution(){
 export function findDailyExecution(contract,value){const pe=normalizePe(value);return pe?contract.items.find(item=>item.pe===pe)||null:null}
 export function selectedPe(currentPe){return normalizePe(new URLSearchParams(globalThis.location?.search||'').get('pe'))||normalizePe(currentPe)}
 export function peDetailPath(value){const n=peNumber(value);return n?`${BASE}pe/${n}/`:BASE+'pe/'}
-if(typeof document!=='undefined')import('./daily-law.js?v=1.0.0').catch(error=>console.error('Lei Seca indisponível',error));
+if(typeof document!=='undefined')import('./daily-law.js?v=1.0.1').catch(error=>console.error('Lei Seca indisponível',error));
