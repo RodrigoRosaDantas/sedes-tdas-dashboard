@@ -28,7 +28,20 @@ jobs:
           node-version: '22'
 
       - name: Aplicar compatibilidade C/E e alternativas variáveis
-        run: python scripts/apply-daily-format-patch.py
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('scripts/apply-daily-format-patch.py')
+          source = path.read_text(encoding='utf-8')
+          old = "\n\nexport function parseDailyQuestions''', 'leitura do gabarito')"
+          new = "\n''', 'leitura do gabarito')"
+          if old not in source:
+              raise SystemExit('Assinatura duplicada do parser não localizada')
+          path.write_text(source.replace(old, new, 1), encoding='utf-8')
+          PY
+          python scripts/apply-daily-format-patch.py
 
       - name: Validar plataforma e todos os dias restantes
         env:
