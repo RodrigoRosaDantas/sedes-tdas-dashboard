@@ -2,11 +2,12 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { SOURCES, ROOT, hash, localDate, localIso, readJson, writeJson, writeText } from './notion/config.mjs';
 import { fetchMarkdown, fetchPropertyText, mapLimit, queryAll } from './notion/api.mjs';
+import { prepareDailyContent } from './notion/daily-content.mjs';
 import { control, error, propId, redaction } from './notion/normalize.mjs';
 import { build } from './notion/build.mjs';
 
 const MINIMUM = { controls: 100, errors: 100, redactions: 25 };
-const SCHEMA_VERSION = '20.3';
+const SCHEMA_VERSION = '20.4';
 const previousState = await readJson('data/notion/state.json', {});
 const previousHistory = await readJson('data/sync-history.json', { entries: [] });
 const runStartedAt = new Date().toISOString();
@@ -44,11 +45,7 @@ async function completeError(record) {
 }
 
 function semanticRecord(record, type) {
-  if (type === 'control') {
-    const { id, last_edited_time, ...publicRecord } = record;
-    return publicRecord;
-  }
-  if (type === 'redaction') {
+  if (type === 'control' || type === 'redaction') {
     const { id, last_edited_time, ...publicRecord } = record;
     return publicRecord;
   }
@@ -60,6 +57,12 @@ async function clearOldErrorParts() {
   const directory = path.join(ROOT, 'data/error-questions');
   await fs.mkdir(directory, { recursive: true });
   for (const file of await fs.readdir(directory)) if (/^part-\d+\.json$/.test(file)) await fs.rm(path.join(directory, file));
+}
+
+async function clearDailyKeys() {
+  const directory = path.join(ROOT, 'data/integration/question-keys');
+  await fs.mkdir(directory, { recursive: true });
+  for (const file of await fs.readdir(directory)) if (/^[a-z0-9._-]+\.json$/i.test(file)) await fs.rm(path.join(directory, file));
 }
 
 async function removeLegacyTechnicalData() {
@@ -107,7 +110,7 @@ function setOutput(name, value) {
   return fs.appendFile(process.env.GITHUB_OUTPUT, `${name}=${value}\n`, 'utf8');
 }
 
-console.log('Consultando exclusivamente as três fontes oficiais do Notion...');
+console.log('Consultando as três bases operacionais e as duas árvores oficiais da Execução diária no Notion...');
 const [rawControls, rawErrors, rawRedactions] = await Promise.all([
   queryAll(SOURCES.control), queryAll(SOURCES.errors), queryAll(SOURCES.redactions)
 ]);
@@ -127,20 +130,25 @@ uniqueBy(errors, 'url', 'Caderno de Erros');
 uniqueBy(redactions, 'url', 'Redações'); uniqueBy(redactions, 'rd', 'Redações');
 if (errors.some(item => !item.questionError.trim())) throw new Error('Caderno de Erros: registro real sem Questão / Erro após normalização.');
 
+const daily = await prepareDailyContent({controls, snapshotDate, runStartedAt});
+console.log(`${daily.pe}: material e ${daily.catalog.questionCount} questões preparados diretamente das páginas filhas oficiais.`);
+
 const semantic = {
   schemaVersion: SCHEMA_VERSION,
   controls: controls.map(item => semanticRecord(item, 'control')),
   errors: errors.map(item => semanticRecord(item, 'error')),
-  redactions: redactions.map(item => semanticRecord(item, 'redaction'))
+  redactions: redactions.map(item => semanticRecord(item, 'redaction')),
+  daily: daily.semantic
 };
 const nextHash = hash(semantic);
 const semanticChanged = previousState.semanticHash !== nextHash;
 const output = build(controls, errors, redactions, snapshotDate, runStartedAt);
 output.state.semanticHash = nextHash;
+output.state.dailyContent = daily.semantic;
 
 if (semanticChanged) {
   await removeLegacyTechnicalData();
-  await clearOldErrorParts();
+  await Promise.all([clearOldErrorParts(), clearDailyKeys()]);
   await Promise.all([
     writeJson('data/notion/state.json', output.state),
     writeJson('data/home.json', output.home), writeJson('data/today.json', output.today), writeJson('data/evolution.json', output.evolution),
@@ -151,15 +159,27 @@ if (semanticChanged) {
     writeJson('data/export/redactions-01.json', output.exports.redactions1), writeJson('data/export/redactions-02.json', output.exports.redactions2),
     writeJson('data/export/errors.json', output.exports.errors), writeJson('data/export/quality.json', output.exports.quality), writeJson('data/export/summary.json', output.exports.summary),
     writeJson('data/error-questions/index.json', output.errorQuestions.index),
+    writeJson('data/integration/daily-execution.json', daily.contract),
+    writeJson('data/integration/daily-material.json', daily.material),
+    writeJson('data/integration/question-catalog.json', daily.catalog),
+    ...(daily.key ? [writeJson(daily.catalog.keyPath, daily.key)] : []),
     ...output.errorQuestions.parts.map((records, index) => writeJson(`data/error-questions/part-${String(index + 1).padStart(2, '0')}.json`, records))
   ]);
   await ensureRoutes(output.routes);
   await generateServiceWorker(output.routes, output.errorQuestions.index);
-  await writeJson('data/sync-history.json', appendHistory('success', 'Fontes oficiais sincronizadas', `Processados ${controls.length} PE válidos, ${errors.length} erros reais e ${redactions.length} redações válidas. Indicadores, exportações, rotas e questões erradas foram recalculados integralmente.`));
+  await writeJson('data/sync-history.json', appendHistory(
+    'success',
+    'Fontes oficiais e conteúdo diário sincronizados',
+    `Processados ${controls.length} PE, ${errors.length} erros, ${redactions.length} redações e o conteúdo do ${daily.pe}: material completo e ${daily.catalog.questionCount} questões, com correção separada.`
+  ));
   await setOutput('semantic_changes', 'true');
-  console.log(`Mudança semântica preparada: ${controls.length} PE, ${errors.length} erros e ${redactions.length} redações.`);
+  console.log(`Mudança preparada: ${controls.length} PE, ${errors.length} erros, ${redactions.length} redações e conteúdo diário de ${daily.pe}.`);
 } else {
-  await writeJson('data/sync-history.json', appendHistory('no_changes', 'Fontes oficiais verificadas sem mudança semântica', `Contagens confirmadas: ${controls.length} PE válidos, ${errors.length} erros reais e ${redactions.length} redações válidas. Nenhum indicador ou conteúdo público foi recalculado.`));
+  await writeJson('data/sync-history.json', appendHistory(
+    'no_changes',
+    'Fontes oficiais verificadas sem mudança semântica',
+    `Contagens confirmadas: ${controls.length} PE, ${errors.length} erros e ${redactions.length} redações. Material e ${daily.catalog.questionCount} questões de ${daily.pe} permanecem íntegros.`
+  ));
   await setOutput('semantic_changes', 'false');
   console.log('Nenhuma mudança semântica; somente o histórico da execução foi atualizado.');
 }
