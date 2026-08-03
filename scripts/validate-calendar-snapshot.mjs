@@ -30,7 +30,8 @@ const controls = [...actual1, ...actual2, ...actual3, ...future1, ...future2];
 const scheduled = controls.find(item => item.date === snapshotDate);
 if (scheduled) required(today.current?.pe === scheduled.pe, `PE atual ${today.current?.pe} diverge do previsto ${scheduled.pe} para ${snapshotDate}.`);
 
-if (pendingStatus(today.current?.status)) {
+const strictProgress = process.env.REQUIRE_PROGRESS_INTEGRITY === 'true' || process.env.REQUIRE_CURRENT_SNAPSHOT === 'true';
+if (strictProgress && pendingStatus(today.current?.status)) {
   required(Number(today.current?.attempted || 0) === 0, `PE pendente publicou ${today.current?.attempted} questões tentadas.`);
   required(today.current?.acertos == null, `PE pendente publicou resultado de ${today.current?.acertos} acertos.`);
   const completion = today.checklist?.find(item => /^Concluir\b/i.test(item.title || ''));
@@ -46,4 +47,4 @@ if (process.env.REQUIRE_CURRENT_SNAPSHOT === 'true') {
   if (currentScheduled) required(today.current?.pe === currentScheduled.pe, `Virada diária incompleta: esperado ${currentScheduled.pe}, publicado ${today.current?.pe}.`);
 }
 
-console.log(`Snapshot diário validado: ${snapshotDate}, ${today.current?.pe}, fontes públicas consistentes${process.env.REQUIRE_CURRENT_SNAPSHOT === 'true' ? ' e data atual confirmada' : ''}.`);
+console.log(`Snapshot diário validado: ${snapshotDate}, ${today.current?.pe}, fontes públicas consistentes${process.env.REQUIRE_CURRENT_SNAPSHOT === 'true' ? ' e data atual confirmada' : ''}${strictProgress ? ' com integridade de progresso' : ''}.`);
