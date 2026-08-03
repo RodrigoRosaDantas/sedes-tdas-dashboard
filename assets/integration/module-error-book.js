@@ -1,0 +1,12 @@
+import {BASE, escapeHTML, loadJSON, setupShell, setLoadingError} from '../common.js?v=24.1';
+import {readModuleState} from './module-store.js?v=2.0.0';
+
+const formatDate = value => new Intl.DateTimeFormat('pt-BR', {dateStyle: 'short', timeStyle: 'short'}).format(new Date(value));
+try {
+  const shell = await loadJSON('data/more.json');
+  setupShell('mais', shell.meta);
+  const {errors, marked} = readModuleState();
+  document.querySelector('main').innerHTML = `<section class="hero"><span class="kicker">Caderno do módulo</span><h1>Caderno de erros</h1><p>Erros confirmados e questões marcadas nas sessões reais deste módulo.</p><div class="tags"><span class="tag">${errors.length} erros confirmados</span><span class="tag">${marked.length} marcações</span><span class="tag">Armazenamento local v2</span></div><div class="hero-actions"><a class="btn primary" href="${BASE}resolver/">Resolver questões</a><a class="btn" href="${BASE}questoes-erros/">Abrir caderno oficial sincronizado</a></div></section><section class="section"><div class="section-head"><div><h2>Erros confirmados locais</h2></div></div>${errors.length ? `<div class="grid two">${errors.map(item => `<article class="card panel"><small>${item.peId ? escapeHTML(item.peId) : 'Sessão local'} · questão ${item.numeroOriginal ?? '—'} · ${formatDate(item.createdAt)}</small><h3>${escapeHTML(item.subassunto || item.assunto)}</h3><p>Marcada: <strong>${escapeHTML(item.selected)}</strong> · Gabarito: <strong>${escapeHTML(item.correctAnswer)}</strong></p></article>`).join('')}</div>` : '<article class="card panel"><p>Nenhum erro confirmado neste módulo.</p></article>'}</section><section class="section"><div class="section-head"><div><h2>Marcações</h2></div></div>${marked.length ? `<div class="grid two">${marked.map(item => `<article class="card panel"><small>${item.peId ? escapeHTML(item.peId) : 'Sessão local'} · questão ${item.numeroOriginal ?? '—'}</small><h3>${escapeHTML(item.subassunto || item.assunto)}</h3><p>${escapeHTML(item.confidence)}</p></article>`).join('')}</div>` : '<article class="card panel"><p>Nenhuma questão marcada neste módulo.</p></article>'}</section><section class="section"><article class="card panel"><h2>Separação preservada</h2><p>Este caderno local não substitui nem modifica o Caderno de Erros TDAS/PRO sincronizado na plataforma.</p></article></section>`;
+} catch (error) {
+  setLoadingError(error);
+}
