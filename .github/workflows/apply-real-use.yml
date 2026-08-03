@@ -1,0 +1,528 @@
+name: Aplicar uso real do módulo
+
+on:
+  push:
+    branches:
+      - agent/ativar-uso-real
+
+permissions:
+  contents: write
+
+concurrency:
+  group: apply-real-use
+  cancel-in-progress: true
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Baixar repositório
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Preparar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Aplicar transição operacional
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'tdas-project[bot]'
+          git config user.email 'tdas-project[bot]@users.noreply.github.com'
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          root = Path('.')
+          def write(path, content):
+              target = root / path
+              target.parent.mkdir(parents=True, exist_ok=True)
+              target.write_text(content, encoding='utf-8')
+
+          production = {
+              "schemaVersion": "1.0.0",
+              "mode": "canonical-public-platform",
+              "title": "SEDES/DF Questões",
+              "rootUrl": "/sedes-df-questoes/",
+              "studyUrl": "/sedes-df-questoes/#/estudar",
+              "reviewUrl": "/sedes-df-questoes/#/revisar",
+              "performanceUrl": "/sedes-df-questoes/#/desempenho",
+              "catalogUrl": "/sedes-df-questoes/data/release/catalogo.json",
+              "repositoryUrl": "https://github.com/RodrigoRosaDantas/sedes-df-questoes",
+              "snapshot": {
+                  "date": "2026-08-02",
+                  "commit": "01c93edd39042ade0fda88831f6059f163e1dbcc",
+                  "questions": 2535,
+                  "materials": 63
+              },
+              "localSession": {
+                  "catalogId": "pilot-pe76-2026-tdas",
+                  "path": "/sedes-tdas-dashboard/resolver/?pilot=pe76",
+                  "officialProgressWrite": False,
+                  "notionWriteback": False
+              },
+              "rules": {
+                  "publishedOnly": True,
+                  "editorialPendingExcluded": True,
+                  "localProgressOnly": True,
+                  "notionWriteback": False
+              }
+          }
+          write('data/integration/production.json', json.dumps(production, ensure_ascii=False, indent=2) + '\n')
+
+          write('assets/integration/pilot-catalog.js', r'''import {BASE, escapeHTML} from '../common.js?v=24.1';
+
+const waitForStudyPage = () => new Promise((resolve, reject) => {
+  let attempts = 0;
+  const check = () => {
+    const main = document.querySelector('main');
+    if (main?.querySelector('.hero h1')?.textContent.trim() === 'Estudar') return resolve(main);
+    if (attempts++ >= 100) return reject(new Error('A página Estudar não ficou pronta para o catálogo.'));
+    setTimeout(check, 40);
+  };
+  check();
+});
+
+async function fetchJson(url, label, optional = false) {
+  try {
+    const response = await fetch(url, {cache: 'no-store'});
+    if (!response.ok) throw new Error(`${label} (${response.status})`);
+    return response.json();
+  } catch (error) {
+    if (optional) return null;
+    throw error;
+  }
+}
+
+try {
+  const [main, localCatalog, production] = await Promise.all([
+    waitForStudyPage(),
+    fetchJson(BASE + 'data/integration/pilot/pe76-catalog.json', 'Falha ao carregar sessão local'),
+    fetchJson(BASE + 'data/integration/production.json', 'Falha ao carregar contrato de produção'),
+  ]);
+  const publicCatalog = await fetchJson(production.catalogUrl, 'Falha ao consultar catálogo público', true);
+  const questions = Number(publicCatalog?.summary?.questoes || production.snapshot.questions || 0);
+  const materials = Number(publicCatalog?.summary?.materiais || production.snapshot.materials || 0);
+  const release = String(publicCatalog?.release_version || `snapshot ${production.snapshot.date}`);
+  const live = Boolean(publicCatalog);
+  const footer = main.querySelector('footer');
+  const section = document.createElement('section');
+  section.className = 'section';
+  section.dataset.productionCatalog = production.mode;
+  section.innerHTML = `
+    <div class="section-head">
+      <div>
+        <h2>Estudo real — acervo público</h2>
+        <p>Acesse a plataforma canônica de questões já publicadas. Registros em saneamento editorial continuam fora do estudo.</p>
+      </div>
+      <span class="stamp">${questions.toLocaleString('pt-BR')} questões · ${materials} materiais</span>
+    </div>
+    <div class="grid three">
+      <article class="card panel">
+        <small>Fonte canônica</small>
+        <h3>${escapeHTML(production.title)}</h3>
+        <p>${live ? 'Catálogo público consultado agora.' : `Último snapshot confirmado em ${escapeHTML(production.snapshot.date)}.`} Release: ${escapeHTML(release)}.</p>
+      </article>
+      <article class="card panel">
+        <small>Progresso real</small>
+        <h3>Perfil Rodrigo</h3>
+        <p>Respostas, erros, marcadas, revisões e desempenho ficam salvos no navegador pela plataforma de questões.</p>
+      </article>
+      <article class="card panel">
+        <small>Proteção editorial</small>
+        <h3>Somente conteúdo publicado</h3>
+        <p>Nenhuma questão pendente, bloqueada, anulada ou duplicada é liberada por esta integração.</p>
+      </article>
+    </div>
+    <div class="hero-actions">
+      <a class="btn primary" href="${production.studyUrl}">Abrir acervo completo</a>
+      <a class="btn" href="${production.reviewUrl}">Revisar no acervo</a>
+      <a class="btn" href="${production.performanceUrl}">Ver desempenho do acervo</a>
+    </div>
+    <div class="section-head">
+      <div>
+        <h2>Sessão local PE76</h2>
+        <p>Ferramenta compatível preservada para treino rápido neste dashboard, com histórico separado do acervo canônico.</p>
+      </div>
+      <span class="stamp">${localCatalog.quantidade_questoes} questões · ${localCatalog.tempo_sugerido_minutos} min</span>
+    </div>
+    <div class="grid two">
+      <article class="card panel">
+        <small>Recorte local</small>
+        <h3>Questões 1–6 e 13–16</h3>
+        <p>Assistência Social, SUAS e Língua Portuguesa aplicada.</p>
+      </article>
+      <article class="card panel">
+        <small>Persistência protegida</small>
+        <h3>Uso no dispositivo</h3>
+        <p>Tentativas finalizadas, caderno e revisões ficam no navegador. O Notion e o progresso oficial não são alterados.</p>
+      </article>
+    </div>
+    <div class="hero-actions"><a class="btn" href="${BASE}resolver/?pilot=pe76">Iniciar sessão local</a></div>
+    <details class="card panel">
+      <summary><strong>Ver as dez questões disponíveis na sessão local</strong></summary>
+      <div class="grid portal-grid">${localCatalog.questoes.map(question => `
+        <article class="card portal">
+          <small>Questão ${question.numero_original}</small>
+          <b>${escapeHTML(question.assunto)}</b>
+          <span>${escapeHTML(question.subassunto)}</span>
+          <em>Disponível localmente</em>
+        </article>`).join('')}
+      </div>
+    </details>
+    <article class="card panel">
+      <h3>Separação entre os dois usos</h3>
+      <p>O acervo completo é a operação principal. A sessão PE76 continua local para preservar compatibilidade, testes e históricos existentes.</p>
+    </article>`;
+  footer?.before(section);
+} catch (error) {
+  console.error('Falha ao preparar o estudo real', error);
+}
+''')
+
+          write('assets/integration/navigation.js', r'''import {BASE, escapeHTML, loadJSON, setupShell, setLoadingError} from '../common.js?v=24.1';
+
+const routeKey = document.documentElement.dataset.integrationRoute;
+const FULL_STUDY = '/sedes-df-questoes/#/estudar';
+const routeActions = {
+  estudar: [
+    {href: FULL_STUDY, label: 'Abrir acervo real', primary: true},
+    {href: BASE + 'resolver/?pilot=pe76', label: 'Sessão local PE76'},
+  ],
+  resolver: [{href: BASE + 'estudar/', label: 'Voltar para Estudar'}],
+  revisar: [
+    {href: '/sedes-df-questoes/#/revisar', label: 'Revisar no acervo real', primary: true},
+    {href: BASE + 'caderno-erros/', label: 'Abrir caderno local'},
+  ],
+  'caderno-erros': [
+    {href: BASE + 'questoes-erros/', label: 'Abrir caderno oficial atual', primary: true},
+    {href: BASE + 'revisar/', label: 'Voltar para Revisar'},
+  ],
+  desempenho: [
+    {href: '/sedes-df-questoes/#/desempenho', label: 'Desempenho do acervo real', primary: true},
+    {href: BASE + 'evolucao/', label: 'Abrir evolução do plano'},
+  ],
+  'fila-ia': [{href: BASE + 'estudar/', label: 'Voltar para Estudar'}],
+};
+
+try {
+  const [navigation, shell] = await Promise.all([
+    fetch(BASE + 'data/integration/navigation.json', {cache: 'no-store'}).then(response => {
+      if (!response.ok) throw new Error(`Falha ao carregar navegação (${response.status})`);
+      return response.json();
+    }),
+    loadJSON('data/more.json'),
+  ]);
+  const current = navigation.routes.find(route => route.key === routeKey);
+  if (!current) throw new Error('Rota de integração não reconhecida.');
+  setupShell('mais', shell.meta);
+  const actions = routeActions[routeKey] || [{href: BASE, label: 'Voltar ao início'}];
+  document.querySelector('main').innerHTML = `
+    <section class="hero">
+      <span class="kicker">Módulo de questões · uso operacional</span>
+      <h1>${escapeHTML(current.title)}</h1>
+      <p>${escapeHTML(current.description)}</p>
+      <div class="tags">
+        <span class="tag">${escapeHTML(current.status)}</span>
+        <span class="tag">${escapeHTML(current.safety)}</span>
+      </div>
+      <div class="hero-actions">${actions.map(action => `<a class="btn ${action.primary ? 'primary' : ''}" href="${action.href}">${escapeHTML(action.label)}</a>`).join('')}</div>
+    </section>
+    <section class="section">
+      <div class="grid two">
+        <article class="card panel">
+          <h2>Estado operacional</h2>
+          <p>${escapeHTML(current.operation)}</p>
+        </article>
+        <article class="card panel">
+          <h2>Proteção do projeto</h2>
+          <p>${escapeHTML(current.safetyDetail)}</p>
+        </article>
+      </div>
+    </section>
+    <section class="section">
+      <div class="section-head"><div><h2>Áreas do módulo</h2><p>Acervo público, recursos locais e trilhas de acompanhamento.</p></div></div>
+      <div class="grid portal-grid">${navigation.routes.map(route => `<a class="card portal" href="${route.path}" aria-current="${route.key === routeKey ? 'page' : 'false'}"><small>${escapeHTML(route.status)}</small><b>${escapeHTML(route.title)}</b><span>${escapeHTML(route.description)}</span><em>${route.key === routeKey ? 'Página atual' : 'Abrir →'}</em></a>`).join('')}</div>
+    </section>
+    <footer class="footer"><span>Módulo de questões · uso operacional</span><span>Snapshot <span data-snapshot></span></span></footer>`;
+} catch (error) {
+  setLoadingError(error);
+}
+''')
+
+          navigation = {
+              "schemaVersion": "1.0.0",
+              "phase": 13,
+              "mode": "production-entry",
+              "basePath": "/sedes-tdas-dashboard/",
+              "routes": [
+                  {"key":"estudar","path":"/sedes-tdas-dashboard/estudar/","title":"Estudar","description":"Entrada operacional para o acervo público completo e para a sessão local PE76.","status":"Operacional — acervo completo","safety":"Somente publicados","operation":"O botão principal abre a plataforma canônica SEDES/DF Questões, com catálogo, perfis, sessões e progresso real.","safetyDetail":"A integração não publica novos registros e não consulta o Banco Mestre em runtime."},
+                  {"key":"resolver","path":"/sedes-tdas-dashboard/resolver/","title":"Resolver questões","description":"Sessão local PE76 preservada para treino rápido e compatibilidade dos históricos deste dashboard.","status":"Operacional — sessão local","safety":"Sem writeback","operation":"A sessão registra tentativas finalizadas, classificações, caderno e revisões apenas neste navegador.","safetyDetail":"O status oficial do PE e os bancos do Notion permanecem intocados."},
+                  {"key":"revisar","path":"/sedes-tdas-dashboard/revisar/","title":"Revisar","description":"Revisões locais D+1, D+7 e D+20, com acesso direto às revisões do acervo público.","status":"Operacional — revisões locais","safety":"Dados no dispositivo","operation":"As revisões geradas pela sessão local podem ser executadas nesta rota; o acervo real possui agenda própria por perfil.","safetyDetail":"Nenhuma revisão local é convertida automaticamente em lançamento oficial."},
+                  {"key":"caderno-erros","path":"/sedes-tdas-dashboard/caderno-erros/","title":"Caderno de erros","description":"Caderno local das sessões do módulo, preservando o caderno oficial sincronizado do plano TDAS.","status":"Operacional — fontes separadas","safety":"Históricos preservados","operation":"A rota distingue erros locais do módulo e o caderno oficial vindo do Notion.","safetyDetail":"Dados locais não sobrescrevem registros oficiais nem são enviados pela rede."},
+                  {"key":"desempenho","path":"/sedes-tdas-dashboard/desempenho/","title":"Desempenho","description":"Métricas das sessões locais e acesso ao desempenho completo do acervo público.","status":"Operacional — métricas locais","safety":"Leitura derivada","operation":"O painel reconstrói acertos, tempo, confiança e tendência a partir das tentativas armazenadas no navegador.","safetyDetail":"Nenhum indicador calculado altera o progresso oficial do cronograma."},
+                  {"key":"fila-ia","path":"/sedes-tdas-dashboard/fila-ia/","title":"Fila de IA","description":"Área informativa para itens que exigem auditoria, explicação ou decisão editorial.","status":"Informativa — sem automação remota","safety":"Sem envio automático","operation":"A página organiza a finalidade da fila sem disparar chamadas externas ou alterações editoriais.","safetyDetail":"Qualquer decisão editorial continua dependente da governança e das views oficiais do Notion."}
+              ],
+              "invariants": [
+                  "canonical-question-catalog-external",
+                  "published-only-entry",
+                  "no-notion-writeback",
+                  "no-automatic-official-progress",
+                  "local-history-preserved",
+                  "legacy-error-route-preserved",
+                  "single-dashboard-service-worker"
+              ]
+          }
+          write('data/integration/navigation.json', json.dumps(navigation, ensure_ascii=False, indent=2) + '\n')
+
+          study = (root / 'estudar/index.html').read_text(encoding='utf-8')
+          study = study.replace('Catálogo piloto do módulo de questões da Plataforma TDAS.', 'Entrada operacional para o acervo público de questões e para a sessão local da Plataforma TDAS.')
+          study = study.replace('<strong>Módulo de questões</strong><span>Fase 3</span>', '<strong>Módulo de questões</strong><span>Uso operacional</span>')
+          study = study.replace('<h1>Carregando módulo…</h1><p>Preparando o catálogo piloto.</p>', '<h1>Carregando módulo…</h1><p>Preparando o acervo público e os recursos locais.</p>')
+          write('estudar/index.html', study)
+
+          resolver = (root / 'resolver/index.html').read_text(encoding='utf-8')
+          resolver = resolver.replace('Player piloto de questões da Plataforma TDAS.', 'Sessão local de questões do PE76, com progresso preservado somente no navegador.')
+          resolver = resolver.replace('<strong>Player piloto PE76</strong><span>Fase 4</span>', '<strong>Sessão local PE76</strong><span>Uso operacional</span>')
+          resolver = resolver.replace('<h1>Carregando piloto…</h1><p>Preparando a sessão em memória.</p>', '<h1>Carregando sessão…</h1><p>Preparando o treino local do PE76.</p>')
+          write('resolver/index.html', resolver)
+
+          home = (root / 'assets/home.js').read_text(encoding='utf-8')
+          home = home.replace('>Estudar questões</a>', '>Abrir estudo real</a>')
+          home = home.replace('<small>Módulo de questões</small><b>Estudar</b><span>Entrada única para resolver, revisar e acompanhar desempenho.</span>', '<small>Acervo real</small><b>Estudar</b><span>Questões publicadas, sessão local, revisão e desempenho.</span>')
+          write('assets/home.js', home)
+
+          more = (root / 'assets/more.js').read_text(encoding='utf-8')
+          more = more.replace("Entrada central para catálogo, sessões e modos de estudo.", "Entrada para o acervo público completo e para a sessão local PE76.")
+          more = more.replace("Rota preparada para o player de questões.", "Sessão local PE76 com classificação, caderno e revisões.")
+          more = more.replace("Estrutura das revisões D+1, D+7 e D+20.", "Revisões locais D+1, D+7 e D+20 e acesso ao acervo real.")
+          more = more.replace("Estrutura para métricas de tentativas, tempo e confiança.", "Métricas locais e acesso ao desempenho do acervo real.")
+          write('assets/more.js', more)
+
+          player = (root / 'assets/integration/player.js').read_text(encoding='utf-8')
+          replacements = {
+              "'Piloto técnico · PE76'": "'Sessão local compatível · PE76'",
+              "'Iniciar piloto'": "'Iniciar sessão local'",
+              "'Player piloto'": "'Sessão local'",
+              "'Resultado classificado do piloto'": "'Resultado da sessão local'",
+              "'Refazer piloto'": "'Refazer sessão'",
+              "'Transação local concluída'": "'Sessão local concluída'",
+              "<span>Fase 8</span>": "<span>Uso local</span>",
+              "Falha ao carregar catálogo piloto": "Falha ao carregar catálogo local"
+          }
+          for old, new in replacements.items():
+              player = player.replace(old, new)
+          write('assets/integration/player.js', player)
+
+          panel = (root / 'assets/integration/pe-pilot-status.js').read_text(encoding='utf-8')
+          panel = panel.replace('Atividade piloto local', 'Atividade local PE76')
+          panel = panel.replace('Escopo: piloto local', 'Escopo: sessão local')
+          panel = panel.replace('Tentativas piloto', 'Tentativas locais')
+          panel = panel.replace('Nenhuma atividade piloto neste dispositivo', 'Nenhuma atividade local neste dispositivo')
+          panel = panel.replace('Resolver o piloto criará apenas um indicador local.', 'Resolver a sessão criará apenas um indicador local.')
+          panel = panel.replace('Resolver piloto PE76', 'Resolver sessão PE76')
+          panel = panel.replace('Falha ao exibir atividade piloto do PE76', 'Falha ao exibir atividade local do PE76')
+          write('assets/integration/pe-pilot-status.js', panel)
+
+          write('scripts/validate-navigation.mjs', r'''import fs from 'node:fs/promises';
+import path from 'node:path';
+
+const ROOT = process.cwd();
+const BASE = '/sedes-tdas-dashboard/';
+const expected = ['estudar', 'resolver', 'revisar', 'caderno-erros', 'desempenho', 'fila-ia'];
+const routeScripts = Object.freeze({
+  estudar: ['assets/integration/navigation.js', 'assets/integration/pilot-catalog.js'],
+  resolver: ['assets/integration/player.js'],
+  revisar: ['assets/integration/reviews.js'],
+  'caderno-erros': ['assets/integration/error-book.js'],
+  desempenho: ['assets/integration/performance.js'],
+  'fila-ia': ['assets/integration/navigation.js'],
+});
+const read = file => fs.readFile(path.join(ROOT, file), 'utf8');
+const readJson = async file => JSON.parse(await read(file));
+const exists = file => fs.access(path.join(ROOT, file)).then(() => true).catch(() => false);
+const required = (condition, message) => { if (!condition) throw new Error(message); };
+
+const navigation = await readJson('data/integration/navigation.json');
+required(navigation.schemaVersion === '1.0.0', 'Versão do contrato de navegação inválida.');
+required(navigation.phase === 13 && navigation.mode === 'production-entry', 'Contrato operacional divergente.');
+required(navigation.basePath === BASE, 'Base da navegação inválida.');
+required(Array.isArray(navigation.routes) && navigation.routes.length === expected.length, 'Quantidade de rotas inválida.');
+required(JSON.stringify(navigation.routes.map(route => route.key)) === JSON.stringify(expected), 'Ordem ou chaves das rotas divergentes.');
+required(new Set(navigation.routes.map(route => route.path)).size === expected.length, 'Há caminhos duplicados.');
+required(navigation.invariants.includes('canonical-question-catalog-external'), 'Fonte canônica externa não declarada.');
+required(navigation.invariants.includes('published-only-entry'), 'Regra de conteúdo publicado ausente.');
+
+for (const route of navigation.routes) {
+  required(route.path === `${BASE}${route.key}/`, `Caminho divergente para ${route.key}.`);
+  required(route.status && route.safety && route.operation && route.safetyDetail, `${route.key}: metadados operacionais incompletos.`);
+  required(await exists(`${route.key}/index.html`), `HTML ausente para ${route.key}.`);
+  const html = await read(`${route.key}/index.html`);
+  required(html.includes(`data-integration-route="${route.key}"`), `${route.key}: identificador estrutural ausente.`);
+  const authorized = routeScripts[route.key];
+  required(Array.isArray(authorized) && authorized.length, `${route.key}: nenhum script autorizado definido.`);
+  for (const scriptPath of authorized) {
+    required(await exists(scriptPath), `${route.key}: script autorizado inexistente: ${scriptPath}.`);
+    required(html.includes(`${BASE}${scriptPath}`), `${route.key}: script funcional ausente: ${scriptPath}.`);
+  }
+  const loadedIntegrationScripts = [...html.matchAll(/src=["']\/sedes-tdas-dashboard\/(assets\/integration\/[^"'?]+)(?:\?[^"']*)?["']/g)].map(match => match[1]);
+  required(loadedIntegrationScripts.length === authorized.length, `${route.key}: quantidade inesperada de scripts de integração.`);
+  required(loadedIntegrationScripts.every(scriptPath => authorized.includes(scriptPath)), `${route.key}: script de integração não autorizado.`);
+}
+
+const script = await read('assets/integration/navigation.js');
+required(!/localStorage|sessionStorage|indexedDB/.test(script), 'A navegação não pode gravar dados locais.');
+required(!/notion\.com|api\.notion/.test(script), 'A navegação não pode acessar o Notion.');
+required(script.includes("BASE + 'questoes-erros/'"), 'Atalho para o caderno oficial atual ausente.');
+required(script.includes("'/sedes-df-questoes/#/estudar'"), 'Entrada do acervo real ausente.');
+
+const home = await read('assets/home.js');
+const more = await read('assets/more.js');
+required(home.includes("const STUDY_BASE='/sedes-tdas-dashboard/'") && home.includes('${STUDY_BASE}estudar/'), 'A página inicial não aponta para Estudar.');
+required(home.includes('Abrir estudo real'), 'A página inicial ainda não apresenta o uso real.');
+for (const key of expected) required(more.includes('`${BASE}' + key + '/`'), `Mais não aponta para ${key}.`);
+required(await exists('questoes-erros/index.html'), 'A rota legada de questões erradas foi removida.');
+
+console.log(`Navegação operacional validada: ${expected.length} rotas, acervo real e históricos locais preservados.`);
+''')
+
+          write('scripts/validate-production-use.mjs', r'''import fs from 'node:fs/promises';
+
+const read = file => fs.readFile(file, 'utf8');
+const required = (condition, message) => { if (!condition) throw new Error(`Uso real: ${message}`); };
+const [configText, ui, study, resolver, home, more, player, panel, postprocess, syncWorkflow, sw, packageText] = await Promise.all([
+  read('data/integration/production.json'),
+  read('assets/integration/pilot-catalog.js'),
+  read('estudar/index.html'),
+  read('resolver/index.html'),
+  read('assets/home.js'),
+  read('assets/more.js'),
+  read('assets/integration/player.js'),
+  read('assets/integration/pe-pilot-status.js'),
+  read('scripts/postprocess-v26.mjs'),
+  read('.github/workflows/notion-sync.yml'),
+  read('sw.js'),
+  read('package.json'),
+]);
+const config = JSON.parse(configText);
+const packageData = JSON.parse(packageText);
+required(config.schemaVersion === '1.0.0' && config.mode === 'canonical-public-platform', 'contrato de produção inválido');
+required(config.rootUrl === '/sedes-df-questoes/', 'raiz do acervo canônico divergente');
+required(config.studyUrl === '/sedes-df-questoes/#/estudar', 'rota real de estudo divergente');
+required(config.reviewUrl === '/sedes-df-questoes/#/revisar', 'rota real de revisão divergente');
+required(config.performanceUrl === '/sedes-df-questoes/#/desempenho', 'rota real de desempenho divergente');
+required(config.catalogUrl === '/sedes-df-questoes/data/release/catalogo.json', 'catálogo público divergente');
+required(config.snapshot.questions >= 2535 && config.snapshot.materials >= 63, 'snapshot público inferior ao estado validado');
+required(/^[a-f0-9]{40}$/.test(config.snapshot.commit), 'commit do snapshot inválido');
+required(config.rules.publishedOnly === true && config.rules.editorialPendingExcluded === true, 'proteção editorial incompleta');
+required(config.rules.notionWriteback === false && config.localSession.notionWriteback === false, 'writeback indevido habilitado');
+required(!/notion\.com|api\.notion/.test(configText), 'contrato de produção contém acesso ao Notion');
+
+required(ui.includes("data/integration/production.json"), 'tela Estudar não carrega o contrato de produção');
+required(ui.includes('production.catalogUrl'), 'tela Estudar não consulta o catálogo público');
+required(ui.includes('Abrir acervo completo') && ui.includes('Estudo real — acervo público'), 'ação principal do uso real ausente');
+required(ui.includes('${BASE}resolver/?pilot=pe76'), 'sessão local compatível foi removida');
+required(!ui.includes('pe76-key.json'), 'tela de catálogo expõe o gabarito local');
+required(!/localStorage|sessionStorage|indexedDB/.test(ui), 'tela Estudar grava dados diretamente');
+required(study.includes('Uso operacional') && !study.includes('Preparando o catálogo piloto'), 'HTML de Estudar ainda está em modo piloto');
+required(resolver.includes('Sessão local PE76') && resolver.includes('catálogo e gabarito disponíveis no cache local'), 'HTML da sessão local divergente');
+required(home.includes('Abrir estudo real') && home.includes('Acervo real'), 'início não promove o uso real');
+required(more.includes('acervo público completo'), 'menu Mais ainda descreve somente estrutura');
+required(player.includes('Sessão local compatível · PE76') && player.includes('Iniciar sessão local'), 'player ainda se apresenta como piloto');
+required(panel.includes('Atividade local PE76') && panel.includes('Indicadores deste dispositivo, separados do registro oficial acima'), 'painel PE76 não distingue uso local e oficial');
+
+for (const route of ['estudar/','resolver/','revisar/','caderno-erros/','desempenho/','fila-ia/']) required(postprocess.includes(`'${route}'`), `pós-processamento não preserva ${route}`);
+required(postprocess.includes("'data/integration/production.json'"), 'pós-processamento não preserva contrato de produção');
+required(postprocess.includes("-questions2'"), 'versão do cache operacional não foi renovada');
+required(syncWorkflow.includes('npm run check 2>&1 | tee -a /tmp/tdas-sync.log'), 'sincronização não executa a suíte integral');
+required(sw.includes("data/integration/production.json"), 'service worker não mantém o contrato de produção offline');
+required(sw.includes("estudar/") && sw.includes("assets/integration/player.js"), 'service worker não mantém o módulo offline');
+required(packageData.scripts?.['check:production'] === 'node scripts/validate-production-use.mjs', 'gate de produção ausente');
+required(String(packageData.scripts?.check || '').includes('node scripts/validate-production-use.mjs'), 'gate de produção fora do check integral');
+
+console.log(`Uso real validado: entrada canônica com ${config.snapshot.questions} questões/${config.snapshot.materials} materiais, sessão local preservada e sincronização protegida.`);
+''')
+
+          pwa = (root / 'scripts/validate-pwa-integration.mjs').read_text(encoding='utf-8')
+          pwa = pwa.replace("  'data/integration/navigation.json',\n  'data/integration/pilot/pe76-catalog.json',", "  'data/integration/navigation.json',\n  'data/integration/production.json',\n  'data/integration/pilot/pe76-catalog.json',")
+          write('scripts/validate-pwa-integration.mjs', pwa)
+
+          write('scripts/postprocess-v26.mjs', r'''import fs from 'node:fs/promises';
+import path from 'node:path';
+
+const ROOT=process.cwd();
+const VERSION='26.0';
+const SYNC_TIMES=['00h50','06h50','12h50','18h50'];
+const read=async(file,fallback=null)=>{try{return JSON.parse(await fs.readFile(path.join(ROOT,file),'utf8'))}catch{return fallback}};
+const write=async(file,value)=>{const target=path.join(ROOT,file);await fs.mkdir(path.dirname(target),{recursive:true});await fs.writeFile(target,`${JSON.stringify(value)}\n`,'utf8')};
+
+function normalizeVersion(value){
+ if(Array.isArray(value))return value.map(normalizeVersion);
+ if(!value||typeof value!=='object')return typeof value==='string'?value.replaceAll('v24.1','v26.0'):value;
+ const out={};
+ for(const[key,item]of Object.entries(value)){
+  if(key==='version'||key==='schemaVersion')out[key]=VERSION;
+  else if(key==='syncTimes')out[key]=SYNC_TIMES;
+  else out[key]=normalizeVersion(item);
+ }
+ return out;
+}
+
+const overlay=normalizeVersion(await read('data/live-v24.json',{}));
+await write('data/live-v24.json',overlay);
+
+const errorIndex=await read('data/error-questions/index.json',{});
+const subjectsData=await read('data/subjects.json',{});
+const totalPE=112;
+const partCount=Math.max(1,Number(errorIndex.parts?.length||0));
+const subjectSlugs=(subjectsData.subjects||[]).map(item=>item.slug).filter(Boolean);
+const fallbackSlugs=['portugues','assistencia-social','lc-840-2011','arquivologia','direito-administrativo','lei-7-484-2024','materiais-e-patrimonio','primeiros-socorros','lei-maria-da-penha','redacao','atualidades-df-ride-pdpm','compras-publicas-lei-14-133','direito-constitucional'];
+const slugs=subjectSlugs.length?subjectSlugs:fallbackSlugs;
+const sw=`const VERSION='tdas-v26-${new Date().toISOString().slice(0,10).replaceAll('-','')}-questions2';
+const BASE='/sedes-tdas-dashboard/';
+const CORE_ROUTES=['','hoje/','evolucao/','riscos/','agenda/','redacoes/','auditoria/','mais/','questoes-erros/','pe/','materias/','estudar/','resolver/','revisar/','caderno-erros/','desempenho/','fila-ia/','offline.html','manifest.webmanifest'];
+const ASSETS=['assets/styles.css','assets/v20.css','assets/common.js','assets/home.js','assets/today.js','assets/evolution.js','assets/risks.js','assets/agenda.js','assets/redactions.js','assets/audit.js','assets/more.js','assets/pe.js','assets/subject.js','assets/subjects-index.js','assets/error-questions.js','assets/enhance-v20.js','assets/integration/contracts.js','assets/integration/navigation.js','assets/integration/pilot-catalog.js','assets/integration/player-core.js','assets/integration/player.js','assets/integration/player.css','assets/integration/attempt-store.js','assets/integration/response-classification.js','assets/integration/classification-store.js','assets/integration/completion-transaction.js','assets/integration/review-scheduler.js','assets/integration/review-store.js','assets/integration/reviews.js','assets/integration/error-book.js','assets/integration/pe-progress-store.js','assets/integration/pe-pilot-status.js','assets/integration/performance-metrics.js','assets/integration/performance.js','assets/integration/backup-migration-core.js','assets/integration/backup-migration-ui.js'];
+const DATA=['data/home.json','data/today.json','data/evolution.json','data/risks.json','data/agenda.json','data/redactions.json','data/audit.json','data/more.json','data/subjects.json','data/sync-history.json','data/live.json','data/live-v23.json','data/live-v24.json','data/error-questions/index.json','data/integration/navigation.json','data/integration/production.json','data/integration/pilot/pe76-catalog.json','data/integration/pilot/pe76-key.json'];
+const ICONS=['icons/icon.svg','icons/maskable.svg','icons/icon-192.png','icons/icon-512.png'];
+const SUBJECTS=${JSON.stringify(slugs)};
+const PRECACHE=[...CORE_ROUTES.map(path=>BASE+path),...ASSETS.map(path=>BASE+path),...DATA.map(path=>BASE+path),...ICONS.map(path=>BASE+path),...Array.from({length:${totalPE}},(_,index)=>BASE+\`pe/\${index+1}/\`),...SUBJECTS.map(slug=>BASE+\`materias/\${slug}/\`),...Array.from({length:${partCount}},(_,index)=>BASE+\`data/error-questions/part-\${String(index+1).padStart(2,'0')}.json\`)];
+const matchCache=request=>caches.match(request,{ignoreSearch:true});
+self.addEventListener('install',event=>event.waitUntil(caches.open(VERSION).then(cache=>cache.addAll(PRECACHE)).then(()=>self.skipWaiting())));
+self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key!==VERSION).map(key=>caches.delete(key)))).then(()=>self.clients.claim())));
+self.addEventListener('fetch',event=>{if(event.request.method!=='GET')return;const url=new URL(event.request.url);if(url.origin!==location.origin)return;if(event.request.mode==='navigate'){event.respondWith(fetch(event.request).then(response=>{const copy=response.clone();caches.open(VERSION).then(cache=>cache.put(event.request,copy));return response}).catch(()=>matchCache(event.request).then(cached=>cached||matchCache(BASE+'offline.html'))));return}if(url.pathname.includes('/data/')){event.respondWith(fetch(event.request).then(response=>{const copy=response.clone();caches.open(VERSION).then(cache=>cache.put(event.request,copy));return response}).catch(()=>matchCache(event.request)));return}event.respondWith(matchCache(event.request).then(cached=>cached||fetch(event.request).then(response=>{const copy=response.clone();caches.open(VERSION).then(cache=>cache.put(event.request,copy));return response})))});
+`;
+await fs.writeFile(path.join(ROOT,'sw.js'),sw,'utf8');
+console.log(JSON.stringify({version:VERSION,errorParts:partCount,subjects:slugs.length,totalPE,questionMode:'production-entry'}));
+''')
+
+          package_path = root / 'package.json'
+          package_data = json.loads(package_path.read_text(encoding='utf-8'))
+          package_data['version'] = '24.1.0-production.1'
+          scripts = package_data['scripts']
+          scripts['check:production'] = 'node scripts/validate-production-use.mjs'
+          scripts['check'] = scripts['check'].replace('node scripts/validate-navigation.mjs &&', 'node scripts/validate-navigation.mjs && node scripts/validate-production-use.mjs &&')
+          scripts['test'] = scripts['test'].replace('npm run check:navigation &&', 'npm run check:navigation && npm run check:production &&')
+          write('package.json', json.dumps(package_data, ensure_ascii=False, indent=2) + '\n')
+
+          sync_path = root / '.github/workflows/notion-sync.yml'
+          sync = sync_path.read_text(encoding='utf-8')
+          old = "node scripts/validate-platform.mjs 2>&1 | tee -a /tmp/tdas-sync.log"
+          new = "npm run check 2>&1 | tee -a /tmp/tdas-sync.log"
+          if old not in sync:
+              raise SystemExit('Etapa de validação do sync não localizada.')
+          sync = sync.replace(old, new, 1)
+          write('.github/workflows/notion-sync.yml', sync)
+
+          write('docs/integration/phase-13/REPORT.md', '''# Fase 13 — Ativação do uso real\n\n## Objetivo\n\nTransformar a entrada do módulo de questões de um piloto técnico isolado em uma operação real, sem duplicar o acervo e sem liberar registros editoriais pendentes.\n\n## Arquitetura aplicada\n\n- o acervo canônico permanece no projeto `sedes-df-questoes`;\n- o dashboard abre diretamente as rotas públicas de Estudar, Revisar e Desempenho;\n- o catálogo público é consultado em runtime apenas para apresentar contagens atualizadas;\n- a sessão PE76 permanece como recurso local compatível, sem writeback no Notion e sem alteração do PE oficial;\n- históricos existentes não são migrados, apagados ou reclassificados.\n\n## Proteções\n\n- somente o conteúdo já publicado no acervo canônico é acessado;\n- questões em saneamento editorial permanecem excluídas;\n- nenhuma nova questão é exportada por esta fase;\n- o service worker volta a preservar as seis rotas, os módulos e os contratos locais;\n- toda sincronização do Notion passa a executar `npm run check` antes de promover dados para a `main`.\n\n## Fonte pública validada no início da fase\n\n- commit do acervo: `01c93edd39042ade0fda88831f6059f163e1dbcc`;\n- 2.535 questões publicadas;\n- 63 materiais publicados;\n- data do snapshot: 02/08/2026.\n''')
+          PY
+
+          node scripts/postprocess-v26.mjs
+          npm run check
+          rm .github/workflows/apply-real-use.yml
+          git add -A
+          git commit -m 'Ativar uso real do módulo de questões'
+          git push origin HEAD:agent/ativar-uso-real
