@@ -21,3 +21,34 @@ jobs:
         with:
           node-version: 22
       - run: npm run check
+      - name: Conferir acompanhamento local publicado
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://rodrigorosadantas.github.io/sedes-tdas-dashboard'
+          nonce="${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          validate() {
+            progress="$(curl -fsSL -H 'Cache-Control: no-cache' "$base/assets/integration/daily-progress.js?v=$nonce")"
+            grep -q 'tdas.202.daily-execution.v1' <<<"$progress"
+            grep -q 'Material concluído' <<<"$progress"
+            grep -q 'Questões concluídas' <<<"$progress"
+            grep -q 'Registro confirmado' <<<"$progress"
+            grep -q 'Salvo somente neste dispositivo' <<<"$progress"
+            ! grep -Eq 'api\.notion|method\s*:\s*["'"'](POST|PUT|PATCH|DELETE)' <<<"$progress"
+            enhance="$(curl -fsSL -H 'Cache-Control: no-cache' "$base/assets/enhance-v20.js?v=$nonce")"
+            grep -q 'assets/integration/daily-progress.js' <<<"$enhance"
+            sw="$(curl -fsSL -H 'Cache-Control: no-cache' "$base/sw.js?v=$nonce")"
+            grep -q 'assets/integration/daily-progress.js' <<<"$sw"
+            curl -fsSL -H 'Cache-Control: no-cache' "$base/hoje/?v=$nonce" | grep -q 'today.js'
+            curl -fsSL -H 'Cache-Control: no-cache' "$base/estudar/?pe=PE77&v=$nonce" | grep -q 'module-dashboard.js'
+            curl -fsSL -H 'Cache-Control: no-cache' "$base/resolver/?pe=PE77&v=$nonce" | grep -q 'daily-question-page.js'
+            curl -fsSL -H 'Cache-Control: no-cache' "$base/pe/77/?v=$nonce" | grep -q 'enhance-v20.js'
+          }
+          for attempt in $(seq 1 12); do
+            if validate; then
+              echo '{"publicacao":"ok","acompanhamento":"local","etapas":3,"notion":"sem-writeback","pwa":"ok"}'
+              exit 0
+            fi
+            sleep 10
+          done
+          exit 1
