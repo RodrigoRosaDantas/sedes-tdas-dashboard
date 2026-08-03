@@ -1,0 +1,180 @@
+name: Importar PE78 — execução final
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/import-pe78-final.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: import-pe78-final-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  import:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Confirmar conexões do Notion
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$NOTION_TOKEN"
+          for item in \
+            'materiais:364cf5a26731813ca00ed9ba45ab6d51' \
+            'questoes:364cf5a267318105abdbce6966704b5d'; do
+            label="${item%%:*}"
+            id="${item#*:}"
+            status="$(curl -sS -o "/tmp/${label}.json" -w '%{http_code}' \
+              -H "Authorization: Bearer $NOTION_TOKEN" \
+              -H 'Notion-Version: 2022-06-28' \
+              "https://api.notion.com/v1/blocks/$id/children?page_size=1")"
+            echo "$label=$status"
+            test "$status" = '200'
+          done
+      - name: Corrigir descoberta das páginas diárias
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          module = Path('scripts/notion/daily-content.mjs')
+          source = module.read_text(encoding='utf-8')
+          old = """const peCode = value => {
+            const match = String(value ?? '').normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').match(/\\bPE\\s*0*(\\d{1,3})\\b/i);
+            const number = Number(match?.[1]);
+            return Number.isInteger(number) && number >= 1 && number <= PE_LIMIT ? `PE${String(number).padStart(2, '0')}` : null;
+          };"""
+          new = """export const peCode = value => {
+            const normalized = String(value ?? '').normalize('NFD').replace(/[\\u0300-\\u036f]/g, '');
+            const match = normalized.match(/^\\s*PE\\s*0*(\\d{1,3})\\b/i);
+            if (!match) return null;
+            const tail = normalized.slice(match[0].length);
+            if (/^\\s*[-–—]\\s*(?:PE\\s*0*\\d{1,3}\\b|0*\\d{1,3}\\b(?!\\s*\\/))/i.test(tail)) return null;
+            const number = Number(match[1]);
+            return Number.isInteger(number) && number >= 1 && number <= PE_LIMIT ? `PE${String(number).padStart(2, '0')}` : null;
+          };"""
+          if old not in source:
+            raise SystemExit('Trecho original de peCode não localizado.')
+          source = source.replace(old, new, 1)
+
+          marker = "export async function discoverDailyPages(root, {expected = PE_LIMIT} = {}) {"
+          helper = """export function isAuxiliaryDailyPage(value) {
+            const normalized = String(value ?? '').normalize('NFD').replace(/[\\u0300-\\u036f]/g, '');
+            return /\\bauditoria\\b/i.test(normalized);
+          }
+
+          """
+          if marker not in source:
+            raise SystemExit('Função de descoberta não localizada.')
+          source = source.replace(marker, helper + marker, 1)
+
+          old_candidates = "const candidates = [...direct, ...nestedGroups.flat()].filter(page => peCode(page.title));"
+          new_candidates = "const candidates = [...direct, ...nestedGroups.flat()].filter(page => peCode(page.title) && !isAuxiliaryDailyPage(page.title));"
+          if old_candidates not in source:
+            raise SystemExit('Filtro original de candidatos não localizado.')
+          source = source.replace(old_candidates, new_candidates, 1)
+
+          old_check = """  required(byPe.size === expected, `${root.name}: foram localizados ${byPe.size} PE; esperado ${expected}.`);
+            for (let number = 1; number <= expected; number++) {
+              const pe = `PE${String(number).padStart(2, '0')}`;
+              required(byPe.has(pe), `${root.name}: página filha ausente para ${pe}.`);
+            }
+            return byPe;"""
+          new_check = """  const missing = [];
+            for (let number = 1; number <= expected; number++) {
+              const pe = `PE${String(number).padStart(2, '0')}`;
+              if (!byPe.has(pe)) missing.push(pe);
+            }
+            required(missing.length === 0, `${root.name}: páginas filhas ausentes: ${missing.join(', ')}.`);
+            required(byPe.size === expected, `${root.name}: foram localizados ${byPe.size} PE; esperado ${expected}.`);
+            return byPe;"""
+          if old_check not in source:
+            raise SystemExit('Validação original da cobertura não localizada.')
+          module.write_text(source.replace(old_check, new_check, 1), encoding='utf-8')
+
+          test = Path('scripts/test-daily-content.mjs')
+          tests = test.read_text(encoding='utf-8')
+          tests = tests.replace(
+            "import {parseDailyQuestions, renderMaterialMarkdown} from './notion/daily-content.mjs';",
+            "import {isAuxiliaryDailyPage, parseDailyQuestions, peCode, renderMaterialMarkdown} from './notion/daily-content.mjs';",
+            1
+          )
+          assertions = """
+          assert.equal(peCode('PE01 — 18/05/2026 — Virada pós-edital'), 'PE01');
+          assert.equal(peCode('PE78 — Revisão administrativa'), 'PE78');
+          assert.equal(peCode('PE01–PE07'), null);
+          assert.equal(peCode('PE01-07'), null);
+          assert.equal(peCode('01 — Micro PE01–PE07 | Semana 1'), null);
+          assert.equal(isAuxiliaryDailyPage('PE27 — Auditoria do simulado parcial 1 + RD08'), true);
+          assert.equal(isAuxiliaryDailyPage('PE27 — Simulado parcial 1 + RD08'), false);
+          """
+          marker_test = "\nconst markdown = `"
+          if marker_test not in tests:
+            raise SystemExit('Ponto de inserção dos testes não localizado.')
+          test.write_text(tests.replace(marker_test, assertions + marker_test, 1), encoding='utf-8')
+          PY
+          node scripts/test-daily-content.mjs
+      - name: Gerar material e questões do PE78
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          SYNC_KIND: workflow_dispatch
+          TZ: America/Sao_Paulo
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/prepare-calendar-refresh.mjs
+          node scripts/sync-notion.mjs
+          node scripts/postprocess-v23.mjs
+          node scripts/postprocess-v24.mjs
+          node scripts/postprocess-v26.mjs
+          REQUIRE_CURRENT_SNAPSHOT=true node scripts/validate-calendar-snapshot.mjs
+      - name: Validar conteúdo e separação da correção
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs/promises';
+          const catalog=JSON.parse(await fs.readFile('data/integration/question-catalog.json','utf8'));
+          const material=JSON.parse(await fs.readFile('data/integration/daily-material.json','utf8'));
+          const state=JSON.parse(await fs.readFile('data/notion/state.json','utf8'));
+          if(catalog.mode!=='notion-daily'||catalog.peId!=='PE78') throw new Error('Catálogo do PE78 não foi gerado.');
+          if(catalog.questionCount!==48||catalog.questions?.length!==48) throw new Error(`Foram geradas ${catalog.questionCount} questões.`);
+          if(material.mode!=='notion-daily-material'||material.peId!=='PE78'||material.html?.length<200) throw new Error('Material do PE78 ausente ou incompleto.');
+          if(!catalog.keyPath) throw new Error('Arquivo de correção ausente.');
+          const key=JSON.parse(await fs.readFile(catalog.keyPath,'utf8'));
+          if(key.answers?.length!==48||key.material_id!==catalog.catalogId) throw new Error('Correção separada incompatível.');
+          if(state.dailyContent?.pe!=='PE78'||state.dailyContent?.questionCount!==48) throw new Error('Estado diário não consolidou o PE78.');
+          for(const question of catalog.questions){
+            const allowed=['id','numeroOriginal','assunto','enunciado','alternativas'];
+            for(const field of Object.keys(question)) if(!allowed.includes(field)) throw new Error(`Campo proibido em ${question.id}: ${field}`);
+            if(Object.keys(question.alternativas||{}).join('')!=='ABCDE') throw new Error(`Alternativas inválidas em ${question.id}.`);
+          }
+          console.log(JSON.stringify({importacao:'ok',pe:'PE78',questoes:48,respostasSeparadas:48,materialHtml:material.html.length,correcaoNoCatalogo:false}));
+          NODE
+          npm run check
+      - name: Consolidar arquivos validados
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm -- .github/workflows/import-pe78-after-share.yml .github/workflows/import-pe78-final.yml
+          git add -A
+          git diff --cached --quiet && { echo 'Nenhuma alteração gerada.' >&2; exit 1; }
+          git commit -m 'Importar material e questões reais do PE78'
+          git push origin "HEAD:${{ github.event.pull_request.head.ref }}"
