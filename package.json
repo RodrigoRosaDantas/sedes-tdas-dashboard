@@ -1,14 +1,16 @@
 {
   "name": "sedes-tdas-dashboard",
-  "version": "26.4.0-daily-progress",
+  "version": "26.5.0-local-backup",
   "private": true,
   "type": "module",
   "scripts": {
-    "check": "node scripts/validate-platform.mjs && node scripts/validate-daily-execution.mjs && node scripts/validate-daily-progress.mjs && node scripts/test-daily-progress.mjs && node scripts/validate-question-module.mjs && node scripts/test-question-module.mjs && node scripts/validate-pwa-integration.mjs",
+    "check": "node scripts/validate-platform.mjs && node scripts/validate-daily-execution.mjs && node scripts/validate-daily-progress.mjs && node scripts/test-daily-progress.mjs && node scripts/validate-local-backup.mjs && node scripts/test-local-backup.mjs && node scripts/validate-question-module.mjs && node scripts/test-question-module.mjs && node scripts/validate-pwa-integration.mjs",
     "check:platform": "node scripts/validate-platform.mjs",
     "check:daily": "node scripts/validate-daily-execution.mjs",
     "check:daily-progress": "node scripts/validate-daily-progress.mjs",
     "test:daily-progress": "node scripts/test-daily-progress.mjs",
+    "check:backup": "node scripts/validate-local-backup.mjs",
+    "test:backup": "node scripts/test-local-backup.mjs",
     "check:module": "node scripts/validate-question-module.mjs",
     "test:module": "node scripts/test-question-module.mjs",
     "check:pwa": "node scripts/validate-pwa-integration.mjs",
