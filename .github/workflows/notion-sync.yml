@@ -10,7 +10,9 @@ on:
       - 'scripts/notion/**'
       - 'scripts/prepare-calendar-refresh.mjs'
       - 'scripts/validate-calendar-snapshot.mjs'
+      - 'scripts/validate-daily-content.mjs'
       - 'scripts/test-calendar-refresh.mjs'
+      - 'scripts/test-daily-content.mjs'
       - 'package.json'
   schedule:
     - cron: '50 3,9,15,21 * * *'
@@ -85,7 +87,7 @@ jobs:
             sync_status=${PIPESTATUS[0]}
           fi
           if [[ $sync_status -eq 0 ]]; then
-            node scripts/validate-platform.mjs 2>&1 | tee -a /tmp/tdas-sync.log
+            npm run check 2>&1 | tee -a /tmp/tdas-sync.log
             sync_status=${PIPESTATUS[0]}
           fi
           if [[ $sync_status -ne 0 ]]; then
