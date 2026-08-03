@@ -1,4 +1,4 @@
-import { hash, localIso, norm } from './config.mjs';
+import { hash, localIso } from './config.mjs';
 import { fetchMarkdown, mapLimit, request } from './api.mjs';
 
 export const DAILY_ROOTS = Object.freeze({
@@ -286,7 +286,8 @@ export function parseDailyQuestions(markdown, {pe, title, expectedCount = 0, sou
     contentHash,
     answers: questions.map(question => ({id: question.id, gabarito: answerKey.get(question.numeroOriginal)}))
   };
-  required(!/gabarito|coment[aá]rio|fundamento|resposta correta/i.test(JSON.stringify(catalog)), `${pe}: catálogo público contém pista ou correção.`);
+  const forbiddenQuestionKeys = questions.flatMap(question => Object.keys(question).filter(key => /gabarito|coment[aá]rio|fundamento|resposta/i.test(key)));
+  required(forbiddenQuestionKeys.length === 0, `${pe}: catálogo público contém campo reservado de correção.`);
   return {catalog, key};
 }
 

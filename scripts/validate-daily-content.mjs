@@ -33,11 +33,16 @@ if(catalog.mode==='operational-empty'){
  required(key.material_id===catalog.catalogId&&key.answers?.length===catalog.questionCount,'correção incompatível com o catálogo');
  const ids=new Set(catalog.questions.map(question=>question.id));
  required(ids.size===catalog.questionCount,'IDs de questões duplicados');
+ const allowedQuestionKeys=['alternativas','assunto','enunciado','id','numeroOriginal'];
+ const allowedCatalogKeys=['authorizedSource','catalogId','description','keyPath','mode','peId','questionCount','questions','schemaVersion','suggestedMinutes','title'];
+ required(JSON.stringify(Object.keys(catalog).sort())===JSON.stringify(allowedCatalogKeys),'catálogo público contém campo não autorizado');
  for(const question of catalog.questions){
+  required(JSON.stringify(Object.keys(question).sort())===JSON.stringify(allowedQuestionKeys),`${question.id||'questão'} contém campo não autorizado`);
   required(question.enunciado?.length>=12,`${question.id} sem enunciado`);
+  required(JSON.stringify(Object.keys(question.alternativas||{}).sort())===JSON.stringify(['A','B','C','D','E']),`${question.id} não possui somente alternativas A–E`);
   required(['A','B','C','D','E'].every(option=>question.alternativas?.[option]),`${question.id} sem cinco alternativas`);
  }
- required(!/gabarito|coment[aá]rio|fundamento|resposta correta/i.test(JSON.stringify(catalog)),'catálogo público contém correção ou comentário');
+ required(!('answers' in catalog)&&!('gabarito' in catalog)&&!('comentarios' in catalog)&&!('fundamentos' in catalog),'catálogo público contém estrutura de correção');
  required(contract.current?.peId===catalog.peId&&contract.current?.materialPageId===material.source?.pageId,'contrato atual diverge do conteúdo publicado');
- console.log(`Conteúdo diário validado: ${catalog.peId}, material completo e ${catalog.questionCount} questões com correção separada.`);
+ console.log(`Conteúdo diário validado: ${catalog.peId}, material completo e ${catalog.questionCount} questões com correção estruturalmente separada.`);
 }
