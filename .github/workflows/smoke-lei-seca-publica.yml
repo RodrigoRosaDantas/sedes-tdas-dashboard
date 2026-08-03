@@ -1,0 +1,45 @@
+name: Smoke público da Lei Seca
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/smoke-lei-seca-publica.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Validar páginas e console no Chrome
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://rodrigorosadantas.github.io/sedes-tdas-dashboard'
+          nonce="$(date +%s)"
+          routes=(
+            'hoje|/hoje/'
+            'estudar|/estudar/'
+            'resolver|/resolver/'
+            'pe78|/pe/78/'
+          )
+          for entry in "${routes[@]}"; do
+            name="${entry%%|*}"
+            route="${entry#*|}"
+            timeout 45s google-chrome --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --virtual-time-budget=12000 --enable-logging=stderr --v=1 --dump-dom "$base$route?v=$nonce" > "/tmp/$name.html" 2> "/tmp/$name.stderr"
+            grep -qi '<main' "/tmp/$name.html"
+            ! grep -qi 'Não foi possível carregar esta página' "/tmp/$name.html"
+            ! grep -Eqi "Lei Seca indisponível|does not provide an export named 'BASE'|Uncaught (TypeError|ReferenceError|SyntaxError)" "/tmp/$name.stderr" || { cat "/tmp/$name.stderr" >&2; exit 1; }
+            echo "$route aprovado"
+          done
+          grep -q 'Lei Seca e Banco de Leis' /tmp/hoje.html
+          grep -q 'Lei Seca e Banco de Leis' /tmp/estudar.html
+          grep -q 'Abrir Lei Seca' /tmp/resolver.html
+          grep -q 'Lei Seca e Banco de Leis' /tmp/pe78.html
+          curl -fsS "$base/sw.js?v=$nonce" -o /tmp/sw.js
+          grep -q 'notion-daily-content-law-101' /tmp/sw.js
+          ! grep -q 'question-keys/' /tmp/sw.js
+          echo '{"publicSmoke":"ok","routes":4,"lawLinks":4,"consoleError":false,"cache":"law-101","answerKeyPrecached":false}'
