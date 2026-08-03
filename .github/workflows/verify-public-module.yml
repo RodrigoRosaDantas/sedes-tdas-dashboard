@@ -1,0 +1,59 @@
+name: Verificar publicação pública do módulo corrigido
+
+on:
+  push:
+    branches:
+      - agent/corrigir-modulo-questoes-real
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Conferir GitHub Pages
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://rodrigorosadantas.github.io/sedes-tdas-dashboard'
+          nonce="${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+
+          validate() {
+            curl -fsSL -H 'Cache-Control: no-cache' "$base/estudar/?v=$nonce" | grep -q 'module-dashboard.js'
+            curl -fsSL -H 'Cache-Control: no-cache' "$base/resolver/?v=$nonce" | grep -q 'module-player.js'
+            curl -fsSL -H 'Cache-Control: no-cache' "$base/revisar/?v=$nonce" | grep -q 'module-reviews.js'
+            curl -fsSL -H 'Cache-Control: no-cache' "$base/caderno-erros/?v=$nonce" | grep -q 'module-error-book.js'
+            curl -fsSL -H 'Cache-Control: no-cache' "$base/desempenho/?v=$nonce" | grep -q 'module-performance.js'
+            curl -fsSL -H 'Cache-Control: no-cache' "$base/fila-ia/?v=$nonce" | grep -q 'module-ai-queue.js'
+
+            catalog="$(curl -fsSL -H 'Cache-Control: no-cache' "$base/data/integration/question-catalog.json?v=$nonce")"
+            jq -e '.mode == "operational-empty" and .questionCount == 0 and (.questions | length) == 0 and .keyPath == null and .authorizedSource == null' <<<"$catalog" >/dev/null
+
+            sw="$(curl -fsSL -H 'Cache-Control: no-cache' "$base/sw.js?v=$nonce")"
+            grep -q 'module-dashboard.js' <<<"$sw"
+            grep -q 'module-player.js' <<<"$sw"
+            grep -q 'module-store.js' <<<"$sw"
+            ! grep -Eq 'pilot-catalog|pe76-catalog|pe76-key|real-study' <<<"$sw"
+
+            for removed in \
+              assets/integration/pilot-catalog.js \
+              assets/integration/player.js \
+              assets/integration/pe-pilot-status.js \
+              data/integration/pilot/pe76-catalog.json \
+              data/integration/pilot/pe76-key.json; do
+              status="$(curl -sS -o /dev/null -w '%{http_code}' -H 'Cache-Control: no-cache' "$base/$removed?v=$nonce")"
+              test "$status" = '404'
+            done
+          }
+
+          for attempt in $(seq 1 24); do
+            if validate; then
+              echo '{"publicacao":"ok","rotas":6,"catalogo":"vazio-autorizado","arquivos-exemplo":"removidos","pwa":"ok"}'
+              exit 0
+            fi
+            sleep 10
+          done
+
+          echo 'A publicação pública não convergiu para o commit corrigido.' >&2
+          exit 1
