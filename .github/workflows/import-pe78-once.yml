@@ -26,6 +26,33 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - name: Diagnosticar acesso às duas raízes oficiais
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$NOTION_TOKEN"
+          check_root() {
+            local label="$1" id="$2" status
+            status="$(curl -sS -o /tmp/notion-root.json -w '%{http_code}' \
+              -H "Authorization: Bearer $NOTION_TOKEN" \
+              -H 'Notion-Version: 2022-06-28' \
+              "https://api.notion.com/v1/blocks/$id/children?page_size=1")"
+            printf '%s=%s\n' "$label" "$status"
+            if [[ "$status" != '200' ]]; then
+              jq -c '{status,code,message,additional_data}' /tmp/notion-root.json || true
+            fi
+            [[ "$status" == '200' ]]
+          }
+          material_ok=0
+          questions_ok=0
+          check_root materiais 364cf5a26731813ca00ed9ba45ab6d51 || material_ok=$?
+          check_root questoes 364cf5a267318105abdbce6966704b5d || questions_ok=$?
+          if [[ "$material_ok" != '0' || "$questions_ok" != '0' ]]; then
+            echo 'Uma ou mais raízes ainda não estão compartilhadas com TDAS Dashboard Sync.' >&2
+            exit 1
+          fi
       - name: Consultar Notion e gerar o PE78
         env:
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
@@ -34,7 +61,6 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test -n "$NOTION_TOKEN"
           node scripts/prepare-calendar-refresh.mjs
           node scripts/sync-notion.mjs
           node scripts/postprocess-v23.mjs
