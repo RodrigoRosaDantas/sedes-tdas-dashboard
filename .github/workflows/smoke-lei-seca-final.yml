@@ -1,0 +1,39 @@
+name: Smoke final da Lei Seca
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/smoke-lei-seca-final.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Validar integração pública final
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://rodrigorosadantas.github.io/sedes-tdas-dashboard'
+          ok='false'
+          for attempt in $(seq 1 30); do
+            nonce="$(date +%s)-$attempt"
+            all='true'
+            for entry in 'hoje|/hoje/|Lei Seca e Banco de Leis' 'estudar|/estudar/|Lei Seca e Banco de Leis' 'resolver|/resolver/|Abrir Lei Seca' 'pe78|/pe/78/|Lei Seca e Banco de Leis'; do
+              name="${entry%%|*}"; rest="${entry#*|}"; route="/${rest%%|*}"; route="${route//\/\//\/}"; expected="${entry##*|}"
+              timeout 45s google-chrome --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --virtual-time-budget=15000 --dump-dom "$base$route?v=$nonce" > "/tmp/$name.html" 2> "/tmp/$name.stderr" || all='false'
+              grep -q "$expected" "/tmp/$name.html" || all='false'
+              if grep -Eqi "Lei Seca indisponível|does not provide an export named 'BASE'|Uncaught (TypeError|ReferenceError|SyntaxError)" "/tmp/$name.stderr"; then all='false'; fi
+            done
+            if [[ "$all" == 'true' ]]; then ok='true'; break; fi
+            sleep 10
+          done
+          test "$ok" = 'true'
+          curl -fsS "$base/sw.js?v=$(date +%s)" -o /tmp/sw.js
+          ! grep -q 'question-keys/' /tmp/sw.js
+          version="$(grep -o "tdas-v26-daily-[^']*" /tmp/sw.js | head -1)"
+          echo "{\"publicSmoke\":\"ok\",\"lawLinks\":4,\"consoleError\":false,\"serviceWorker\":\"$version\",\"answerKeyPrecached\":false}"
