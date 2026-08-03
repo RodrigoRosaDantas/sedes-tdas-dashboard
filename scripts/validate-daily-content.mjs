@@ -39,8 +39,10 @@ if(catalog.mode==='operational-empty'){
  for(const question of catalog.questions){
   required(JSON.stringify(Object.keys(question).sort())===JSON.stringify(allowedQuestionKeys),`${question.id||'questão'} contém campo não autorizado`);
   required(question.enunciado?.length>=12,`${question.id} sem enunciado`);
-  required(JSON.stringify(Object.keys(question.alternativas||{}).sort())===JSON.stringify(['A','B','C','D','E']),`${question.id} não possui somente alternativas A–E`);
-  required(['A','B','C','D','E'].every(option=>question.alternativas?.[option]),`${question.id} sem cinco alternativas`);
+  const optionKeys=Object.keys(question.alternativas||{}).sort();
+  required(optionKeys.length>=2&&optionKeys.length<=5,`${question.id} deve possuir entre duas e cinco alternativas`);
+  required(JSON.stringify(optionKeys)===JSON.stringify(['A','B','C','D','E'].slice(0,optionKeys.length)),`${question.id} possui alternativas descontínuas`);
+  required(optionKeys.every(option=>question.alternativas?.[option]),`${question.id} possui alternativa vazia`);
  }
  required(!('answers' in catalog)&&!('gabarito' in catalog)&&!('comentarios' in catalog)&&!('fundamentos' in catalog),'catálogo público contém estrutura de correção');
  required(contract.current?.peId===catalog.peId&&contract.current?.materialPageId===material.source?.pageId,'contrato atual diverge do conteúdo publicado');

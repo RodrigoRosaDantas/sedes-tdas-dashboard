@@ -46,6 +46,31 @@ assert.ok(!('gabarito' in catalog));
 assert.ok(!JSON.stringify(catalog).includes('1-B | 2-D'));
 assert.match(catalog.keyPath,/question-keys\/pe78\.json$/);
 
+
+const binaryMarkdown = `# 2. Questões
+## Arquivologia — Questões 1 a 2
+**1.** Documento arquivístico possui vínculo orgânico com a atividade do produtor.
+A) Certo
+B) Errado
+**2.** Protocolo corresponde somente ao carimbo de entrada.
+A) Certo
+B) Errado
+---
+# 3. Gabarito
+<table>
+<tr><td>Questão</td><td>Gabarito</td></tr>
+<tr><td>1</td><td>A</td></tr>
+<tr><td>2</td><td>B</td></tr>
+</table>
+# 4. Comentários estratégicos
+Não importar.`;
+const {catalog:binaryCatalog,key:binaryKey}=parseDailyQuestions(binaryMarkdown,{pe:'PE79',title:'Arquivologia',expectedCount:2,sourcePageId:'def'});
+assert.deepEqual(Object.keys(binaryCatalog.questions[0].alternativas),['A','B']);
+assert.equal(binaryCatalog.questions[0].enunciado,'Documento arquivístico possui vínculo orgânico com a atividade do produtor.');
+assert.equal(binaryKey.answers[0].gabarito,'A');
+assert.equal(binaryKey.answers[1].gabarito,'B');
+assert.ok(!JSON.stringify(binaryCatalog).includes('Gabarito'));
+
 const html=renderMaterialMarkdown(`# Material\n## Objetivo\n**Estudar** com clareza.\n- Primeiro item\n- Segundo item\n<table header-row="true"><tr><td>Campo</td><td>Valor</td></tr><tr><td>PE</td><td>78</td></tr></table>`);
 assert.match(html,/<h2>Material<\/h2>/);
 assert.match(html,/<strong>Estudar<\/strong>/);
