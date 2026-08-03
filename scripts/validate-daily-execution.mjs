@@ -5,7 +5,8 @@ const contract=JSON.parse(await read('data/integration/daily-execution.json'));
 const todayPage=await read('hoje/index.html'),resolverPage=await read('resolver/index.html');
 const dashboard=await read('assets/integration/module-dashboard.js'),todayOverlay=await read('assets/integration/today-execution.js');
 const questionPage=await read('assets/integration/daily-question-page.js'),helper=await read('assets/integration/daily-execution.js');
-const enhance=await read('assets/enhance-v20.js'),packageData=JSON.parse(await read('package.json'));
+const lawLayer=await read('assets/integration/daily-law.js'),enhance=await read('assets/enhance-v20.js'),packageData=JSON.parse(await read('package.json'));
+const lawId='36acf5a2673181fa8fffc8d1d4236d53';
 required(contract.schemaVersion==='1.0.0'&&contract.mode==='daily-execution-contract','Contrato diário inválido.');
 for(const name of ['materialPageIds','questionPageIds']){const ids=contract[name];required(Array.isArray(ids)&&ids.length===112,`${name} deve conter PE01–PE112.`);required(new Set(ids).size===112,`${name} contém página duplicada.`);required(ids.every(id=>/^[a-f0-9]{32}$/.test(id)),`${name} contém ID inválido.`)}
 required(contract.questionPageIds[26]==='364cf5a2673181acb6f1fc9bc54e7a65','PE27 não usa a página principal de questões.');
@@ -14,9 +15,14 @@ required(!JSON.stringify(contract).match(/enunciado|alternativas|gabarito|respos
 required(todayPage.includes('today-execution.js'),'Hoje não carrega a integração diária.');
 required(resolverPage.includes('daily-question-page.js'),'Resolver não carrega a página diária.');
 required(dashboard.includes('materialUrl')&&dashboard.includes('resolver/?pe='),'Estudar não liga material e questões.');
-required(todayOverlay.includes('Execução diária')&&todayOverlay.includes('Registrar execução'),'Hoje não exibe as três etapas.');
+required(todayOverlay.includes('Lei Seca e Banco de Leis')&&todayOverlay.includes('Registrar execução'),'Hoje não exibe material, Lei Seca, questões e registro.');
 required(questionPage.includes('questionsUrl')&&questionPage.includes('Sem importação automática'),'Questões do dia não preservam o limite de importação.');
 required(helper.includes('daily-execution.json')&&helper.includes("materialPageIds?.length!==112"),'Helper não valida o contrato.');
+required(helper.includes(lawId)&&helper.includes('lawUrl:LAW_LIBRARY_URL')&&helper.includes("import('./daily-law.js"),'Contrato não carrega a central oficial de Lei Seca.');
+required(lawLayer.includes('Lei Seca e Banco de Leis')&&lawLayer.includes('Quando indicado'),'Camada de Lei Seca não explicita o uso condicionado ao cronograma.');
+required(lawLayer.includes("/estudar/")&&lawLayer.includes("/resolver/")&&lawLayer.includes('data-daily-pe-execution'),'Lei Seca não está disponível nas superfícies do PE.');
+required(lawLayer.includes('Material + Lei Seca indicada')&&lawLayer.includes('data-daily-progress-step="material"'),'Acompanhamento local não inclui a lei indicada na etapa Material.');
+required(!/lawPageIds|lawByPe|normaPorPe/i.test(helper+lawLayer),'Integração inventa vínculo de lei por PE.');
 required(enhance.includes('dailyPeExecution')&&enhance.includes('daily-execution.js'),'Detalhamento do PE não integra a execução diária.');
 required(packageData.scripts?.check?.includes('validate-daily-execution.mjs'),'Validador diário fora do gate principal.');
-console.log('Execução diária validada: PE01–PE112 com material e questões separados, fluxo completo e zero conteúdo importado.');
+console.log('Execução diária validada: PE01–PE112, material, Lei Seca condicionada, questões e registro, sem conteúdo importado nem lei inferida por PE.');
