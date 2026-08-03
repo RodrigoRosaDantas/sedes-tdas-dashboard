@@ -1,0 +1,41 @@
+name: Smoke público da Fase 1
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/smoke-publico-fase1.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Validar publicação real
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://rodrigorosadantas.github.io/sedes-tdas-dashboard'
+          ok='false'
+          for attempt in $(seq 1 30); do
+            nonce="$(date +%s)-$attempt"
+            google-chrome --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --virtual-time-budget=15000 --dump-dom "$base/?v=$nonce" >/tmp/home.html 2>/tmp/home.stderr || true
+            google-chrome --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --virtual-time-budget=15000 --dump-dom "$base/auditoria/?v=$nonce" >/tmp/audit.html 2>/tmp/audit.stderr || true
+            curl -fsS "$base/sw.js?v=$nonce" -o /tmp/sw.js || true
+            if grep -q 'Central de execução' /tmp/home.html \
+              && grep -q 'Preparar PE79' /tmp/home.html \
+              && grep -q 'Erros sem origem confirmada' /tmp/audit.html \
+              && grep -q '12 pendentes' /tmp/audit.html \
+              && grep -q 'notion-daily-content-phase1-100' /tmp/sw.js \
+              && ! grep -q 'question-keys/' /tmp/sw.js \
+              && ! grep -Eqi 'Uncaught (TypeError|ReferenceError|SyntaxError)|Central de execução indisponível|Erros sem origem indisponíveis' /tmp/home.stderr /tmp/audit.stderr; then
+              ok='true'
+              break
+            fi
+            sleep 10
+          done
+          test "$ok" = 'true'
+          echo '{"publicacao":"ok","central":true,"proximaAcao":"PE79","errosSemOrigem":12,"cache":"phase1-100","gabaritoNoPrecache":false}'
