@@ -72,7 +72,9 @@ function validatePublicCatalog(catalog, pe, expectedCount) {
   for (const question of catalog.questions) {
     const fields = Object.keys(question).sort();
     required(fields.join('|') === ALLOWED_PUBLIC_FIELDS.join('|'), `${pe}: campos públicos inesperados em ${question.id}.`);
-    required(Object.keys(question.alternativas || {}).join('') === 'ABCDE', `${pe}: alternativas incompletas em ${question.id}.`);
+    const optionKeys = Object.keys(question.alternativas || {});
+    required(optionKeys.length >= 2 && optionKeys.length <= 5, `${pe}: quantidade de alternativas inválida em ${question.id}.`);
+    required(optionKeys.join('') === 'ABCDE'.slice(0, optionKeys.length), `${pe}: alternativas descontínuas em ${question.id}.`);
   }
 }
 
@@ -105,21 +107,23 @@ for (const control of controls) {
     const html = renderMaterialMarkdown(materialMarkdown);
     required(html.length >= 200, `${control.pe}: material não produziu HTML suficiente.`);
 
+    const explicitNoQuestions = /não traz bateria artificial de questões/i.test(questionMarkdown);
+    const effectiveExpectedCount = explicitNoQuestions ? 0 : control.expectedCount;
     const parsed = parseDailyQuestions(questionMarkdown, {
       pe: control.pe,
       title: control.title,
-      expectedCount: control.expectedCount,
+      expectedCount: effectiveExpectedCount,
       sourcePageId: questionPage.id
     });
-    validatePublicCatalog(parsed.catalog, control.pe, control.expectedCount);
-    if (control.expectedCount === 0) {
+    validatePublicCatalog(parsed.catalog, control.pe, effectiveExpectedCount);
+    if (effectiveExpectedCount === 0) {
       required(parsed.key === null && parsed.catalog.keyPath === null, `${control.pe}: dia sem questões gerou correção indevida.`);
     } else {
-      required(parsed.key?.answers?.length === control.expectedCount, `${control.pe}: correção separada incompleta.`);
+      required(parsed.key?.answers?.length === effectiveExpectedCount, `${control.pe}: correção separada incompleta.`);
       required(parsed.key.material_id === parsed.catalog.catalogId, `${control.pe}: correção separada não corresponde ao catálogo.`);
     }
-    ready.push({pe: control.pe, date: control.date, questions: control.expectedCount, materialHtml: html.length});
-    console.log(`${control.pe}: pronto — material ${html.length} caracteres; ${control.expectedCount} questões; correção separada.`);
+    ready.push({pe: control.pe, date: control.date, questions: effectiveExpectedCount, materialHtml: html.length});
+    console.log(`${control.pe}: pronto — material ${html.length} caracteres; ${effectiveExpectedCount} questões de treino; correção ${effectiveExpectedCount ? 'separada' : 'não aplicável'}.`);
   } catch (error) {
     failures.push({pe: control.pe, date: control.date, reason: error.message});
     console.error(`${control.pe}: bloqueado — ${error.message}`);

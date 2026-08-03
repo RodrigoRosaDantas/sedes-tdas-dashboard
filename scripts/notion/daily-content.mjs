@@ -193,13 +193,17 @@ function cleanQuestionText(value) {
 
 function questionSegments(markdown) {
   const source = String(markdown ?? '').replace(/\r/g, '');
-  const matches = [...source.matchAll(/^##\s+Quest(?:ão|ao)\s+(\d+)\s*$/gim)];
-  return matches.map((match, index) => ({
-    number: Number(match[1]),
-    body: source.slice(match.index + match[0].length, matches[index + 1]?.index ?? source.length)
+  const matches = [...source.matchAll(/^(?:##\s+Quest(?:ão|ao)\s+(\d+)\s*|\*\*(\d{1,3})\.\*\*\s*(.*))$/gim)];
+  return matches.map((match, index) => {
+    const inlineStem = String(match[3] ?? '').trim();
+    const tail = source.slice(match.index + match[0].length, matches[index + 1]?.index ?? source.length)
       .split(/\n#\s+\d+\.[^\n]*/)[0]
-      .trim()
-  }));
+      .trim();
+    return {
+      number: Number(match[1] || match[2]),
+      body: `${inlineStem}${inlineStem && tail ? '\n' : ''}${tail}`.trim()
+    };
+  });
 }
 
 function parseQuestionBody(body) {
@@ -209,7 +213,7 @@ function parseQuestionBody(body) {
   let currentOption = null;
   for (const raw of lines) {
     const line = raw.trim();
-    if (!line || /^#{1,4}\s+/.test(line)) continue;
+    if (!line || /^#{1,4}\s+/.test(line) || /^---+$/.test(line)) continue;
     const option = line.match(/^([A-E])\)\s*(.*)$/);
     if (option) {
       currentOption = option[1];
@@ -219,9 +223,10 @@ function parseQuestionBody(body) {
     if (currentOption) alternatives[currentOption] = `${alternatives[currentOption]} ${line}`.trim();
     else stem.push(line);
   }
+  const optionKeys = OPTION_KEYS.filter(option => Object.hasOwn(alternatives, option));
   return {
     enunciado: cleanQuestionText(stem.join(' ')),
-    alternativas: Object.fromEntries(OPTION_KEYS.map(option => [option, cleanQuestionText(alternatives[option])]))
+    alternativas: Object.fromEntries(optionKeys.map(option => [option, cleanQuestionText(alternatives[option])]))
   };
 }
 
@@ -233,11 +238,12 @@ function parseAnswerKey(markdown) {
   const next = tail.slice(1).search(/^#\s+\d+\.[^\n]*$/m);
   const section = next >= 0 ? tail.slice(0, next + 1) : tail;
   const key = new Map();
-  for (const match of section.matchAll(/\b(\d{1,3})\s*[-–—]\s*([A-E])\b/g)) {
-    const number = Number(match[1]);
-    if (key.has(number)) throw new Error(`Gabarito duplicado para a questão ${number}.`);
-    key.set(number, match[2]);
-  }
+  const add = (number, answer) => {
+    if (key.has(number) && key.get(number) !== answer) throw new Error(`Gabarito divergente para a questão ${number}.`);
+    key.set(number, answer);
+  };
+  for (const match of section.matchAll(/\b(\d{1,3})\s*[-–—]\s*([A-E])\b/g)) add(Number(match[1]), match[2]);
+  for (const match of section.matchAll(/<tr>\s*<td>\s*(\d{1,3})\s*<\/td>\s*<td>\s*([A-E])\s*<\/td>[\s\S]*?<\/tr>/gi)) add(Number(match[1]), match[2].toUpperCase());
   return key;
 }
 
@@ -263,7 +269,10 @@ export function parseDailyQuestions(markdown, {pe, title, expectedCount = 0, sou
     seenNumbers.add(segment.number);
     const parsed = parseQuestionBody(segment.body);
     required(parsed.enunciado.length >= 12, `${pe}: questão ${segment.number} sem enunciado suficiente.`);
-    for (const option of OPTION_KEYS) required(parsed.alternativas[option]?.length > 0, `${pe}: questão ${segment.number} sem alternativa ${option}.`);
+    const optionKeys = Object.keys(parsed.alternativas);
+    required(optionKeys.length >= 2 && optionKeys.length <= OPTION_KEYS.length, `${pe}: questão ${segment.number} deve possuir entre duas e cinco alternativas.`);
+    required(optionKeys.join('') === OPTION_KEYS.slice(0, optionKeys.length).join(''), `${pe}: questão ${segment.number} possui alternativas descontínuas.`);
+    for (const option of optionKeys) required(parsed.alternativas[option]?.length > 0, `${pe}: questão ${segment.number} sem conteúdo na alternativa ${option}.`);
     return {
       id: `${pe}-Q${String(segment.number).padStart(3, '0')}`,
       numeroOriginal: segment.number,
@@ -329,10 +338,11 @@ export async function prepareDailyContent({controls, snapshotDate, runStartedAt 
   required(questionMarkdown.trim().length >= 100 || Number(current.meta || 0) === 0, `${pe}: página de questões vazia ou incompleta.`);
 
   const title = String(current.title || questionMeta.title || materialMeta.title || pe).trim();
+  const explicitNoQuestions = /não traz bateria artificial de questões/i.test(questionMarkdown);
   const parsed = parseDailyQuestions(questionMarkdown, {
     pe,
     title,
-    expectedCount: Math.max(0, Number(current.meta || 0)),
+    expectedCount: explicitNoQuestions ? 0 : Math.max(0, Number(current.meta || 0)),
     sourcePageId: questionPage.id
   });
   parsed.catalog.authorizedSource = {
