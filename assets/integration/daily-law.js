@@ -1,4 +1,4 @@
-import {BASE, LAW_LIBRARY_URL, normalizePe} from './daily-execution.js?v=1.1.0';
+import {LAW_LIBRARY_URL, normalizePe} from './daily-execution.js?v=1.1.1';
 const esc=value=>String(value??'').replace(/[&<>'"]/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]));
 const lawCard=pe=>`<a class="card portal" data-daily-law href="${LAW_LIBRARY_URL}" target="_blank" rel="noopener"><small>1B · Quando indicado</small><b>Lei Seca e Banco de Leis</b><span>Abra o checklist e selecione a norma apontada pelo material ou cronograma de ${esc(pe)}.</span><em>Abrir no Notion ↗</em></a>`;
 async function resolvePe(){const query=normalizePe(new URLSearchParams(location.search).get('pe'));if(query)return query;const path=normalizePe(location.pathname.match(/\/pe\/(\d+)\/?$/)?.[1]);if(path)return path;const data=document.querySelector('[data-daily-execution],[data-daily-pe-execution]');const fromData=normalizePe(data?.dataset.dailyExecution||data?.dataset.dailyPeExecution);if(fromData)return fromData;const heading=[...document.querySelectorAll('h1,h2')].map(node=>node.textContent.match(/PE\d+/i)?.[0]).find(Boolean);return normalizePe(heading)}
