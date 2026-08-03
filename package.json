@@ -1,10 +1,12 @@
 {
   "name": "sedes-tdas-dashboard",
-  "version": "26.5.0-local-backup",
+  "version": "26.6.0-calendar-refresh",
   "private": true,
   "type": "module",
   "scripts": {
-    "check": "node scripts/validate-platform.mjs && node scripts/validate-daily-execution.mjs && node scripts/validate-daily-progress.mjs && node scripts/test-daily-progress.mjs && node scripts/validate-local-backup.mjs && node scripts/test-local-backup.mjs && node scripts/validate-question-module.mjs && node scripts/test-question-module.mjs && node scripts/validate-pwa-integration.mjs",
+    "check": "node scripts/test-calendar-refresh.mjs && node scripts/validate-calendar-snapshot.mjs && node scripts/validate-platform.mjs && node scripts/validate-daily-execution.mjs && node scripts/validate-daily-progress.mjs && node scripts/test-daily-progress.mjs && node scripts/validate-local-backup.mjs && node scripts/test-local-backup.mjs && node scripts/validate-question-module.mjs && node scripts/test-question-module.mjs && node scripts/validate-pwa-integration.mjs",
+    "check:calendar": "node scripts/validate-calendar-snapshot.mjs",
+    "test:calendar": "node scripts/test-calendar-refresh.mjs",
     "check:platform": "node scripts/validate-platform.mjs",
     "check:daily": "node scripts/validate-daily-execution.mjs",
     "check:daily-progress": "node scripts/validate-daily-progress.mjs",
