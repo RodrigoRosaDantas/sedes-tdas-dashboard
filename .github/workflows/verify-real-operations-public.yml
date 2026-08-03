@@ -1,0 +1,103 @@
+name: Verificar uso real público da Plataforma TDAS
+
+on:
+  push:
+    branches:
+      - agent/verify-real-operations-public
+
+permissions:
+  contents: write
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Sinalizar execução
+        shell: bash
+        run: |
+          set -euo pipefail
+          git push origin "HEAD:refs/heads/real-operations-status/running-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+
+      - name: Aguardar e validar GitHub Pages
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > /tmp/verify-real.cjs <<'NODE'
+          const fs = require('fs');
+          const study = fs.readFileSync('/tmp/study.html', 'utf8');
+          const realStudy = fs.readFileSync('/tmp/real-study.js', 'utf8');
+          const resolver = fs.readFileSync('/tmp/resolver.html', 'utf8');
+          const review = fs.readFileSync('/tmp/review.html', 'utf8');
+          const errors = fs.readFileSync('/tmp/errors.html', 'utf8');
+          const performance = fs.readFileSync('/tmp/performance.html', 'utf8');
+          const auditAlias = fs.readFileSync('/tmp/audit-alias.html', 'utf8');
+          const manifest = JSON.parse(fs.readFileSync('/tmp/manifest.json', 'utf8'));
+          const sw = fs.readFileSync('/tmp/sw.js', 'utf8');
+
+          const active = [study, realStudy, resolver, review, errors, performance, auditAlias, JSON.stringify(manifest), sw].join('\n');
+          const forbidden = [
+            'data/integration/pilot/pe76-catalog.json',
+            'data/integration/pilot/pe76-key.json',
+            'pilot-catalog.js',
+            'player.js',
+            'a1d5fc8f8e434105861faba90dc156d9',
+            'sedes-df-questoes'
+          ];
+          const valid = study.includes('assets/integration/real-study.js')
+            && !study.includes('pilot-catalog.js')
+            && realStudy.includes("loadJSON('data/home.json')")
+            && realStudy.includes("loadJSON('data/today.json')")
+            && realStudy.includes("loadJSON('data/more.json')")
+            && resolver.includes('/sedes-tdas-dashboard/hoje/')
+            && review.includes('/sedes-tdas-dashboard/questoes-erros/')
+            && errors.includes('/sedes-tdas-dashboard/questoes-erros/')
+            && performance.includes('/sedes-tdas-dashboard/evolucao/')
+            && auditAlias.includes('/sedes-tdas-dashboard/auditoria/')
+            && manifest.description.includes('Controle de Questões')
+            && manifest.shortcuts.some(item => item.url === '/sedes-tdas-dashboard/estudar/')
+            && sw.includes("'estudar/'")
+            && sw.includes("'assets/integration/real-study.js'")
+            && forbidden.every(value => !active.includes(value));
+
+          if (!valid) process.exit(1);
+          console.log(JSON.stringify({
+            central: 'operacao-real',
+            fontes: ['Controle de Questões TDAS', 'Caderno de Erros TDAS / PRO', 'Banco de Redações TDAS'],
+            aliases: {resolver: 'hoje', revisar: 'questoes-erros', caderno: 'questoes-erros', desempenho: 'evolucao', filaIA: 'auditoria'},
+            bancoQuestoes: 'nao-consultado',
+            catalogoPiloto: 'nao-carregado',
+            gabaritoPiloto: 'nao-carregado',
+            pwa: 'ok'
+          }));
+          NODE
+
+          base='https://rodrigorosadantas.github.io/sedes-tdas-dashboard'
+          ok=0
+          for attempt in $(seq 1 30); do
+            nonce="${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-${attempt}"
+            if curl -fsS -H 'Cache-Control: no-cache' "$base/estudar/?v=$nonce" -o /tmp/study.html \
+              && curl -fsS -H 'Cache-Control: no-cache' "$base/assets/integration/real-study.js?v=$nonce" -o /tmp/real-study.js \
+              && curl -fsS -H 'Cache-Control: no-cache' "$base/resolver/?v=$nonce" -o /tmp/resolver.html \
+              && curl -fsS -H 'Cache-Control: no-cache' "$base/revisar/?v=$nonce" -o /tmp/review.html \
+              && curl -fsS -H 'Cache-Control: no-cache' "$base/caderno-erros/?v=$nonce" -o /tmp/errors.html \
+              && curl -fsS -H 'Cache-Control: no-cache' "$base/desempenho/?v=$nonce" -o /tmp/performance.html \
+              && curl -fsS -H 'Cache-Control: no-cache' "$base/fila-ia/?v=$nonce" -o /tmp/audit-alias.html \
+              && curl -fsS -H 'Cache-Control: no-cache' "$base/manifest.webmanifest?v=$nonce" -o /tmp/manifest.json \
+              && curl -fsS -H 'Cache-Control: no-cache' "$base/sw.js?v=$nonce" -o /tmp/sw.js \
+              && node /tmp/verify-real.cjs; then
+              ok=1
+              break
+            fi
+            sleep 10
+          done
+
+          if [[ $ok -ne 1 ]]; then
+            git push origin "HEAD:refs/heads/real-operations-status/failed-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" || true
+            echo 'O site público não refletiu integralmente a operação real dentro da janela de validação.'
+            exit 1
+          fi
+
+          git push origin "HEAD:refs/heads/real-operations-status/success-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
