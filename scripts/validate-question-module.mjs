@@ -32,6 +32,7 @@ const sw = await read('sw.js');
 const postprocess = await read('scripts/postprocess-v26.mjs');
 const home = await read('assets/home.js');
 const more = await read('assets/more.js');
+const morePage = await read('mais/index.html');
 
 const expectedScripts = {
   estudar: 'module-dashboard.js',
@@ -70,7 +71,8 @@ for (const asset of ['module-dashboard.js','module-player.js','module-store.js',
   required(sw.includes(asset) && postprocess.includes(asset), `Asset fora do PWA: ${asset}.`);
 }
 required(sw.includes('data/integration/question-catalog.json') && postprocess.includes('data/integration/question-catalog.json'), 'Catálogo autorizado fora do PWA.');
-const activeSurface = [...Object.values(routes), ...Object.values(scripts), home, more, JSON.stringify(manifest), JSON.stringify(navigation), sw, postprocess].join('\n');
+required(!morePage.includes('backup-migration-ui.js'), 'Tela Mais ainda carrega a migração do piloto.');
+const activeSurface = [...Object.values(routes), ...Object.values(scripts), home, more, morePage, JSON.stringify(manifest), JSON.stringify(navigation), sw, postprocess].join('\n');
 for (const forbidden of ['pe76-catalog','pe76-key','pilot-catalog','real-study','?pilot=pe76','a1d5fc8f8e434105861faba90dc156d9','RodrigoRosaDantas/sedes-df-questoes']) {
   required(!activeSurface.includes(forbidden), `Superfície ativa contém referência proibida: ${forbidden}.`);
 }
