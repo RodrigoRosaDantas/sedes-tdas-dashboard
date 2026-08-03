@@ -1,11 +1,12 @@
 {
   "name": "sedes-tdas-dashboard",
-  "version": "26.2.0-question-module",
+  "version": "26.3.0-daily-execution",
   "private": true,
   "type": "module",
   "scripts": {
-    "check": "node scripts/validate-platform.mjs && node scripts/validate-question-module.mjs && node scripts/test-question-module.mjs && node scripts/validate-pwa-integration.mjs",
+    "check": "node scripts/validate-platform.mjs && node scripts/validate-daily-execution.mjs && node scripts/validate-question-module.mjs && node scripts/test-question-module.mjs && node scripts/validate-pwa-integration.mjs",
     "check:platform": "node scripts/validate-platform.mjs",
+    "check:daily": "node scripts/validate-daily-execution.mjs",
     "check:module": "node scripts/validate-question-module.mjs",
     "test:module": "node scripts/test-question-module.mjs",
     "check:pwa": "node scripts/validate-pwa-integration.mjs",
