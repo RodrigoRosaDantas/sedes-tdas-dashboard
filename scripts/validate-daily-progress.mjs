@@ -1,0 +1,18 @@
+import fs from 'node:fs/promises';
+const read=file=>fs.readFile(file,'utf8');
+const required=(condition,message)=>{if(!condition)throw new Error(message)};
+const progress=await read('assets/integration/daily-progress.js');
+const enhance=await read('assets/enhance-v20.js');
+const sw=await read('sw.js');
+const postprocess=await read('scripts/postprocess-v26.mjs');
+const packageData=JSON.parse(await read('package.json'));
+required(progress.includes("tdas.202.daily-execution.v1"),'Namespace do acompanhamento local ausente.');
+for(const step of ['material','questions','registered'])required(progress.includes(`'${step}'`),`Etapa local ausente: ${step}.`);
+required(progress.includes('Salvo somente neste dispositivo')&&progress.includes('Não altera nem substitui os registros oficiais do Notion'),'Limite entre controle local e registro oficial não está explícito.');
+required(progress.includes('data-daily-progress-step')&&progress.includes('data-daily-progress-reset'),'Controles interativos do acompanhamento ausentes.');
+required(progress.includes("typeof document!=='undefined'"),'Módulo local não está protegido para testes em Node.');
+required(!/api\.notion|method\s*:\s*['"](?:POST|PUT|PATCH|DELETE)/i.test(progress),'Acompanhamento local contém writeback ou API do Notion.');
+required(enhance.includes('assets/integration/daily-progress.js'),'Plataforma não carrega o acompanhamento local.');
+required(sw.includes('assets/integration/daily-progress.js')&&postprocess.includes('assets/integration/daily-progress.js'),'Acompanhamento local fora do PWA.');
+required(packageData.scripts?.check?.includes('validate-daily-progress.mjs')&&packageData.scripts?.check?.includes('test-daily-progress.mjs'),'Validação local fora do gate principal.');
+console.log('Acompanhamento local validado: três etapas, armazenamento por PE, sem writeback e disponível no PWA.');
