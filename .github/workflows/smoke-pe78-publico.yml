@@ -1,0 +1,71 @@
+name: Smoke público do PE78
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/smoke-pe78-publico.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Validar GitHub Pages sem cache antigo
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://rodrigorosadantas.github.io/sedes-tdas-dashboard'
+          ok='false'
+          for attempt in $(seq 1 30); do
+            nonce="$(date +%s)-$attempt"
+            if curl -fsS "$base/data/home.json?v=$nonce" -o /tmp/home.json \
+              && curl -fsS "$base/data/agenda.json?v=$nonce" -o /tmp/agenda.json \
+              && curl -fsS "$base/data/live-v23.json?v=$nonce" -o /tmp/live23.json \
+              && curl -fsS "$base/data/live-v24.json?v=$nonce" -o /tmp/live24.json \
+              && curl -fsS "$base/assets/home.js?v=26.1&n=$nonce" -o /tmp/home.js \
+              && curl -fsS "$base/?v=$nonce" -o /tmp/index.html; then
+              if node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const read = file => JSON.parse(fs.readFileSync(file, 'utf8'));
+          const home = read('/tmp/home.json');
+          const agenda = read('/tmp/agenda.json');
+          const live23 = read('/tmp/live23.json');
+          const live24 = read('/tmp/live24.json');
+          const homeJs = fs.readFileSync('/tmp/home.js', 'utf8');
+          const index = fs.readFileSync('/tmp/index.html', 'utf8');
+          if (home.today?.pe !== 'PE78' || home.today?.number !== 78) process.exit(1);
+          if (home.metrics?.completed !== 77 || home.metrics?.totalPE !== 112) process.exit(1);
+          if (agenda.summary?.remainingPE !== 35 || agenda.summary?.pace !== 1) process.exit(1);
+          if (home.projections?.[0]?.value !== '1.00 PE/dia') process.exit(1);
+          if (JSON.stringify(live23) !== '{}' || JSON.stringify(live24) !== '{}') process.exit(1);
+          if (!homeJs.includes("metric('PE atual'") || !homeJs.includes('hoje é ${d.today.pe}')) process.exit(1);
+          if (!index.includes('home.js?v=26.1')) process.exit(1);
+          NODE
+              then
+                ok='true'
+                break
+              fi
+            fi
+            sleep 10
+          done
+          test "$ok" = 'true'
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const home=JSON.parse(fs.readFileSync('/tmp/home.json','utf8'));
+          const agenda=JSON.parse(fs.readFileSync('/tmp/agenda.json','utf8'));
+          console.log(JSON.stringify({
+            publicacao:'ok',
+            peAtual:home.today.pe,
+            numeroAtual:home.today.number,
+            ciclosAnteriores:home.metrics.completed,
+            totalPE:home.metrics.totalPE,
+            restantes:agenda.summary.remainingPE,
+            ritmo:home.projections[0].value,
+            overlaysHistoricos:false,
+            cachePaginaInicial:'v26.1'
+          }));
+          NODE
