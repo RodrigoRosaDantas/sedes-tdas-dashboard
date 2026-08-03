@@ -1,0 +1,72 @@
+name: Auditar ciclo diário PE79–PE112
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/daily-cycle-audit.yml'
+      - 'scripts/audit-daily-cycle.mjs'
+      - 'scripts/notion/daily-content.mjs'
+      - 'scripts/notion/api.mjs'
+      - 'assets/integration/module-player.js'
+      - 'data/export/actual-*.json'
+      - 'data/export/future-*.json'
+      - 'package.json'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/daily-cycle-audit.yml'
+      - 'scripts/audit-daily-cycle.mjs'
+      - 'scripts/notion/daily-content.mjs'
+      - 'scripts/notion/api.mjs'
+      - 'assets/integration/module-player.js'
+      - 'data/export/actual-*.json'
+      - 'data/export/future-*.json'
+      - 'package.json'
+  schedule:
+    - cron: '20 5 * * *'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: daily-cycle-preflight
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Verificar janela do ciclo
+        id: cycle
+        shell: bash
+        run: |
+          set -euo pipefail
+          today="$(TZ=America/Sao_Paulo date +%F)"
+          if [[ "${GITHUB_EVENT_NAME}" == 'schedule' && "$today" > '2026-09-06' ]]; then
+            echo 'run=false' >> "$GITHUB_OUTPUT"
+            echo "Ciclo encerrado em 2026-09-06; auditoria agendada dispensada."
+          else
+            echo 'run=true' >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Baixar repositório
+        if: steps.cycle.outputs.run == 'true'
+        uses: actions/checkout@v4
+
+      - name: Preparar Node.js
+        if: steps.cycle.outputs.run == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Auditar PE79–PE112 no Notion
+        if: steps.cycle.outputs.run == 'true'
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          TZ: America/Sao_Paulo
+          AUDIT_FROM_PE: '79'
+          AUDIT_TO_PE: '112'
+        run: npm run audit:daily-cycle
