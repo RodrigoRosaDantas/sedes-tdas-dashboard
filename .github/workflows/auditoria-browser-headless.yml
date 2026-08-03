@@ -1,0 +1,80 @@
+name: Auditoria temporária em navegador
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/auditoria-browser-headless.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Verificar navegador disponível
+        id: chrome
+        shell: bash
+        run: |
+          set -euo pipefail
+          command -v google-chrome >/dev/null
+          google-chrome --version
+
+      - name: Renderizar rotas públicas com JavaScript
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://rodrigorosadantas.github.io/sedes-tdas-dashboard'
+          nonce="$(date +%s)"
+          routes=(
+            '|/'
+            'hoje|/hoje/'
+            'agenda|/agenda/'
+            'estudar|/estudar/'
+            'resolver|/resolver/'
+            'evolucao|/evolucao/'
+            'riscos|/riscos/'
+            'redacoes|/redacoes/'
+            'auditoria|/auditoria/'
+            'mais|/mais/'
+          )
+
+          for entry in "${routes[@]}"; do
+            name="${entry%%|*}"
+            route="${entry#*|}"
+            file="/tmp/${name:-home}.html"
+            errors="/tmp/${name:-home}.stderr"
+            timeout 45s google-chrome \
+              --headless=new \
+              --no-sandbox \
+              --disable-gpu \
+              --disable-dev-shm-usage \
+              --disable-background-networking \
+              --virtual-time-budget=10000 \
+              --dump-dom \
+              "$base$route?v=$nonce" > "$file" 2> "$errors"
+
+            grep -qi '<main' "$file" || { echo "$route: DOM sem main" >&2; exit 1; }
+            ! grep -qi 'Não foi possível carregar esta página' "$file" || { echo "$route: exibiu erro de carregamento" >&2; exit 1; }
+            ! grep -qi 'Carregando painel\|Carregando dados\|Preparando apenas os dados' "$file" || { echo "$route: placeholder de carregamento permaneceu" >&2; exit 1; }
+            if grep -Eqi 'Uncaught (TypeError|ReferenceError|SyntaxError)|TypeError:|ReferenceError:|SyntaxError:' "$errors"; then
+              echo "$route: erro JavaScript detectado" >&2
+              cat "$errors" >&2
+              exit 1
+            fi
+            chars="$(tr -d '\n\r\t ' < "$file" | wc -c)"
+            test "$chars" -gt 500 || { echo "$route: DOM renderizado insuficiente ($chars caracteres)" >&2; exit 1; }
+            echo "$route: renderização aprovada ($chars caracteres)"
+          done
+
+          grep -q 'PE atual' /tmp/home.html
+          grep -q '78/112' /tmp/home.html
+          grep -q 'hoje é PE78' /tmp/home.html
+          grep -q 'PE78' /tmp/hoje.html
+          grep -q 'PE78' /tmp/agenda.html
+          grep -q 'PE79' /tmp/agenda.html
+          grep -q '48' /tmp/resolver.html
+
+          echo '{"browserAudit":"ok","routesRendered":10,"homepage":"PE78 78/112","agenda":"PE78→PE79","resolverQuestions":48}'
