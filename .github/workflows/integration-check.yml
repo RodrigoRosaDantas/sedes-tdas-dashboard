@@ -21,3 +21,39 @@ jobs:
         with:
           node-version: 22
       - run: npm run check
+      - name: Conferir virada diária e progresso publicados
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://rodrigorosadantas.github.io/sedes-tdas-dashboard'
+          nonce="${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          validate() {
+            today="$(curl -fsSL -H 'Cache-Control: no-cache' "$base/data/today.json?v=$nonce")"
+            jq -e '
+              .meta.snapshotDate == "2026-08-03" and
+              .current.pe == "PE78" and
+              .current.date == "2026-08-03" and
+              .current.status == "Não iniciada" and
+              .current.meta == 48 and
+              .current.attempted == 0 and
+              .current.acertos == null and
+              .current.accuracy == null and
+              (.checklist[] | select(.title | startswith("Concluir")) | .done) == false and
+              (.checklist[] | select(.title == "Registrar acertos e erros no Notion") | .done) == false
+            ' <<<"$today" >/dev/null
+            page="$(curl -fsSL -H 'Cache-Control: no-cache' "$base/hoje/?v=$nonce")"
+            grep -q 'today-execution.js' <<<"$page"
+            sw="$(curl -fsSL -H 'Cache-Control: no-cache' "$base/sw.js?v=$nonce")"
+            grep -q 'assets/integration/daily-law.js' <<<"$sw"
+            grep -q 'assets/integration/daily-progress.js' <<<"$sw"
+            grep -q 'assets/integration/local-backup.js' <<<"$sw"
+            grep -q 'dados-locais/' <<<"$sw"
+          }
+          for attempt in $(seq 1 12); do
+            if validate; then
+              echo '{"publicacao":"ok","data":"2026-08-03","pe":"PE78","status":"nao_iniciada","tentadas":0,"resultado":null,"pwa":"preservado"}'
+              exit 0
+            fi
+            sleep 10
+          done
+          exit 1
