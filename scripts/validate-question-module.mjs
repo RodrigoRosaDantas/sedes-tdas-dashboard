@@ -64,7 +64,7 @@ required(home.includes('Estudar questões') && home.includes('sem conteúdo de e
 for (const label of ['Resolver questões','Revisar','Caderno de erros','Desempenho','Fila de IA']) required(more.includes(label), `Menu Mais não preserva ${label}.`);
 required(manifest.shortcuts.map(item => item.url).join('|') === ['/sedes-tdas-dashboard/estudar/','/sedes-tdas-dashboard/revisar/','/sedes-tdas-dashboard/caderno-erros/','/sedes-tdas-dashboard/desempenho/'].join('|'), 'Atalhos do manifesto divergentes.');
 for (const route of ['estudar/','resolver/','revisar/','caderno-erros/','desempenho/','fila-ia/']) {
-  required(sw.includes(`'${route}'`) && postprocess.includes(`'${route}'`), `Rota fora do PWA: ${route}.`);
+  required(sw.includes(route) && postprocess.includes(route), `Rota fora do PWA: ${route}.`);
 }
 for (const asset of ['module-dashboard.js','module-player.js','module-store.js','module-reviews.js','module-error-book.js','module-performance.js','module-ai-queue.js','player-core.js','player.css']) {
   required(sw.includes(asset) && postprocess.includes(asset), `Asset fora do PWA: ${asset}.`);
