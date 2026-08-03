@@ -1,0 +1,55 @@
+name: Auditoria temporária Lighthouse
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/auditoria-lighthouse.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  lighthouse:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Preparar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Auditar página inicial e módulo de questões
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://rodrigorosadantas.github.io/sedes-tdas-dashboard'
+          npx --yes lighthouse@12.8.2 "$base/" \
+            --chrome-flags='--headless=new --no-sandbox --disable-gpu' \
+            --only-categories=performance,accessibility,best-practices,seo \
+            --output=json --output-path=/tmp/home-lighthouse.json --quiet
+          npx --yes lighthouse@12.8.2 "$base/resolver/" \
+            --chrome-flags='--headless=new --no-sandbox --disable-gpu' \
+            --only-categories=performance,accessibility,best-practices,seo \
+            --output=json --output-path=/tmp/resolver-lighthouse.json --quiet
+
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const read = file => JSON.parse(fs.readFileSync(file, 'utf8'));
+          const summarize = report => ({
+            performance: Math.round((report.categories.performance?.score || 0) * 100),
+            accessibility: Math.round((report.categories.accessibility?.score || 0) * 100),
+            bestPractices: Math.round((report.categories['best-practices']?.score || 0) * 100),
+            seo: Math.round((report.categories.seo?.score || 0) * 100),
+            firstContentfulPaintMs: Math.round(report.audits['first-contentful-paint']?.numericValue || 0),
+            largestContentfulPaintMs: Math.round(report.audits['largest-contentful-paint']?.numericValue || 0),
+            totalBlockingTimeMs: Math.round(report.audits['total-blocking-time']?.numericValue || 0),
+            cumulativeLayoutShift: Number((report.audits['cumulative-layout-shift']?.numericValue || 0).toFixed(3)),
+            failedAudits: Object.values(report.audits).filter(audit => audit.scoreDisplayMode !== 'notApplicable' && audit.score === 0).map(audit => audit.id).slice(0, 30)
+          });
+          console.log(JSON.stringify({
+            lighthouseAudit: 'completed',
+            home: summarize(read('/tmp/home-lighthouse.json')),
+            resolver: summarize(read('/tmp/resolver-lighthouse.json'))
+          }, null, 2));
+          NODE
