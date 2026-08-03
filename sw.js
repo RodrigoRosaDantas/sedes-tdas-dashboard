@@ -1,7 +1,7 @@
-const VERSION='tdas-v26-20260803-official';
+const VERSION='tdas-v26-real-20260803-official';
 const BASE='/sedes-tdas-dashboard/';
-const CORE_ROUTES=['','hoje/','evolucao/','riscos/','agenda/','redacoes/','auditoria/','mais/','questoes-erros/','pe/','materias/','offline.html','manifest.webmanifest'];
-const ASSETS=['assets/styles.css','assets/v20.css','assets/common.js','assets/home.js','assets/today.js','assets/evolution.js','assets/risks.js','assets/agenda.js','assets/redactions.js','assets/audit.js','assets/more.js','assets/pe.js','assets/subject.js','assets/subjects-index.js','assets/error-questions.js','assets/enhance-v20.js'];
+const CORE_ROUTES=['','hoje/','evolucao/','riscos/','agenda/','redacoes/','auditoria/','mais/','questoes-erros/','pe/','materias/','estudar/','resolver/','revisar/','caderno-erros/','desempenho/','fila-ia/','offline.html','manifest.webmanifest'];
+const ASSETS=['assets/styles.css','assets/v20.css','assets/common.js','assets/home.js','assets/today.js','assets/evolution.js','assets/risks.js','assets/agenda.js','assets/redactions.js','assets/audit.js','assets/more.js','assets/pe.js','assets/subject.js','assets/subjects-index.js','assets/error-questions.js','assets/enhance-v20.js','assets/integration/real-study.js'];
 const DATA=['data/home.json','data/today.json','data/evolution.json','data/risks.json','data/agenda.json','data/redactions.json','data/audit.json','data/more.json','data/subjects.json','data/sync-history.json','data/live.json','data/live-v23.json','data/live-v24.json','data/error-questions/index.json'];
 const ICONS=['icons/icon.svg','icons/maskable.svg','icons/icon-192.png','icons/icon-512.png'];
 const SUBJECTS=["portugues","assistencia-social","lc-840-2011","arquivologia","direito-administrativo","redacao","lei-7-484-2024","materiais-e-patrimonio","primeiros-socorros","lei-maria-da-penha","atualidades-df-ride-pdpm","compras-publicas-lei-14-133","direito-constitucional"];
