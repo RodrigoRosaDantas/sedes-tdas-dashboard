@@ -10,7 +10,7 @@ permissions:
 
 concurrency:
   group: notion-sync-publication
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   sync:
@@ -27,7 +27,7 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Voltar para a main vigente
+      - name: Voltar para a main vigente e sinalizar execução
         shell: bash
         run: |
           set -euo pipefail
@@ -36,6 +36,7 @@ jobs:
           git fetch origin main
           git reset --hard origin/main
           echo "Base validada: $(git rev-parse HEAD)"
+          git push origin "HEAD:refs/heads/manual-sync-status/running-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
 
       - name: Consultar, gerar e validar integralmente
         env:
@@ -65,6 +66,7 @@ jobs:
             sync_status=${PIPESTATUS[0]}
           fi
           if [[ $sync_status -ne 0 ]]; then
+            git push origin "HEAD:refs/heads/manual-sync-status/failed-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" || true
             echo 'A publicação foi bloqueada; main permaneceu intacta.'
             exit $sync_status
           fi
@@ -75,8 +77,10 @@ jobs:
           set -euo pipefail
           git add -A data pe materias sw.js
           if git diff --cached --quiet; then
+            git push origin "HEAD:refs/heads/manual-sync-status/success-nochange-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
             echo 'Nenhum arquivo foi alterado.'
             exit 0
           fi
           git commit -m 'Sincronizar registros TDAS de 02/08/2026'
           git push origin HEAD:main
+          git push origin "HEAD:refs/heads/manual-sync-status/success-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
