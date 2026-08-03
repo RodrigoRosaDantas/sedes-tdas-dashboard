@@ -1,5 +1,5 @@
 import {BASE, escapeHTML, loadJSON, setLoadingError} from '../common.js?v=26.1';
-import {findDailyExecution, loadDailyExecution, normalizePe, peDetailPath, selectedPe} from './daily-execution.js?v=1.1.1';
+import {findDailyExecution, loadDailyExecution, normalizePe, peDetailPath, selectedPe} from './daily-execution.js?v=1.1.2';
 const waitForPlayer=()=>new Promise((resolve,reject)=>{let attempts=0;const tick=()=>{const main=document.querySelector('main'),heading=main?.querySelector('.hero h1')?.textContent.trim();if(heading&&heading!=='Carregando…')return resolve({main,heading});if(attempts++>120)return reject(new Error('A página de questões não ficou pronta.'));setTimeout(tick,40)};tick()});
 const optionalCatalog=()=>fetch(BASE+'data/integration/question-catalog.json',{cache:'no-store'}).then(response=>response.ok?response.json():null).catch(()=>null);
 try{
