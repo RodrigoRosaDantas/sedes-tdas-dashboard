@@ -15,3 +15,4 @@ export async function loadDailyExecution(){
 export function findDailyExecution(contract,value){const pe=normalizePe(value);return pe?contract.items.find(item=>item.pe===pe)||null:null}
 export function selectedPe(currentPe){return normalizePe(new URLSearchParams(globalThis.location?.search||'').get('pe'))||normalizePe(currentPe)}
 export function peDetailPath(value){const n=peNumber(value);return n?`${BASE}pe/${n}/`:BASE+'pe/'}
+if(typeof document!=='undefined')import('./daily-law.js?v=1.0.0').catch(error=>console.error('Lei Seca indisponível',error));
