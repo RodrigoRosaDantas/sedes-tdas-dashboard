@@ -1,4 +1,5 @@
 name: Sincronizar TDAS agora (temporário)
+# segunda execução após a correção do PR 25
 
 on:
   push:
