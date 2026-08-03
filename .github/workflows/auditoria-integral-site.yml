@@ -1,0 +1,216 @@
+name: Auditoria integral temporária do site
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/auditoria-integral-site.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Baixar repositório
+        uses: actions/checkout@v4
+
+      - name: Preparar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Executar gate integral existente
+        run: npm run check
+
+      - name: Auditar consistência interna e PWA
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import path from 'node:path';
+
+          const read = file => JSON.parse(fs.readFileSync(file, 'utf8'));
+          const required = (condition, message) => { if (!condition) throw new Error(message); };
+          const list = directory => fs.readdirSync(directory, { withFileTypes: true }).flatMap(entry => {
+            const full = path.join(directory, entry.name);
+            return entry.isDirectory() ? list(full) : [full.replaceAll('\\', '/')];
+          });
+          const forbiddenKeys = new Set(['gabarito','answers','answerKey','comentarios','comentários','comentario','comentário','fundamentos','fundamento','correcao','correção']);
+          const findForbidden = (value, trail = '$', found = []) => {
+            if (!value || typeof value !== 'object') return found;
+            for (const [key, item] of Object.entries(value)) {
+              const next = `${trail}.${key}`;
+              if (forbiddenKeys.has(key)) found.push(next);
+              findForbidden(item, next, found);
+            }
+            return found;
+          };
+
+          const home = read('data/home.json');
+          const today = read('data/today.json');
+          const agenda = read('data/agenda.json');
+          const audit = read('data/audit.json');
+          const state = read('data/notion/state.json');
+          const history = read('data/sync-history.json');
+          const catalog = read('data/integration/question-catalog.json');
+          const dailyExecution = read('data/integration/daily-execution.json');
+          const dailyMaterial = read('data/integration/daily-material.json');
+          const live23 = read('data/live-v23.json');
+          const live24 = read('data/live-v24.json');
+          const actual = ['actual-01.json','actual-02.json','actual-03.json'].flatMap(file => read(`data/export/${file}`));
+          const future = ['future-01.json','future-02.json'].flatMap(file => read(`data/export/${file}`));
+          const sw = fs.readFileSync('sw.js', 'utf8');
+          const index = fs.readFileSync('index.html', 'utf8');
+
+          required(home.meta?.snapshotDate === '2026-08-03', 'Snapshot da página inicial não corresponde a 03/08/2026.');
+          required(home.today?.pe === 'PE78' && home.today?.number === 78, 'Página inicial não aponta para PE78.');
+          required(home.metrics?.completed === 77 && home.metrics?.totalPE === 112, 'Progresso da página inicial não corresponde a 77 ciclos anteriores e 112 totais.');
+          required(agenda.current?.pe === 'PE78', 'Agenda não aponta para PE78.');
+          required(agenda.summary?.remainingPE === 35 && Number(agenda.summary?.pace) === 1, 'Agenda não corresponde a 35 PE restantes e ritmo 1,00.');
+          required(audit.summary?.current === 'PE78' && audit.summary?.completed === 77 && audit.summary?.rest_days === 2, 'Auditoria pública diverge do progresso oficial.');
+          required(state.counts?.controls === 112 && state.counts?.errors === 170 && state.counts?.redactions === 32, 'Estado do Notion diverge das contagens oficiais.');
+          required(['success','no_changes'].includes(history.entries?.[0]?.status), 'Histórico mais recente não registra sucesso ou ausência de mudanças.');
+          required(Object.keys(live23).length === 0 && Object.keys(live24).length === 0, 'Há overlay histórico ativo.');
+
+          required(actual.length + future.length === 112, 'Partição atual/futura não totaliza 112 PE.');
+          const peIds = [...actual, ...future].map(item => item.pe);
+          required(new Set(peIds).size === 112, 'Há PE duplicado na partição atual/futura.');
+          required(future.every(item => !item.date || item.date >= home.meta.snapshotDate), 'Há registro passado na agenda futura.');
+          required(future[0]?.pe === 'PE78' && future[1]?.pe === 'PE79', 'Sequência futura não começa em PE78 → PE79.');
+
+          required(catalog.peId === 'PE78' && catalog.questionCount === 48 && catalog.questions?.length === 48, 'Catálogo diário não contém as 48 questões do PE78.');
+          required(findForbidden(catalog).length === 0, `Catálogo público contém campos de correção: ${findForbidden(catalog).join(', ')}`);
+          for (const question of catalog.questions) {
+            const options = Object.keys(question.alternativas || {});
+            required(question.enunciado && options.length >= 2 && options.length <= 5, `Questão inválida no catálogo: ${question.id}.`);
+          }
+          required(!sw.includes('question-keys/'), 'Service worker expõe arquivo de gabarito no precache.');
+          required(index.includes('home.js?v=26.1'), 'Página inicial não rompe o cache anterior do módulo home.');
+
+          const htmlFiles = list('.').filter(file => file.endsWith('.html') && !file.includes('node_modules'));
+          const htmlVersions = {};
+          for (const file of htmlFiles) {
+            const content = fs.readFileSync(file, 'utf8');
+            for (const match of content.matchAll(/(?:src|href)="[^"]+\?v=([^"&]+)[^"]*"/g)) {
+              htmlVersions[match[1]] = (htmlVersions[match[1]] || 0) + 1;
+            }
+          }
+          const jsFiles = list('assets').filter(file => file.endsWith('.js'));
+          const importVersions = {};
+          for (const file of jsFiles) {
+            const content = fs.readFileSync(file, 'utf8');
+            for (const match of content.matchAll(/\.\/[^'"?]+\?v=([^'"&]+)/g)) {
+              importVersions[match[1]] = (importVersions[match[1]] || 0) + 1;
+            }
+          }
+
+          const dailyPe = dailyExecution.pe || dailyExecution.peId || dailyExecution.current?.pe || null;
+          const materialPe = dailyMaterial.pe || dailyMaterial.peId || null;
+          const qualityCount = Array.isArray(audit.quality) ? audit.quality.length : 0;
+          const missingOrigin = (audit.quality || []).filter(item => /Origem \/ Dia ID/.test(item.detail || '')).length;
+
+          console.log(JSON.stringify({
+            internalAudit: 'ok',
+            snapshot: home.meta.snapshotDate,
+            current: home.today.pe,
+            currentNumber: home.today.number,
+            completedPreviousCycles: home.metrics.completed,
+            remaining: agenda.summary.remainingPE,
+            pace: agenda.summary.pace,
+            actualRecords: actual.length,
+            futureRecords: future.length,
+            catalogQuestions: catalog.questionCount,
+            dailyExecutionPe: dailyPe,
+            dailyMaterialPe: materialPe,
+            qualityWarnings: qualityCount,
+            missingOriginOrDayId: missingOrigin,
+            htmlAssetVersions: htmlVersions,
+            jsImportVersions: importVersions,
+            serviceWorkerVersion: sw.match(/const VERSION='([^']+)'/)?.[1] || null,
+            overlaysActive: false,
+            answerKeyPrecached: false
+          }, null, 2));
+          NODE
+
+      - name: Auditar site público sem cache
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://rodrigorosadantas.github.io/sedes-tdas-dashboard'
+          nonce="$(date +%s)"
+          routes=(
+            '/'
+            '/hoje/'
+            '/agenda/'
+            '/estudar/'
+            '/resolver/'
+            '/evolucao/'
+            '/riscos/'
+            '/redacoes/'
+            '/auditoria/'
+            '/mais/'
+          )
+          for route in "${routes[@]}"; do
+            code="$(curl -L -sS -o /tmp/page.html -w '%{http_code}' "$base$route?v=$nonce")"
+            test "$code" = '200' || { echo "Rota $route retornou $code" >&2; exit 1; }
+            grep -qi '<main' /tmp/page.html || { echo "Rota $route sem elemento main" >&2; exit 1; }
+          done
+
+          for file in \
+            data/home.json \
+            data/today.json \
+            data/agenda.json \
+            data/audit.json \
+            data/notion/state.json \
+            data/integration/question-catalog.json \
+            data/integration/daily-execution.json \
+            data/integration/daily-material.json \
+            data/live-v23.json \
+            data/live-v24.json \
+            sw.js \
+            assets/home.js; do
+            curl -L -fsS "$base/$file?v=$nonce" -o "/tmp/$(echo "$file" | tr '/' '_')"
+          done
+
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const read = file => JSON.parse(fs.readFileSync(file, 'utf8'));
+          const home = read('/tmp/data_home.json');
+          const agenda = read('/tmp/data_agenda.json');
+          const audit = read('/tmp/data_audit.json');
+          const state = read('/tmp/data_notion_state.json');
+          const catalog = read('/tmp/data_integration_question-catalog.json');
+          const live23 = read('/tmp/data_live-v23.json');
+          const live24 = read('/tmp/data_live-v24.json');
+          const sw = fs.readFileSync('/tmp/sw.js', 'utf8');
+          const homeJs = fs.readFileSync('/tmp/assets_home.js', 'utf8');
+          const fail = message => { throw new Error(message); };
+
+          if (home.today?.pe !== 'PE78' || home.today?.number !== 78) fail('Site público não aponta para PE78.');
+          if (home.metrics?.completed !== 77 || home.metrics?.totalPE !== 112) fail('Progresso público incorreto.');
+          if (agenda.summary?.remainingPE !== 35 || Number(agenda.summary?.pace) !== 1) fail('Agenda pública incorreta.');
+          if (audit.summary?.completed !== 77 || audit.summary?.current !== 'PE78') fail('Auditoria pública incorreta.');
+          if (state.counts?.controls !== 112) fail('Estado público não possui 112 PE.');
+          if (catalog.peId !== 'PE78' || catalog.questionCount !== 48) fail('Catálogo público do PE78 incompleto.');
+          if (Object.keys(live23).length || Object.keys(live24).length) fail('Overlays históricos ainda estão publicados.');
+          if (sw.includes('question-keys/')) fail('Gabarito incluído no precache público.');
+          if (!homeJs.includes("metric('PE atual'")) fail('Página inicial ainda usa indicador antigo.');
+
+          console.log(JSON.stringify({
+            publicAudit: 'ok',
+            routesChecked: 10,
+            current: home.today.pe,
+            currentNumber: home.today.number,
+            completedPreviousCycles: home.metrics.completed,
+            remaining: agenda.summary.remainingPE,
+            pace: agenda.summary.pace,
+            questions: catalog.questionCount,
+            controls: state.counts.controls,
+            overlaysActive: false,
+            answerKeyPrecached: false
+          }, null, 2));
+          NODE
