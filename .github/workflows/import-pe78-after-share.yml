@@ -48,6 +48,48 @@ jobs:
               exit 1
             fi
           done
+      - name: Corrigir identificação de páginas diárias
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          module = Path('scripts/notion/daily-content.mjs')
+          source = module.read_text(encoding='utf-8')
+          old = """const peCode = value => {
+            const match = String(value ?? '').normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').match(/\\bPE\\s*0*(\\d{1,3})\\b/i);
+            const number = Number(match?.[1]);
+            return Number.isInteger(number) && number >= 1 && number <= PE_LIMIT ? `PE${String(number).padStart(2, '0')}` : null;
+          };"""
+          new = """export const peCode = value => {
+            const match = String(value ?? '').normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').match(/^\\s*PE\\s*0*(\\d{1,3})\\b(?!\\s*[-–—]\\s*(?:PE\\s*)?0*\\d)/i);
+            const number = Number(match?.[1]);
+            return Number.isInteger(number) && number >= 1 && number <= PE_LIMIT ? `PE${String(number).padStart(2, '0')}` : null;
+          };"""
+          if old not in source:
+            raise SystemExit('Trecho de peCode não localizado para correção segura.')
+          module.write_text(source.replace(old, new, 1), encoding='utf-8')
+
+          test = Path('scripts/test-daily-content.mjs')
+          test_source = test.read_text(encoding='utf-8')
+          test_source = test_source.replace(
+            "import {parseDailyQuestions, renderMaterialMarkdown} from './notion/daily-content.mjs';",
+            "import {parseDailyQuestions, peCode, renderMaterialMarkdown} from './notion/daily-content.mjs';",
+            1
+          )
+          marker = "\nconst markdown = `"
+          assertions = """
+          assert.equal(peCode('PE01 — Virada pós-edital'), 'PE01');
+          assert.equal(peCode('PE78'), 'PE78');
+          assert.equal(peCode('01 — Micro PE01–PE07 | Semana 1'), null);
+          assert.equal(peCode('PE01–PE07'), null);
+          """
+          if marker not in test_source:
+            raise SystemExit('Ponto de inserção dos testes não localizado.')
+          test.write_text(test_source.replace(marker, assertions + marker, 1), encoding='utf-8')
+          PY
+          node scripts/test-daily-content.mjs
       - name: Gerar conteúdo diário
         env:
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
@@ -78,11 +120,11 @@ jobs:
           if(!catalog.keyPath) throw new Error('Caminho da correção ausente.');
           const key=JSON.parse(await fs.readFile(catalog.keyPath,'utf8'));
           if(key.answers?.length!==48||key.material_id!==catalog.catalogId) throw new Error('Correção separada incompatível.');
-          if(state.dailyContent?.status!=='active') throw new Error(`Estado diário inesperado: ${state.dailyContent?.status}`);
+          if(state.dailyContent?.pe!=='PE78'||state.dailyContent?.questionCount!==48) throw new Error('Estado diário não consolidou o PE78.');
           for(const question of catalog.questions){
-            const allowed=['id','number','subject','prompt','options'];
+            const allowed=['id','numeroOriginal','assunto','enunciado','alternativas'];
             for(const field of Object.keys(question)) if(!allowed.includes(field)) throw new Error(`Campo público proibido em ${question.id}: ${field}`);
-            if(!Array.isArray(question.options)||question.options.length!==5) throw new Error(`Alternativas inválidas em ${question.id}`);
+            if(Object.keys(question.alternativas||{}).join('')!=='ABCDE') throw new Error(`Alternativas inválidas em ${question.id}`);
           }
           console.log(JSON.stringify({importacao:'ok',pe:catalog.peId,questoes:48,respostasSeparadas:48,materialHtml:material.html.length,correcaoNoCatalogo:false}));
           NODE
