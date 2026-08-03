@@ -39,7 +39,21 @@ jobs:
         with:
           node-version: '22'
 
+      - name: Verificar janela do ciclo
+        id: cycle
+        shell: bash
+        run: |
+          set -euo pipefail
+          today="$(TZ=America/Sao_Paulo date +%F)"
+          if [[ "${GITHUB_EVENT_NAME}" == 'schedule' && "$today" > '2026-09-06' ]]; then
+            echo 'run=false' >> "$GITHUB_OUTPUT"
+            echo "Ciclo encerrado em 2026-09-06; sincronização agendada dispensada e último snapshot preservado."
+          else
+            echo 'run=true' >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Preparar branch isolada
+        if: steps.cycle.outputs.run == 'true'
         id: branch
         shell: bash
         run: |
@@ -55,6 +69,7 @@ jobs:
           echo "target=$target" >> "$GITHUB_OUTPUT"
 
       - name: Consultar, gerar e validar fora do main
+        if: steps.cycle.outputs.run == 'true'
         id: prepare
         env:
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
@@ -102,6 +117,7 @@ jobs:
           fi
 
       - name: Criar conjunto integral validado
+        if: steps.cycle.outputs.run == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -114,7 +130,7 @@ jobs:
           git push origin "HEAD:refs/heads/${{ steps.branch.outputs.target }}"
 
       - name: Promover atomicamente para main
-        if: github.event_name != 'push'
+        if: steps.cycle.outputs.run == 'true' && github.event_name != 'push'
         shell: bash
         run: |
           set -euo pipefail
