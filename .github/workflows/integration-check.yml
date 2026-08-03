@@ -21,3 +21,36 @@ jobs:
         with:
           node-version: 22
       - run: npm run check
+      - name: Conferir backup local publicado
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://rodrigorosadantas.github.io/sedes-tdas-dashboard'
+          nonce="${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          validate() {
+            page="$(curl -fsSL -H 'Cache-Control: no-cache' "$base/dados-locais/?v=$nonce")"
+            grep -q 'assets/integration/local-backup.js' <<<"$page"
+            grep -q 'Nenhum arquivo será enviado' <<<"$page"
+            backup="$(curl -fsSL -H 'Cache-Control: no-cache' "$base/assets/integration/local-backup.js?v=$nonce")"
+            grep -q 'tdas-local-backup' <<<"$backup"
+            grep -q 'tdas.202.daily-execution.v1' <<<"$backup"
+            grep -q 'tdas.202.question-module.v2.state' <<<"$backup"
+            grep -q 'Baixar backup JSON' <<<"$backup"
+            grep -q 'Restaurar backup' <<<"$backup"
+            grep -q 'A restauração foi revertida' <<<"$backup"
+            ! grep -q 'api.notion' <<<"$backup"
+            more="$(curl -fsSL -H 'Cache-Control: no-cache' "$base/assets/more.js?v=$nonce")"
+            grep -q 'dados-locais/' <<<"$more"
+            sw="$(curl -fsSL -H 'Cache-Control: no-cache' "$base/sw.js?v=$nonce")"
+            grep -q '"dados-locais/"' <<<"$sw"
+            grep -q '"assets/integration/local-backup.js"' <<<"$sw"
+            grep -q 'local-backup' <<<"$sw"
+          }
+          for attempt in $(seq 1 12); do
+            if validate; then
+              echo '{"publicacao":"ok","backup":"local","armazenamentos":2,"rede":"zero","pwa":"ok"}'
+              exit 0
+            fi
+            sleep 10
+          done
+          exit 1
