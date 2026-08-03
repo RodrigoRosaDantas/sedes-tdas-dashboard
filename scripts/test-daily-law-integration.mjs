@@ -11,5 +11,7 @@ for(const f of ['assets/integration/daily-question-page.js','assets/integration/
 assert.ok(r('resolver/index.html').includes('daily-question-page.js?v=1.0.2'));
 assert.ok(r('hoje/index.html').includes('today-execution.js?v=1.0.2'));
 assert.ok(r('estudar/index.html').includes('module-dashboard.js?v=3.0.2'));
-assert.ok(r('scripts/postprocess-v26.mjs').includes('notion-daily-content-law-102'));
-console.log('Lei Seca validada: import correto e cache invalidado.');
+const postprocess=r('scripts/postprocess-v26.mjs');
+assert.ok(postprocess.includes('notion-daily-content'));
+assert.ok(/notion-daily-content-(?:law-102|phase1-100)/.test(postprocess));
+console.log('Lei Seca validada: import correto e cache cumulativo invalidado.');
