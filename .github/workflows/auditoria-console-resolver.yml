@@ -1,0 +1,47 @@
+name: Detalhar console do Resolver
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/auditoria-console-resolver.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  detail:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Extrair detalhes Lighthouse
+        shell: bash
+        run: |
+          set -euo pipefail
+          url='https://rodrigorosadantas.github.io/sedes-tdas-dashboard/resolver/'
+          npx --yes lighthouse@12.8.2 "$url" \
+            --chrome-flags='--headless=new --no-sandbox --disable-gpu' \
+            --only-categories=best-practices \
+            --output=json --output-path=/tmp/resolver.json --quiet
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const report=JSON.parse(fs.readFileSync('/tmp/resolver.json','utf8'));
+          const consoleAudit=report.audits['errors-in-console'];
+          const network=report.audits['network-dependency-tree-insight'];
+          const items=consoleAudit?.details?.items || [];
+          const simplified=items.map(item=>({
+            source:item.source,
+            description:item.description,
+            url:item.url,
+            lineNumber:item.lineNumber,
+            columnNumber:item.columnNumber
+          }));
+          console.log(JSON.stringify({
+            score:Math.round((report.categories['best-practices']?.score||0)*100),
+            consoleAudit:{score:consoleAudit?.score,title:consoleAudit?.title,items:simplified},
+            dependencyInsight:{score:network?.score,title:network?.title,description:network?.description}
+          },null,2));
+          NODE
