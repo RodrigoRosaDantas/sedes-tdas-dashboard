@@ -2,6 +2,16 @@ name: Sincronizar Plataforma TDAS v26
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/notion-sync.yml'
+      - 'scripts/sync-notion.mjs'
+      - 'scripts/notion/**'
+      - 'scripts/prepare-calendar-refresh.mjs'
+      - 'scripts/validate-calendar-snapshot.mjs'
+      - 'scripts/test-calendar-refresh.mjs'
+      - 'package.json'
   schedule:
     - cron: '50 3,9,15,21 * * *'
 
@@ -52,8 +62,12 @@ jobs:
         run: |
           set -uo pipefail
           : > /tmp/tdas-sync.log
-          node scripts/sync-notion.mjs 2>&1 | tee -a /tmp/tdas-sync.log
+          node scripts/prepare-calendar-refresh.mjs 2>&1 | tee -a /tmp/tdas-sync.log
           sync_status=${PIPESTATUS[0]}
+          if [[ $sync_status -eq 0 ]]; then
+            node scripts/sync-notion.mjs 2>&1 | tee -a /tmp/tdas-sync.log
+            sync_status=${PIPESTATUS[0]}
+          fi
           if [[ $sync_status -eq 0 ]]; then
             node scripts/postprocess-v23.mjs 2>&1 | tee -a /tmp/tdas-sync.log
             sync_status=${PIPESTATUS[0]}
@@ -64,6 +78,10 @@ jobs:
           fi
           if [[ $sync_status -eq 0 ]]; then
             node scripts/postprocess-v26.mjs 2>&1 | tee -a /tmp/tdas-sync.log
+            sync_status=${PIPESTATUS[0]}
+          fi
+          if [[ $sync_status -eq 0 ]]; then
+            REQUIRE_CURRENT_SNAPSHOT=true node scripts/validate-calendar-snapshot.mjs 2>&1 | tee -a /tmp/tdas-sync.log
             sync_status=${PIPESTATUS[0]}
           fi
           if [[ $sync_status -eq 0 ]]; then
