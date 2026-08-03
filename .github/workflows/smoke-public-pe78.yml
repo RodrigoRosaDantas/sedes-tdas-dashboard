@@ -1,0 +1,60 @@
+name: Smoke público do PE78
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/smoke-public-pe78.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Validar GitHub Pages publicado
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://rodrigorosadantas.github.io/sedes-tdas-dashboard'
+          ok='false'
+          for attempt in $(seq 1 30); do
+            if curl -fsS "$base/data/integration/question-catalog.json" -o /tmp/catalog.json \
+              && curl -fsS "$base/data/integration/daily-material.json" -o /tmp/material.json \
+              && curl -fsS "$base/estudar/" -o /tmp/estudar.html \
+              && curl -fsS "$base/resolver/" -o /tmp/resolver.html \
+              && curl -fsS "$base/sw.js" -o /tmp/sw.js; then
+              if node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const catalog=JSON.parse(fs.readFileSync('/tmp/catalog.json','utf8'));
+          const material=JSON.parse(fs.readFileSync('/tmp/material.json','utf8'));
+          if(catalog.mode!=='notion-daily'||catalog.peId!=='PE78'||catalog.questionCount!==48||catalog.questions?.length!==48) process.exit(1);
+          if(material.mode!=='notion-daily-material'||material.peId!=='PE78'||String(material.html||'').length<200) process.exit(1);
+          for(const question of catalog.questions){
+            const fields=Object.keys(question).sort().join(',');
+            if(fields!=='alternativas,assunto,enunciado,id,numeroOriginal') process.exit(1);
+            if(Object.keys(question.alternativas||{}).join('')!=='ABCDE') process.exit(1);
+          }
+          if(JSON.stringify(catalog).match(/"(?:gabarito|answers|comentarios|comentários|fundamentos)"\s*:/i)) process.exit(1);
+          NODE
+              then
+                ok='true'
+                break
+              fi
+            fi
+            sleep 10
+          done
+          test "$ok" = 'true'
+          grep -q 'data-integration-route="estudar"' /tmp/estudar.html
+          grep -q 'daily-content.css' /tmp/estudar.html
+          grep -q 'data-integration-route="resolver"' /tmp/resolver.html
+          grep -q 'daily-question-page.js' /tmp/resolver.html
+          ! grep -q 'question-keys/pe78.json' /tmp/sw.js
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const catalog=JSON.parse(fs.readFileSync('/tmp/catalog.json','utf8'));
+          const material=JSON.parse(fs.readFileSync('/tmp/material.json','utf8'));
+          console.log(JSON.stringify({publicacao:'ok',pe:catalog.peId,questoes:catalog.questionCount,materialHtml:material.html.length,correcaoNoCatalogo:false,correcaoNoPrecache:false,rotas:['estudar','resolver']}));
+          NODE
