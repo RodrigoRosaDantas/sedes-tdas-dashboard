@@ -6,6 +6,7 @@ import { DAILY_ROOTS, prepareDailyContent } from './notion/daily-content.mjs';
 import { isDailyContentPermissionError, pendingDailySemantic } from './notion/daily-access.mjs';
 import { control, error, propId, redaction } from './notion/normalize.mjs';
 import { build } from './notion/build.mjs';
+import { shouldRebuild } from './notion/sync-decision.mjs';
 
 const MINIMUM = { controls: 100, errors: 100, redactions: 25 };
 const SCHEMA_VERSION = '20.4';
@@ -164,7 +165,12 @@ const semantic = {
   daily: daily.semantic
 };
 const nextHash = hash(semantic);
-const semanticChanged = previousState.semanticHash !== nextHash;
+const semanticChanged = shouldRebuild({
+  previousHash: previousState.semanticHash,
+  nextHash,
+  syncKind: process.env.SYNC_KIND || '',
+  forceRebuild: process.env.FORCE_REBUILD === 'true'
+});
 const output = build(controls, errors, redactions, snapshotDate, runStartedAt);
 output.state.semanticHash = nextHash;
 output.state.dailyContent = daily.semantic;
