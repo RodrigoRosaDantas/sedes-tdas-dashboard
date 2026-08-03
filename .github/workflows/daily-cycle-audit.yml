@@ -50,62 +50,45 @@ jobs:
           python - <<'PY'
           from pathlib import Path
 
+          def replace_once(source, old, new, label):
+              if old not in source:
+                  raise SystemExit(f'{label} não localizado')
+              return source.replace(old, new, 1)
+
           daily = Path('scripts/notion/daily-content.mjs')
           source = daily.read_text(encoding='utf-8')
-          old = """  const title = String(current.title || questionMeta.title || materialMeta.title || pe).trim();
-          const parsed = parseDailyQuestions(questionMarkdown, {
-            pe,
-            title,
-            expectedCount: Math.max(0, Number(current.meta || 0)),
-            sourcePageId: questionPage.id
-          });"""
-          new = """  const title = String(current.title || questionMeta.title || materialMeta.title || pe).trim();
-          const explicitNoQuestions = /não traz bateria artificial de questões/i.test(questionMarkdown);
-          const parsed = parseDailyQuestions(questionMarkdown, {
-            pe,
-            title,
-            expectedCount: explicitNoQuestions ? 0 : Math.max(0, Number(current.meta || 0)),
-            sourcePageId: questionPage.id
-          });"""
-          if old not in source:
-              raise SystemExit('Ponto de aplicação da exceção explícita do PE112 não localizado')
-          daily.write_text(source.replace(old, new, 1), encoding='utf-8')
+          source = replace_once(
+              source,
+              'const parsed = parseDailyQuestions(questionMarkdown, {',
+              'const explicitNoQuestions = /não traz bateria artificial de questões/i.test(questionMarkdown);\n  const parsed = parseDailyQuestions(questionMarkdown, {',
+              'Chamada do parser diário'
+          )
+          source = replace_once(
+              source,
+              'expectedCount: Math.max(0, Number(current.meta || 0)),',
+              'expectedCount: explicitNoQuestions ? 0 : Math.max(0, Number(current.meta || 0)),',
+              'Meta diária'
+          )
+          daily.write_text(source, encoding='utf-8')
 
           audit = Path('scripts/audit-daily-cycle.mjs')
           source = audit.read_text(encoding='utf-8')
-          old = """    const parsed = parseDailyQuestions(questionMarkdown, {
-              pe: control.pe,
-              title: control.title,
-              expectedCount: control.expectedCount,
-              sourcePageId: questionPage.id
-            });
-            validatePublicCatalog(parsed.catalog, control.pe, control.expectedCount);
-            if (control.expectedCount === 0) {
-              required(parsed.key === null && parsed.catalog.keyPath === null, `${control.pe}: dia sem questões gerou correção indevida.`);
-            } else {
-              required(parsed.key?.answers?.length === control.expectedCount, `${control.pe}: correção separada incompleta.`);
-              required(parsed.key.material_id === parsed.catalog.catalogId, `${control.pe}: correção separada não corresponde ao catálogo.`);
-            }
-            ready.push({pe: control.pe, date: control.date, questions: control.expectedCount, materialHtml: html.length});"""
-          new = """    const explicitNoQuestions = /não traz bateria artificial de questões/i.test(questionMarkdown);
-            const effectiveExpectedCount = explicitNoQuestions ? 0 : control.expectedCount;
-            const parsed = parseDailyQuestions(questionMarkdown, {
-              pe: control.pe,
-              title: control.title,
-              expectedCount: effectiveExpectedCount,
-              sourcePageId: questionPage.id
-            });
-            validatePublicCatalog(parsed.catalog, control.pe, effectiveExpectedCount);
-            if (effectiveExpectedCount === 0) {
-              required(parsed.key === null && parsed.catalog.keyPath === null, `${control.pe}: dia sem questões gerou correção indevida.`);
-            } else {
-              required(parsed.key?.answers?.length === effectiveExpectedCount, `${control.pe}: correção separada incompleta.`);
-              required(parsed.key.material_id === parsed.catalog.catalogId, `${control.pe}: correção separada não corresponde ao catálogo.`);
-            }
-            ready.push({pe: control.pe, date: control.date, questions: effectiveExpectedCount, materialHtml: html.length});"""
-          if old not in source:
-              raise SystemExit('Auditoria do PE112 não localizada')
-          audit.write_text(source.replace(old, new, 1), encoding='utf-8')
+          source = replace_once(
+              source,
+              'const parsed = parseDailyQuestions(questionMarkdown, {',
+              'const explicitNoQuestions = /não traz bateria artificial de questões/i.test(questionMarkdown);\n    const effectiveExpectedCount = explicitNoQuestions ? 0 : control.expectedCount;\n    const parsed = parseDailyQuestions(questionMarkdown, {',
+              'Chamada do parser na auditoria'
+          )
+          substitutions = [
+              ('expectedCount: control.expectedCount,', 'expectedCount: effectiveExpectedCount,'),
+              ('validatePublicCatalog(parsed.catalog, control.pe, control.expectedCount);', 'validatePublicCatalog(parsed.catalog, control.pe, effectiveExpectedCount);'),
+              ('if (control.expectedCount === 0) {', 'if (effectiveExpectedCount === 0) {'),
+              ('parsed.key?.answers?.length === control.expectedCount', 'parsed.key?.answers?.length === effectiveExpectedCount'),
+              ('questions: control.expectedCount', 'questions: effectiveExpectedCount')
+          ]
+          for old, new in substitutions:
+              source = replace_once(source, old, new, f'Auditoria: {old}')
+          audit.write_text(source, encoding='utf-8')
           PY
 
       - name: Validar plataforma e todos os dias restantes
