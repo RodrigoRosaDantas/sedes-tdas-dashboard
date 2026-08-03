@@ -21,3 +21,5 @@ jobs:
         with:
           node-version: 22
       - run: npm run check
+      - name: Auditar posições PE71–PE84
+        run: node scripts/audit-daily-contract.mjs
