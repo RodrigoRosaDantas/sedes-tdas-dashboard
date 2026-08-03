@@ -1,0 +1,18 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+const read=file=>fs.readFileSync(file,'utf8');
+const index=read('index.html'),center=read('assets/integration/home-command-center.js'),player=read('assets/integration/module-player.js'),audit=read('auditoria/index.html'),unlinked=read('assets/integration/audit-unlinked-errors.js'),auditData=JSON.parse(read('data/audit.json'));
+assert.ok(index.includes('home-command-center.js?v=1.0.0'));
+assert.ok(index.includes('command-center.css?v=1.0.0'));
+assert.ok(center.includes('Central de execução'));
+assert.ok(center.includes('Continuar de onde parei'));
+assert.ok(center.includes("readSessionDraft()"));
+assert.ok(player.includes('matchingSessionDraft'));
+assert.ok(player.includes('writeSessionDraft'));
+assert.ok(player.includes('clearSessionDraft'));
+assert.ok(audit.includes('audit-unlinked-errors.js?v=1.0.0'));
+assert.ok(unlinked.includes("section.id='erros-sem-origem'"));
+const missing=(auditData.quality||[]).filter(item=>item.title==='Registro incompleto no Caderno de Erros'&&/Origem \/ Dia ID/.test(item.detail||''));
+assert.equal(missing.length,12);
+assert.ok(!unlinked.includes('setItem(')&&!unlinked.includes('writeback'));
+console.log('Fase 1 validada: central de execução, retomada local e 12 origens pendentes sem inferência ou writeback.');
