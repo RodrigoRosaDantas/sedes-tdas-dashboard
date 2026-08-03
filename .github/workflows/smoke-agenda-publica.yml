@@ -1,0 +1,95 @@
+name: Smoke da agenda pública corrigida
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/smoke-agenda-publica.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Validar arquivos regenerados na main
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const read = file => JSON.parse(fs.readFileSync(file, 'utf8'));
+          const agenda = read('data/agenda.json');
+          const home = read('data/home.json');
+          const audit = read('data/audit.json');
+          const actual = [
+            ...read('data/export/actual-01.json'),
+            ...read('data/export/actual-02.json'),
+            ...read('data/export/actual-03.json')
+          ];
+          const future = [
+            ...read('data/export/future-01.json'),
+            ...read('data/export/future-02.json')
+          ];
+          const futureIds = future.map(item => item.pe);
+          const actualIds = actual.map(item => item.pe);
+          if (agenda.current?.pe !== 'PE78') throw new Error('PE atual incorreto.');
+          if (agenda.next?.[0]?.pe !== 'PE78' || agenda.next?.[1]?.pe !== 'PE79') throw new Error('Sequência futura incorreta.');
+          if (agenda.allFuture.some(item => item.date < agenda.meta.snapshotDate)) throw new Error('Agenda contém data passada.');
+          if (futureIds.includes('PE07') || futureIds.includes('PE14')) throw new Error('Descansos históricos ainda aparecem no futuro.');
+          if (!actualIds.includes('PE07') || !actualIds.includes('PE14')) throw new Error('Descansos históricos foram perdidos.');
+          if (agenda.summary?.remainingPE !== 35 || agenda.summary?.operationalDays !== 35 || agenda.summary?.pace !== 1) throw new Error('Resumo da agenda incorreto.');
+          if (home.projections?.[0]?.value !== '1.00 PE/dia' || !home.projections?.[0]?.formula?.startsWith('35 PE não iniciados')) throw new Error('Ritmo projetado incorreto.');
+          if ((audit.summary?.rest_days || 0) < 2) throw new Error('Dias de descanso não preservados na auditoria.');
+          console.log(JSON.stringify({
+            arquivos:'ok',
+            atual:agenda.current.pe,
+            proximos:agenda.next.slice(0,3).map(item=>item.pe),
+            restantes:agenda.summary.remainingPE,
+            dias:agenda.summary.operationalDays,
+            ritmo:home.projections[0].value,
+            descansosHistoricos:['PE07','PE14'],
+            descansoNaAuditoria:audit.summary.rest_days
+          }));
+          NODE
+
+      - name: Validar GitHub Pages
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://rodrigorosadantas.github.io/sedes-tdas-dashboard'
+          ok='false'
+          for attempt in $(seq 1 30); do
+            nonce="$(date +%s)-$attempt"
+            if curl -fsS "$base/data/agenda.json?v=$nonce" -o /tmp/agenda.json \
+              && curl -fsS "$base/data/home.json?v=$nonce" -o /tmp/home.json; then
+              if node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const agenda=JSON.parse(fs.readFileSync('/tmp/agenda.json','utf8'));
+          const home=JSON.parse(fs.readFileSync('/tmp/home.json','utf8'));
+          if(agenda.next?.[0]?.pe!=='PE78'||agenda.next?.[1]?.pe!=='PE79') process.exit(1);
+          if(agenda.allFuture?.some(item=>item.pe==='PE07'||item.pe==='PE14'||item.date<agenda.meta.snapshotDate)) process.exit(1);
+          if(agenda.summary?.remainingPE!==35||agenda.summary?.pace!==1) process.exit(1);
+          if(home.projections?.[0]?.value!=='1.00 PE/dia') process.exit(1);
+          NODE
+              then
+                ok='true'
+                break
+              fi
+            fi
+            sleep 10
+          done
+          test "$ok" = 'true'
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const agenda=JSON.parse(fs.readFileSync('/tmp/agenda.json','utf8'));
+          const home=JSON.parse(fs.readFileSync('/tmp/home.json','utf8'));
+          console.log(JSON.stringify({publicacao:'ok',atual:agenda.current.pe,proximo:agenda.next[1].pe,restantes:agenda.summary.remainingPE,ritmo:home.projections[0].value,passadosNaAgenda:false}));
+          NODE
