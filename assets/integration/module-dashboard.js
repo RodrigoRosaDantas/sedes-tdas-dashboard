@@ -1,48 +1,15 @@
 import {BASE, escapeHTML, loadJSON, setupShell, setLoadingError} from '../common.js?v=24.1';
+import {findDailyExecution, loadDailyExecution, normalizePe, peDetailPath, peNumber, selectedPe} from './daily-execution.js?v=1.0.0';
 import {readModuleState} from './module-store.js?v=2.0.0';
-
-try {
-  const [catalog, navigation, shell] = await Promise.all([
-    fetch(BASE + 'data/integration/question-catalog.json', {cache: 'no-store'}).then(response => {
-      if (!response.ok) throw new Error(`Falha ao carregar catálogo autorizado (${response.status}).`);
-      return response.json();
-    }),
-    fetch(BASE + 'data/integration/navigation.json', {cache: 'no-store'}).then(response => response.json()),
-    loadJSON('data/more.json'),
-  ]);
-  setupShell('mais', shell.meta);
-  const state = readModuleState();
-  const available = Array.isArray(catalog.questions) && catalog.questions.length > 0;
-  document.querySelector('main').innerHTML = `
-    <section class="hero">
-      <span class="kicker">Módulo de questões · uso real</span>
-      <h1>Estudar</h1>
-      <p>Resolver, revisar, classificar erros e acompanhar desempenho em um módulo local, sem escrever no Notion.</p>
-      <div class="tags">
-        <span class="tag">${available ? `${catalog.questions.length} questões autorizadas` : 'Nenhuma questão autorizada incorporada'}</span>
-        <span class="tag">${state.attempts.length} tentativas locais</span>
-        <span class="tag">Dados do módulo neste dispositivo</span>
-      </div>
-      <div class="hero-actions">
-        <a class="btn primary" href="${BASE}resolver/">${available ? 'Iniciar sessão' : 'Abrir Resolver'}</a>
-        <a class="btn" href="${BASE}revisar/">Revisar</a>
-        <a class="btn" href="${BASE}desempenho/">Ver desempenho</a>
-      </div>
-    </section>
-    ${available ? `<section class="section"><article class="card panel"><small>Catálogo ativo</small><h2>${escapeHTML(catalog.title)}</h2><p>${escapeHTML(catalog.description || '')}</p></article></section>` : `
-    <section class="section">
-      <article class="card panel">
-        <small>Estado operacional vazio</small>
-        <h2>Estrutura pronta, sem conteúdo de exemplo</h2>
-        <p>O catálogo PE76 foi retirado. Nenhum enunciado, alternativa ou gabarito de exemplo é carregado. As funcionalidades permanecem preparadas para um catálogo autorizado específico deste módulo.</p>
-      </article>
-    </section>`}
-    <section class="section">
-      <div class="section-head"><div><h2>Áreas do módulo</h2><p>As rotas continuam independentes e funcionais.</p></div></div>
-      <div class="grid portal-grid">${navigation.routes.map(route => `<a class="card portal" href="${route.path}"><small>${escapeHTML(route.status)}</small><b>${escapeHTML(route.title)}</b><span>${escapeHTML(route.description)}</span><em>${route.key === 'estudar' ? 'Página atual' : 'Abrir →'}</em></a>`).join('')}</div>
-    </section>
-    <section class="section"><article class="card panel"><h2>Separação preservada</h2><p>O módulo não consulta o Banco Mestre editorial, não importa questões automaticamente e não envia respostas ao Notion.</p></article></section>
-    <footer class="footer"><span>Módulo de questões · operação real</span><span>Snapshot <span data-snapshot></span></span></footer>`;
-} catch (error) {
-  setLoadingError(error);
-}
+try{
+ const[catalog,navigation,shell,today,contract]=await Promise.all([
+  fetch(BASE+'data/integration/question-catalog.json',{cache:'no-store'}).then(r=>{if(!r.ok)throw new Error(`Falha ao carregar catálogo autorizado (${r.status}).`);return r.json()}),
+  fetch(BASE+'data/integration/navigation.json',{cache:'no-store'}).then(r=>r.json()),loadJSON('data/more.json'),loadJSON('data/today.json'),loadDailyExecution()
+ ]);
+ setupShell('mais',shell.meta);
+ const pe=selectedPe(today.current.pe),item=findDailyExecution(contract,pe);if(!item)throw new Error(`Execução diária não encontrada para ${pe||'o PE solicitado'}.`);
+ const state=readModuleState(),catalogPe=normalizePe(catalog.peId),incorporated=Array.isArray(catalog.questions)&&catalog.questions.length>0&&catalogPe===pe;
+ const number=peNumber(pe),previous=number>1?`?pe=PE${String(number-1).padStart(2,'0')}`:null,next=number<112?`?pe=PE${String(number+1).padStart(2,'0')}`:null;
+ const title=normalizePe(today.current.pe)===pe?today.current.title:`Material programado para ${pe}`;
+ document.querySelector('main').innerHTML=`<section class="hero"><span class="kicker">Execução diária · etapa 1</span><h1>Estudar — ${escapeHTML(pe)}</h1><p>${escapeHTML(title)}. Primeiro conclua o material premium; depois avance para a página exclusiva de questões.</p><div class="tags"><span class="tag">Semana ${item.week}</span><span class="tag">${incorporated?`${catalog.questions.length} questões incorporadas`:'Questões mantidas na página diária'}</span><span class="tag">${state.attempts.length} tentativas locais</span></div><div class="hero-actions"><a class="btn primary" href="${item.materialUrl}" target="_blank" rel="noopener">Abrir material premium ↗</a><a class="btn" href="${BASE}resolver/?pe=${encodeURIComponent(pe)}">Ir para as questões</a><a class="btn" href="${peDetailPath(pe)}">Ver detalhes do PE</a></div></section><section class="section"><div class="section-head"><div><h2>Sequência de execução</h2><p>As páginas permanecem separadas, mas fazem parte do mesmo dia.</p></div><span class="stamp">${escapeHTML(pe)}</span></div><div class="grid three"><a class="card portal" href="${item.materialUrl}" target="_blank" rel="noopener"><small>Agora</small><b>Material premium</b><span>Teoria, lei seca, quadros e orientação específica do dia.</span><em>Abrir no Notion ↗</em></a><a class="card portal" href="${BASE}resolver/?pe=${encodeURIComponent(pe)}"><small>Depois</small><b>Questões do dia</b><span>Bloco exclusivo de ${escapeHTML(pe)}, sem misturar a teoria.</span><em>Abrir questões →</em></a><a class="card portal" href="${peDetailPath(pe)}"><small>Ao finalizar</small><b>Resultado e erros</b><span>Conferir meta, registrar desempenho e fechar revisões.</span><em>Abrir PE →</em></a></div></section><section class="section"><article class="card panel"><small>Player interno</small><h2>${incorporated?'Sessão autorizada disponível':'Conteúdo diário preservado no Notion'}</h2><p>${incorporated?`O catálogo autorizado de ${escapeHTML(pe)} pode ser resolvido no player local.`:'Nenhum enunciado, alternativa ou gabarito é importado automaticamente. A página oficial de questões do dia permanece acessível pela etapa seguinte.'}</p><div class="hero-actions"><a class="btn ${incorporated?'primary':''}" href="${BASE}resolver/?pe=${encodeURIComponent(pe)}">${incorporated?'Iniciar sessão':'Abrir questões do dia'}</a></div></article></section><section class="section"><div class="section-head"><div><h2>Áreas de acompanhamento</h2><p>Funções locais geradas após as sessões autorizadas.</p></div></div><div class="grid portal-grid">${navigation.routes.filter(route=>!['estudar','resolver'].includes(route.key)).map(route=>`<a class="card portal" href="${route.path}"><small>${escapeHTML(route.status)}</small><b>${escapeHTML(route.title)}</b><span>${escapeHTML(route.description)}</span><em>Abrir →</em></a>`).join('')}</div></section><nav class="pe-nav" aria-label="Material anterior e próximo">${previous?`<a class="btn" href="${previous}">← PE${String(number-1).padStart(2,'0')}</a>`:'<span></span>'}${next?`<a class="btn" href="${next}">PE${String(number+1).padStart(2,'0')} →</a>`:''}</nav><section class="section"><article class="card panel"><h2>Separação preservada</h2><p>O dashboard usa apenas os vínculos oficiais da Execução diária. Não consulta o Banco Mestre, não copia questões e não envia respostas ao Notion.</p></article></section><footer class="footer"><span>Material diário · ${escapeHTML(pe)}</span><span>Snapshot <span data-snapshot></span></span></footer>`;
+}catch(error){setLoadingError(error)}
