@@ -7,9 +7,7 @@ const dashboard=await read('assets/integration/module-dashboard.js'),todayOverla
 const questionPage=await read('assets/integration/daily-question-page.js'),helper=await read('assets/integration/daily-execution.js');
 const enhance=await read('assets/enhance-v20.js'),packageData=JSON.parse(await read('package.json'));
 required(contract.schemaVersion==='1.0.0'&&contract.mode==='daily-execution-contract','Contrato diário inválido.');
-for(const name of ['materialPageIds','questionPageIds']){
- const ids=contract[name];required(Array.isArray(ids)&&ids.length===112,`${name} deve conter PE01–PE112.`);required(new Set(ids).size===112,`${name} contém página duplicada.`);required(ids.every(id=>/^[a-f0-9]{32}$/.test(id)),`${name} contém ID inválido.`);
-}
+for(const name of ['materialPageIds','questionPageIds']){const ids=contract[name];required(Array.isArray(ids)&&ids.length===112,`${name} deve conter PE01–PE112.`);required(new Set(ids).size===112,`${name} contém página duplicada.`);required(ids.every(id=>/^[a-f0-9]{32}$/.test(id)),`${name} contém ID inválido.`)}
 required(contract.questionPageIds[26]==='364cf5a2673181acb6f1fc9bc54e7a65','PE27 não usa a página principal de questões.');
 required(contract.questionPageIds[75]==='364cf5a26731810e929fe919d7d5b37b','PE76 não usa a página principal de questões.');
 required(!JSON.stringify(contract).match(/enunciado|alternativas|gabarito|resposta/i),'Contrato contém conteúdo de questão.');
@@ -19,6 +17,6 @@ required(dashboard.includes('materialUrl')&&dashboard.includes('resolver/?pe='),
 required(todayOverlay.includes('Execução diária')&&todayOverlay.includes('Registrar execução'),'Hoje não exibe as três etapas.');
 required(questionPage.includes('questionsUrl')&&questionPage.includes('Sem importação automática'),'Questões do dia não preservam o limite de importação.');
 required(helper.includes('daily-execution.json')&&helper.includes("materialPageIds?.length!==112"),'Helper não valida o contrato.');
-required(enhance.includes('dataDailyPeExecution')&&enhance.includes('daily-execution.js'),'Detalhamento do PE não integra a execução diária.');
+required(enhance.includes('dailyPeExecution')&&enhance.includes('daily-execution.js'),'Detalhamento do PE não integra a execução diária.');
 required(packageData.scripts?.check?.includes('validate-daily-execution.mjs'),'Validador diário fora do gate principal.');
 console.log('Execução diária validada: PE01–PE112 com material e questões separados, fluxo completo e zero conteúdo importado.');
