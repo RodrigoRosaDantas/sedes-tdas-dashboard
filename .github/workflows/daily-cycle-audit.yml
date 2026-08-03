@@ -103,14 +103,18 @@ jobs:
           npm run check
           npm run audit:daily-cycle
 
-      - name: Consolidar somente após aprovação integral
+      - name: Consolidar código validado
         shell: bash
         run: |
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          mv .github/workflows/daily-cycle-audit.final.yml .github/workflows/daily-cycle-audit.yml
-          rm -f .github/workflows/expandir-formatos-diarios.yml scripts/apply-daily-format-patch.py
+          git checkout "$GITHUB_SHA" -- .github/workflows
+          rm -f scripts/apply-daily-format-patch.py
           git add -A
+          if ! git diff --cached --quiet -- .github/workflows; then
+            echo 'A consolidação tentou alterar workflows.' >&2
+            exit 1
+          fi
           git commit -m 'Aceitar todos os formatos do ciclo diário'
           git push origin "HEAD:${{ github.event.pull_request.head.ref }}"
