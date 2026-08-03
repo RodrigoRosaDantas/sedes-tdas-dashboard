@@ -1,0 +1,1 @@
+Rotas públicas, dados, cache/PWA, módulo diário, gabarito e consistência entre fontes.
