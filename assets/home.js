@@ -1,4 +1,4 @@
-import{loadJSON,setupShell,fmtNumber,fmtPct,fmtDate,metric,alertCard,setLoadingError,routes}from'./common.js?v=24.1';
+import{loadJSON,setupShell,fmtNumber,fmtPct,fmtDate,metric,alertCard,setLoadingError,routes}from'./common.js?v=26.1';
 
 const STUDY_BASE='/sedes-tdas-dashboard/';
 
@@ -37,7 +37,7 @@ try{
   <div class="install-banner" data-install><span><b>Instale como aplicativo</b><br>Abra mais rápido e consulte o último snapshot mesmo sem conexão.</span><button class="btn" data-install-button>Instalar</button></div>
  </section>
  <section class="grid metrics">
-  ${metric('Ciclo cumprido',`${m.completed}/${m.totalPE}`,`${(m.completed/m.totalPE*100).toFixed(1).replace('.',',')}% do plano · inclui descansos planejados`)}
+  ${metric('PE atual',`${d.today.number}/${m.totalPE}`,`${m.completed} ciclos anteriores cumpridos · hoje é ${d.today.pe}`)}
   ${metric('Questões com resultado',fmtNumber(resultQuestions),'volume efetivamente respondido e lançado')}
   ${metric('Acertos registrados',fmtNumber(m.correct),`${fmtNumber(resultQuestions)} questões com resultado`)}
   ${metric('Aproveitamento',fmtPct(m.accuracy),'somente questões com resultado')}
