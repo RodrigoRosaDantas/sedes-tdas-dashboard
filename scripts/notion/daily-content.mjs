@@ -16,9 +16,13 @@ export const DAILY_ROOTS = Object.freeze({
 
 const PE_LIMIT = 112;
 const OPTION_KEYS = Object.freeze(['A', 'B', 'C', 'D', 'E']);
-const peCode = value => {
-  const match = String(value ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').match(/\bPE\s*0*(\d{1,3})\b/i);
-  const number = Number(match?.[1]);
+export const peCode = value => {
+  const normalized = String(value ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const match = normalized.match(/^\s*PE\s*0*(\d{1,3})\b/i);
+  if (!match) return null;
+  const tail = normalized.slice(match[0].length);
+  if (/^\s*[-–—]\s*(?:PE\s*0*\d{1,3}\b|0*\d{1,3}\b(?!\s*\/))/i.test(tail)) return null;
+  const number = Number(match[1]);
   return Number.isInteger(number) && number >= 1 && number <= PE_LIMIT ? `PE${String(number).padStart(2, '0')}` : null;
 };
 const compactId = value => String(value ?? '').replaceAll('-', '').toLowerCase();
@@ -57,6 +61,11 @@ function childPage(block, parentId) {
   };
 }
 
+export function isAuxiliaryDailyPage(value) {
+  const normalized = String(value ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  return /\bauditoria\b/i.test(normalized);
+}
+
 export async function discoverDailyPages(root, {expected = PE_LIMIT} = {}) {
   const rootChildren = (await listBlockChildren(root.id)).map(block => childPage(block, root.id)).filter(Boolean);
   const direct = rootChildren.filter(page => peCode(page.title));
@@ -64,18 +73,20 @@ export async function discoverDailyPages(root, {expected = PE_LIMIT} = {}) {
   const nestedGroups = await mapLimit(containers, 3, async container =>
     (await listBlockChildren(container.id)).map(block => childPage(block, container.id)).filter(Boolean)
   );
-  const candidates = [...direct, ...nestedGroups.flat()].filter(page => peCode(page.title));
+  const candidates = [...direct, ...nestedGroups.flat()].filter(page => peCode(page.title) && !isAuxiliaryDailyPage(page.title));
   const byPe = new Map();
   for (const page of candidates) {
     const pe = peCode(page.title);
     if (byPe.has(pe)) throw new Error(`${root.name}: mais de uma página localizada para ${pe}.`);
     byPe.set(pe, {...page, pe});
   }
-  required(byPe.size === expected, `${root.name}: foram localizados ${byPe.size} PE; esperado ${expected}.`);
+  const missing = [];
   for (let number = 1; number <= expected; number++) {
     const pe = `PE${String(number).padStart(2, '0')}`;
-    required(byPe.has(pe), `${root.name}: página filha ausente para ${pe}.`);
+    if (!byPe.has(pe)) missing.push(pe);
   }
+  required(missing.length === 0, `${root.name}: páginas filhas ausentes: ${missing.join(', ')}.`);
+  required(byPe.size === expected, `${root.name}: foram localizados ${byPe.size} PE; esperado ${expected}.`);
   return byPe;
 }
 
