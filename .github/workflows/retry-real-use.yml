@@ -1,0 +1,75 @@
+name: Executar ativação observável do uso real
+
+on:
+  push:
+    branches:
+      - agent/ativar-uso-real-controle
+
+permissions:
+  contents: write
+
+concurrency:
+  group: apply-real-use-observable
+  cancel-in-progress: true
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Baixar repositório
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Sinalizar execução
+        shell: bash
+        run: |
+          set -euo pipefail
+          git push origin "HEAD:refs/heads/real-use-status/running-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+
+      - name: Preparar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Executar transformação original
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin agent/ativar-uso-real
+          git checkout --detach origin/agent/ativar-uso-real
+          python3 - <<'PY'
+          from pathlib import Path
+          text = Path('.github/workflows/apply-real-use.yml').read_text(encoding='utf-8')
+          marker = "      - name: Aplicar transição operacional\n        shell: bash\n        run: |\n"
+          if marker not in text:
+              raise SystemExit('Bloco de transformação não localizado.')
+          block = text.split(marker, 1)[1]
+          lines = []
+          for line in block.splitlines():
+              if line.startswith('          '):
+                  lines.append(line[10:])
+              elif not line.strip():
+                  lines.append('')
+              else:
+                  raise SystemExit(f'Indentação inesperada: {line[:40]}')
+          Path('/tmp/apply-real-use.sh').write_text('\n'.join(lines) + '\n', encoding='utf-8')
+          PY
+          bash -n /tmp/apply-real-use.sh
+          bash /tmp/apply-real-use.sh
+
+      - name: Sinalizar sucesso
+        if: success()
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin agent/ativar-uso-real
+          git push origin "origin/agent/ativar-uso-real:refs/heads/real-use-status/success-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+
+      - name: Sinalizar falha
+        if: failure()
+        shell: bash
+        run: |
+          set -euo pipefail
+          git push origin "HEAD:refs/heads/real-use-status/failed-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" || true
