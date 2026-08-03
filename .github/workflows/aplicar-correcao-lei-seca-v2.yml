@@ -1,0 +1,63 @@
+name: Consolidar correção da Lei Seca
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/aplicar-correcao-lei-seca-v2.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Aplicar versões e testes
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import json
+          def rep(file, old, new):
+              p=Path(file); s=p.read_text(encoding='utf-8')
+              if old not in s: raise SystemExit(f'{file}: trecho ausente: {old}')
+              p.write_text(s.replace(old,new,1),encoding='utf-8')
+          rep('assets/enhance-v20.js','daily-execution.js?v=1.0.0','daily-execution.js?v=1.1.1')
+          rep('resolver/index.html','daily-question-page.js?v=1.0.0','daily-question-page.js?v=1.0.1')
+          rep('hoje/index.html','today-execution.js?v=1.0.0','today-execution.js?v=1.0.1')
+          rep('estudar/index.html','module-dashboard.js?v=3.0.0','module-dashboard.js?v=3.0.1')
+          p=Path('scripts/postprocess-v26.mjs'); s=p.read_text(encoding='utf-8')
+          marker="const subjectSlugs=(subjectsData.subjects||[]).map(item=>item.slug).filter(Boolean),fallbackSlugs="
+          insert="""for(let number=1;number<=totalPE;number++){const file=path.join(ROOT,'pe',String(number),'index.html');try{const html=await fs.readFile(file,'utf8');const updated=html.replaceAll('assets/enhance-v20.js?v=20','assets/enhance-v20.js?v=26.1');if(updated!==html)await fs.writeFile(file,updated,'utf8')}catch(error){if(error?.code!=='ENOENT')throw error}}\n"""
+          if marker not in s: raise SystemExit('postprocess: marcador ausente')
+          s=s.replace(marker,insert+marker,1)
+          old="-notion-daily-content';"
+          new="-notion-daily-content-law-101';"
+          if old not in s: raise SystemExit('postprocess: versão ausente')
+          p.write_text(s.replace(old,new,1),encoding='utf-8')
+          Path('scripts/test-daily-law-integration.mjs').write_text("""import assert from 'node:assert/strict';\nimport fs from 'node:fs';\nconst r=f=>fs.readFileSync(f,'utf8');\nconst law=r('assets/integration/daily-law.js');\nassert.ok(!/import\\s*\\{[^}]*\\bBASE\\b[^}]*\\}\\s*from\\s*['\"]\\.\\/daily-execution/.test(law));\nassert.ok(law.includes('daily-execution.js?v=1.1.1'));\nassert.ok(r('assets/integration/daily-execution.js').includes('daily-law.js?v=1.0.1'));\nfor(const f of ['assets/integration/daily-question-page.js','assets/integration/today-execution.js','assets/integration/module-dashboard.js','assets/enhance-v20.js'])assert.ok(r(f).includes('daily-execution.js?v=1.1.1'),f);\nassert.ok(r('resolver/index.html').includes('daily-question-page.js?v=1.0.1'));\nassert.ok(r('hoje/index.html').includes('today-execution.js?v=1.0.1'));\nassert.ok(r('estudar/index.html').includes('module-dashboard.js?v=3.0.1'));\nassert.ok(r('scripts/postprocess-v26.mjs').includes('notion-daily-content-law-101'));\nconsole.log('Lei Seca validada: import correto e cache invalidado.');\n""",encoding='utf-8')
+          package=Path('package.json'); data=json.loads(package.read_text(encoding='utf-8')); test='node scripts/test-daily-law-integration.mjs'
+          if test not in data['scripts']['check']: data['scripts']['check']=data['scripts']['check'].replace('node scripts/test-dashboard-freshness.mjs &&',f'node scripts/test-dashboard-freshness.mjs && {test} &&',1)
+          data['scripts']['test:daily-law']=test; package.write_text(json.dumps(data,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+          PY
+          npm run check
+      - name: Consolidar
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add assets/enhance-v20.js resolver/index.html hoje/index.html estudar/index.html scripts/postprocess-v26.mjs scripts/test-daily-law-integration.mjs package.json
+          git commit -m 'Corrigir carregamento da Lei Seca e invalidar cache'
+          git push origin "HEAD:${{ github.event.pull_request.head.ref }}"
