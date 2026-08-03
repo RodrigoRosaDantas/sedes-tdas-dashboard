@@ -35,11 +35,15 @@ jobs:
           from pathlib import Path
           path = Path('scripts/apply-daily-format-patch.py')
           source = path.read_text(encoding='utf-8')
-          old = "\n\nexport function parseDailyQuestions''', 'leitura do gabarito')"
-          new = "\n''', 'leitura do gabarito')"
-          if old not in source:
-              raise SystemExit('Assinatura duplicada do parser não localizada')
-          path.write_text(source.replace(old, new, 1), encoding='utf-8')
+          replacements = [
+              ("\n\nexport function parseDailyQuestions''', 'leitura do gabarito')", "\n''', 'leitura do gabarito')"),
+              (r"<td>\s*([A-E])\s*<\/td>\s*<\/tr>", r"<td>\s*([A-E])\s*<\/td>[\s\S]*?<\/tr>")
+          ]
+          for old, new in replacements:
+              if old not in source:
+                  raise SystemExit(f'Trecho transitório não localizado: {old}')
+              source = source.replace(old, new, 1)
+          path.write_text(source, encoding='utf-8')
           PY
           python scripts/apply-daily-format-patch.py
 
