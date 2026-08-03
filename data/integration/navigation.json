@@ -1,65 +1,63 @@
 {
-  "schemaVersion": "1.0.0",
-  "phase": 2,
-  "mode": "navigation-only",
+  "schemaVersion": "2.0.0",
+  "mode": "real-operations",
   "basePath": "/sedes-tdas-dashboard/",
+  "sources": [
+    "Controle de Questões TDAS",
+    "Caderno de Erros TDAS / PRO",
+    "Banco de Redações TDAS"
+  ],
   "routes": [
     {
       "key": "estudar",
       "path": "/sedes-tdas-dashboard/estudar/",
-      "title": "Estudar",
-      "description": "Entrada central do módulo de questões, preparada para receber catálogo e sessões de estudo.",
-      "status": "Estrutura criada",
-      "nextPhase": "Fase 3 — catálogo piloto do PE76"
+      "title": "Central de estudo",
+      "status": "Ativa",
+      "source": "Snapshot validado dos três bancos oficiais"
     },
     {
       "key": "resolver",
       "path": "/sedes-tdas-dashboard/resolver/",
-      "title": "Resolver questões",
-      "description": "Rota reservada para o player de questões e controles de sessão.",
-      "status": "Estrutura criada",
-      "nextPhase": "Fase 4 — player"
+      "title": "Execução do dia",
+      "status": "Alias para Hoje",
+      "target": "/sedes-tdas-dashboard/hoje/"
     },
     {
       "key": "revisar",
       "path": "/sedes-tdas-dashboard/revisar/",
       "title": "Revisar",
-      "description": "Rota reservada para revisões D+1, D+7 e D+20.",
-      "status": "Estrutura criada",
-      "nextPhase": "Fase 7 — revisões"
+      "status": "Alias para o caderno oficial",
+      "target": "/sedes-tdas-dashboard/questoes-erros/"
     },
     {
       "key": "caderno-erros",
       "path": "/sedes-tdas-dashboard/caderno-erros/",
       "title": "Caderno de erros",
-      "description": "Nova rota canônica do caderno; o acervo oficial atual permanece preservado.",
-      "status": "Estrutura criada",
-      "nextPhase": "Fase 6 — classificação e erro definitivo",
-      "legacyPath": "/sedes-tdas-dashboard/questoes-erros/"
+      "status": "Alias para o caderno oficial",
+      "target": "/sedes-tdas-dashboard/questoes-erros/"
     },
     {
       "key": "desempenho",
       "path": "/sedes-tdas-dashboard/desempenho/",
       "title": "Desempenho",
-      "description": "Rota reservada para métricas de tentativas, tempo, acertos, dúvidas e chutes.",
-      "status": "Estrutura criada",
-      "nextPhase": "Fase 9 — painéis"
+      "status": "Alias para Evolução",
+      "target": "/sedes-tdas-dashboard/evolucao/"
     },
     {
       "key": "fila-ia",
       "path": "/sedes-tdas-dashboard/fila-ia/",
-      "title": "Fila de IA",
-      "description": "Rota reservada para itens que exigem auditoria, explicação ou decisão editorial.",
-      "status": "Estrutura criada",
-      "nextPhase": "Fase 11 — fila de IA"
+      "title": "Auditoria",
+      "status": "Alias para Auditoria",
+      "target": "/sedes-tdas-dashboard/auditoria/"
     }
   ],
   "invariants": [
-    "no-study-data-write",
-    "no-notion-writeback",
-    "no-legacy-migration",
-    "no-question-player",
-    "legacy-error-route-preserved",
+    "official-notion-sources-only",
+    "no-question-bank-read",
+    "no-question-catalog",
+    "no-answer-key-load",
+    "no-notion-writeback-from-site",
+    "public-snapshot-read-only",
     "single-dashboard-service-worker"
   ]
 }
