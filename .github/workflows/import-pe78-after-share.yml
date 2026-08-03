@@ -87,6 +87,24 @@ jobs:
           if old_candidates not in source:
             raise SystemExit('Filtro de candidatos não localizado.')
           source = source.replace(old_candidates, new_candidates, 1)
+
+          old_check = """  required(byPe.size === expected, `${root.name}: foram localizados ${byPe.size} PE; esperado ${expected}.`);
+            for (let number = 1; number <= expected; number++) {
+              const pe = `PE${String(number).padStart(2, '0')}`;
+              required(byPe.has(pe), `${root.name}: página filha ausente para ${pe}.`);
+            }
+            return byPe;"""
+          new_check = """  const missing = [];
+            for (let number = 1; number <= expected; number++) {
+              const pe = `PE${String(number).padStart(2, '0')}`;
+              if (!byPe.has(pe)) missing.push(pe);
+            }
+            required(missing.length === 0, `${root.name}: páginas filhas ausentes: ${missing.join(', ')}.`);
+            required(byPe.size === expected, `${root.name}: foram localizados ${byPe.size} PE; esperado ${expected}.`);
+            return byPe;"""
+          if old_check not in source:
+            raise SystemExit('Bloco de validação da cobertura não localizado.')
+          source = source.replace(old_check, new_check, 1)
           module.write_text(source, encoding='utf-8')
 
           test = Path('scripts/test-daily-content.mjs')
