@@ -1,0 +1,80 @@
+name: Verificar sincronização pública de 02/08/2026
+
+on:
+  push:
+    branches:
+      - agent/verify-public-sync-20260802
+
+permissions:
+  contents: write
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Sinalizar execução
+        shell: bash
+        run: |
+          set -euo pipefail
+          git push origin "HEAD:refs/heads/public-sync-status/running-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+
+      - name: Aguardar e validar GitHub Pages
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://rodrigorosadantas.github.io/sedes-tdas-dashboard'
+          ok=0
+          for attempt in $(seq 1 24); do
+            nonce="${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-${attempt}"
+            if curl -fsS -H 'Cache-Control: no-cache' "$base/data/today.json?v=$nonce" -o /tmp/today.json \
+              && curl -fsS -H 'Cache-Control: no-cache' "$base/data/redactions.json?v=$nonce" -o /tmp/redactions.json \
+              && curl -fsS -H 'Cache-Control: no-cache' "$base/sw.js?v=$nonce" -o /tmp/sw.js \
+              && curl -fsS -H 'Cache-Control: no-cache' "$base/hoje/?v=$nonce" -o /tmp/hoje.html; then
+              if node - <<'NODE'
+              const fs = require('fs');
+              const today = JSON.parse(fs.readFileSync('/tmp/today.json', 'utf8'));
+              const redactions = JSON.parse(fs.readFileSync('/tmp/redactions.json', 'utf8'));
+              const sw = fs.readFileSync('/tmp/sw.js', 'utf8');
+              const hoje = fs.readFileSync('/tmp/hoje.html', 'utf8');
+              const rd12 = redactions.redactions.find(item => item.rd === 'RD12');
+              const valid = today.meta.snapshotDate === '2026-08-02'
+                && today.current.pe === 'PE77'
+                && today.current.status === 'Concluído'
+                && today.current.acertos === 40
+                && today.current.attempted === 40
+                && today.current.qg === 6
+                && today.current.qe === 34
+                && today.current.errors === 0
+                && rd12?.status === 'Corrigida'
+                && rd12?.score === 61.67
+                && sw.includes('Array.from({length:9}')
+                && !sw.includes('Array.from({length:10}')
+                && /<!doctype html>/i.test(hoje);
+              if (!valid) process.exit(1);
+              console.log(JSON.stringify({
+                snapshotDate: today.meta.snapshotDate,
+                pe: today.current.pe,
+                resultado: `${today.current.acertos}/${today.current.attempted}`,
+                distribuicao: { gerais: today.current.qg, especificas: today.current.qe },
+                errosDoDia: today.current.errors,
+                rd12: { status: rd12.status, score: rd12.score },
+                errorParts: 9,
+                rotaHoje: 'ok'
+              }));
+              NODE
+              then
+                ok=1
+                break
+              fi
+            fi
+            sleep 10
+          done
+          if [[ $ok -ne 1 ]]; then
+            git push origin "HEAD:refs/heads/public-sync-status/failed-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" || true
+            echo 'GitHub Pages não refletiu integralmente o snapshot esperado dentro da janela de validação.'
+            exit 1
+          fi
+          git push origin "HEAD:refs/heads/public-sync-status/success-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
