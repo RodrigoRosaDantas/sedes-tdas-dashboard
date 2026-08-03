@@ -20,6 +20,30 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - name: Diagnosticar acesso às páginas oficiais do PE78
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$NOTION_TOKEN"
+          check() {
+            local name="$1" endpoint="$2" body status
+            body="$(mktemp)"
+            status="$(curl -sS -o "$body" -w '%{http_code}' \
+              -H "Authorization: Bearer $NOTION_TOKEN" \
+              -H 'Notion-Version: 2022-06-28' \
+              "https://api.notion.com/v1/$endpoint")"
+            printf '%s=%s\n' "$name" "$status"
+            if [[ "$status" != '200' ]]; then
+              jq -c '{status,code,message,additional_data}' "$body" || cat "$body"
+            fi
+            rm -f "$body"
+          }
+          check material_page 'pages/364cf5a2673181ff90cfe4606151c599'
+          check material_blocks 'blocks/364cf5a2673181ff90cfe4606151c599/children?page_size=1'
+          check questions_page 'pages/364cf5a2673181a8ad7ae8ed70efc0a5'
+          check questions_blocks 'blocks/364cf5a2673181a8ad7ae8ed70efc0a5/children?page_size=1'
       - name: Consultar Notion e gerar conteúdo real
         env:
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
@@ -28,7 +52,6 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test -n "$NOTION_TOKEN"
           node scripts/prepare-calendar-refresh.mjs
           node scripts/sync-notion.mjs
           node scripts/postprocess-v23.mjs
@@ -45,13 +68,12 @@ jobs:
           const material=JSON.parse(await fs.readFile('data/integration/daily-material.json','utf8'));
           const contract=JSON.parse(await fs.readFile('data/integration/daily-execution.json','utf8'));
           const key=JSON.parse(await fs.readFile(catalog.keyPath,'utf8'));
-          const result={
+          console.log(JSON.stringify({
             importacao:'ok',pe:catalog.peId,questoes:catalog.questionCount,
             materialHtml:material.html.length,respostasSeparadas:key.answers.length,
             materialPageId:contract.current.materialPageId,
             questionPageId:contract.current.questionPageId,
             correcaoNoCatalogo:'answers' in catalog||'gabarito' in catalog,
             correcaoNoPrecache:(await fs.readFile('sw.js','utf8')).includes('question-keys/')
-          };
-          console.log(JSON.stringify(result));
+          }));
           NODE
