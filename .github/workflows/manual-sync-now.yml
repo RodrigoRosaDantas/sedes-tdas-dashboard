@@ -1,0 +1,82 @@
+name: Sincronizar TDAS agora (temporário)
+
+on:
+  push:
+    branches:
+      - agent/manual-sync-20260802-2106
+
+permissions:
+  contents: write
+
+concurrency:
+  group: notion-sync-publication
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Baixar repositório
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Preparar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Voltar para a main vigente
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'tdas-notion-sync[bot]'
+          git config user.email 'tdas-notion-sync[bot]@users.noreply.github.com'
+          git fetch origin main
+          git reset --hard origin/main
+          echo "Base validada: $(git rev-parse HEAD)"
+
+      - name: Consultar, gerar e validar integralmente
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          SYNC_KIND: workflow_dispatch
+          TZ: America/Sao_Paulo
+        shell: bash
+        run: |
+          set -uo pipefail
+          : > /tmp/tdas-sync.log
+          node scripts/sync-notion.mjs 2>&1 | tee -a /tmp/tdas-sync.log
+          sync_status=${PIPESTATUS[0]}
+          if [[ $sync_status -eq 0 ]]; then
+            node scripts/postprocess-v23.mjs 2>&1 | tee -a /tmp/tdas-sync.log
+            sync_status=${PIPESTATUS[0]}
+          fi
+          if [[ $sync_status -eq 0 ]]; then
+            node scripts/postprocess-v24.mjs 2>&1 | tee -a /tmp/tdas-sync.log
+            sync_status=${PIPESTATUS[0]}
+          fi
+          if [[ $sync_status -eq 0 ]]; then
+            node scripts/postprocess-v26.mjs 2>&1 | tee -a /tmp/tdas-sync.log
+            sync_status=${PIPESTATUS[0]}
+          fi
+          if [[ $sync_status -eq 0 ]]; then
+            node scripts/validate-platform.mjs 2>&1 | tee -a /tmp/tdas-sync.log
+            sync_status=${PIPESTATUS[0]}
+          fi
+          if [[ $sync_status -ne 0 ]]; then
+            echo 'A publicação foi bloqueada; main permaneceu intacta.'
+            exit $sync_status
+          fi
+
+      - name: Promover somente o conjunto validado
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add -A data pe materias sw.js
+          if git diff --cached --quiet; then
+            echo 'Nenhum arquivo foi alterado.'
+            exit 0
+          fi
+          git commit -m 'Sincronizar registros TDAS de 02/08/2026'
+          git push origin HEAD:main
