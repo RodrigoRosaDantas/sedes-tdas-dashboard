@@ -1,0 +1,84 @@
+name: Smoke da virada PE79 e encerramento
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/smoke-next-cycle.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Simular PE79 e PE112 contra o Notion
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          TZ: America/Sao_Paulo
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs/promises';
+          import {prepareDailyContent} from './scripts/notion/daily-content.mjs';
+          const files=['data/export/actual-01.json','data/export/actual-02.json','data/export/actual-03.json','data/export/future-01.json','data/export/future-02.json'];
+          const controls=[];
+          for(const file of files){
+            const rows=JSON.parse(await fs.readFile(file,'utf8'));
+            controls.push(...rows.map(row=>({...row,meta:Number(row.planned_questions||0)})));
+          }
+          const pe79=await prepareDailyContent({controls,snapshotDate:'2026-08-04'});
+          if(pe79.pe!=='PE79'||pe79.catalog.questionCount!==35||pe79.catalog.questions?.length!==35) throw new Error('Virada PE79 incompatível.');
+          if(pe79.key?.answers?.length!==35||pe79.material.html?.length<200) throw new Error('Conteúdo PE79 incompleto.');
+          for(const question of pe79.catalog.questions){
+            if(Object.keys(question.alternativas||{}).join('')!=='AB') throw new Error(`Formato C/E inválido em ${question.id}.`);
+          }
+          if(JSON.stringify(pe79.catalog).match(/"(?:gabarito|answers|comentarios|comentários|fundamentos)"\s*:/i)) throw new Error('Correção antecipada no PE79.');
+
+          const pe112=await prepareDailyContent({controls,snapshotDate:'2026-09-06'});
+          if(pe112.pe!=='PE112'||pe112.catalog.questionCount!==0||pe112.catalog.questions?.length!==0) throw new Error('PE112 criou bateria artificial.');
+          if(pe112.key!==null||pe112.catalog.keyPath!==null||pe112.material.html?.length<200) throw new Error('Encerramento PE112 incompatível.');
+
+          console.log(JSON.stringify({simulacao:'ok',pe79:{questoes:35,formato:'A/B',correcaoSeparada:35},pe112:{questoesTreino:0,material:true}}));
+          NODE
+
+      - name: Confirmar publicação atual sem regressão
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://rodrigorosadantas.github.io/sedes-tdas-dashboard'
+          ok='false'
+          for attempt in $(seq 1 30); do
+            if curl -fsS "$base/data/integration/question-catalog.json" -o /tmp/catalog.json \
+              && curl -fsS "$base/assets/integration/module-player.js" -o /tmp/player.js \
+              && curl -fsS "$base/sw.js" -o /tmp/sw.js; then
+              if node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const catalog=JSON.parse(fs.readFileSync('/tmp/catalog.json','utf8'));
+          const player=fs.readFileSync('/tmp/player.js','utf8');
+          const sw=fs.readFileSync('/tmp/sw.js','utf8');
+          if(catalog.peId!=='PE78'||catalog.questionCount!==48||catalog.questions?.length!==48) process.exit(1);
+          if(!player.includes('ANSWER_OPTIONS.filter(option => question.alternativas?.[option])')) process.exit(1);
+          if(sw.includes('question-keys/pe78.json')) process.exit(1);
+          NODE
+              then
+                ok='true'
+                break
+              fi
+            fi
+            sleep 10
+          done
+          test "$ok" = 'true'
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const catalog=JSON.parse(fs.readFileSync('/tmp/catalog.json','utf8'));
+          console.log(JSON.stringify({publicacao:'ok',peAtual:catalog.peId,questoesAtuais:catalog.questionCount,playerAlternativasVariaveis:true,correcaoNoPrecache:false}));
+          NODE
