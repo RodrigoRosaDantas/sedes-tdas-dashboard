@@ -1,120 +1,72 @@
-name: Adaptar e auditar ciclo PE79–PE112
+name: Auditar ciclo diário PE79–PE112
 
 on:
+  workflow_dispatch:
   pull_request:
     branches: [main]
     paths:
       - '.github/workflows/daily-cycle-audit.yml'
+      - 'scripts/audit-daily-cycle.mjs'
+      - 'scripts/notion/daily-content.mjs'
+      - 'scripts/notion/api.mjs'
+      - 'assets/integration/module-player.js'
+      - 'data/export/actual-*.json'
+      - 'data/export/future-*.json'
+      - 'package.json'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/daily-cycle-audit.yml'
+      - 'scripts/audit-daily-cycle.mjs'
+      - 'scripts/notion/daily-content.mjs'
+      - 'scripts/notion/api.mjs'
+      - 'assets/integration/module-player.js'
+      - 'data/export/actual-*.json'
+      - 'data/export/future-*.json'
+      - 'package.json'
+  schedule:
+    - cron: '20 5 * * *'
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
-  group: adaptar-ciclo-${{ github.event.pull_request.number }}
+  group: daily-cycle-preflight
   cancel-in-progress: true
 
 jobs:
-  adapt:
-    if: github.actor != 'github-actions[bot]'
+  audit:
     runs-on: ubuntu-latest
-    timeout-minutes: 50
+    timeout-minutes: 40
     steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.head.ref }}
-          fetch-depth: 1
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-
-      - name: Aplicar compatibilidade dos formatos diários
+      - name: Verificar janela do ciclo
+        id: cycle
         shell: bash
         run: |
           set -euo pipefail
-          python - <<'PY'
-          from pathlib import Path
-          path = Path('scripts/apply-daily-format-patch.py')
-          source = path.read_text(encoding='utf-8')
-          replacements = [
-              ("\n\nexport function parseDailyQuestions''', 'leitura do gabarito')", "\n''', 'leitura do gabarito')"),
-              (r"<td>\s*([A-E])\s*<\/td>\s*<\/tr>", r"<td>\s*([A-E])\s*<\/td>[\s\S]*?<\/tr>")
-          ]
-          for old, new in replacements:
-              if old not in source:
-                  raise SystemExit(f'Trecho transitório não localizado: {old}')
-              source = source.replace(old, new, 1)
-          path.write_text(source, encoding='utf-8')
-          PY
-          python scripts/apply-daily-format-patch.py
+          today="$(TZ=America/Sao_Paulo date +%F)"
+          if [[ "${GITHUB_EVENT_NAME}" == 'schedule' && "$today" > '2026-09-06' ]]; then
+            echo 'run=false' >> "$GITHUB_OUTPUT"
+            echo "Ciclo encerrado em 2026-09-06; auditoria agendada dispensada."
+          else
+            echo 'run=true' >> "$GITHUB_OUTPUT"
+          fi
 
-          python - <<'PY'
-          from pathlib import Path
+      - name: Baixar repositório
+        if: steps.cycle.outputs.run == 'true'
+        uses: actions/checkout@v4
 
-          def replace_once(source, old, new, label):
-              if old not in source:
-                  raise SystemExit(f'{label} não localizado')
-              return source.replace(old, new, 1)
+      - name: Preparar Node.js
+        if: steps.cycle.outputs.run == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
 
-          daily = Path('scripts/notion/daily-content.mjs')
-          source = daily.read_text(encoding='utf-8')
-          source = replace_once(
-              source,
-              'const parsed = parseDailyQuestions(questionMarkdown, {',
-              'const explicitNoQuestions = /não traz bateria artificial de questões/i.test(questionMarkdown);\n  const parsed = parseDailyQuestions(questionMarkdown, {',
-              'Chamada do parser diário'
-          )
-          source = replace_once(
-              source,
-              'expectedCount: Math.max(0, Number(current.meta || 0)),',
-              'expectedCount: explicitNoQuestions ? 0 : Math.max(0, Number(current.meta || 0)),',
-              'Meta diária'
-          )
-          daily.write_text(source, encoding='utf-8')
-
-          audit = Path('scripts/audit-daily-cycle.mjs')
-          source = audit.read_text(encoding='utf-8')
-          source = replace_once(
-              source,
-              'const parsed = parseDailyQuestions(questionMarkdown, {',
-              'const explicitNoQuestions = /não traz bateria artificial de questões/i.test(questionMarkdown);\n    const effectiveExpectedCount = explicitNoQuestions ? 0 : control.expectedCount;\n    const parsed = parseDailyQuestions(questionMarkdown, {',
-              'Chamada do parser na auditoria'
-          )
-          substitutions = [
-              ('expectedCount: control.expectedCount,', 'expectedCount: effectiveExpectedCount,'),
-              ('validatePublicCatalog(parsed.catalog, control.pe, control.expectedCount);', 'validatePublicCatalog(parsed.catalog, control.pe, effectiveExpectedCount);'),
-              ('if (control.expectedCount === 0) {', 'if (effectiveExpectedCount === 0) {'),
-              ('parsed.key?.answers?.length === control.expectedCount', 'parsed.key?.answers?.length === effectiveExpectedCount'),
-              ('questions: control.expectedCount', 'questions: effectiveExpectedCount'),
-              ("console.log(`${control.pe}: pronto — material ${html.length} caracteres; ${control.expectedCount} questões; correção separada.`);", "console.log(`${control.pe}: pronto — material ${html.length} caracteres; ${effectiveExpectedCount} questões de treino; correção ${effectiveExpectedCount ? 'separada' : 'não aplicável'}.`);")
-          ]
-          for old, new in substitutions:
-              source = replace_once(source, old, new, f'Auditoria: {old}')
-          audit.write_text(source, encoding='utf-8')
-          PY
-
-      - name: Validar plataforma e todos os dias restantes
+      - name: Auditar PE79–PE112 no Notion
+        if: steps.cycle.outputs.run == 'true'
         env:
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
           TZ: America/Sao_Paulo
           AUDIT_FROM_PE: '79'
           AUDIT_TO_PE: '112'
-        shell: bash
-        run: |
-          set -euo pipefail
-          npm run check
-          npm run audit:daily-cycle
-
-      - name: Consolidar código validado
-        shell: bash
-        run: |
-          set -euo pipefail
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          rm -f scripts/apply-daily-format-patch.py
-          git add -A
-          if ! git diff --cached --quiet -- .github/workflows; then
-            echo 'A consolidação tentou alterar workflows.' >&2
-            exit 1
-          fi
-          git commit -m 'Aceitar todos os formatos do ciclo diário'
-          git push origin "HEAD:${{ github.event.pull_request.head.ref }}"
+        run: npm run audit:daily-cycle
