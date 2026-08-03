@@ -84,7 +84,8 @@ jobs:
               ('validatePublicCatalog(parsed.catalog, control.pe, control.expectedCount);', 'validatePublicCatalog(parsed.catalog, control.pe, effectiveExpectedCount);'),
               ('if (control.expectedCount === 0) {', 'if (effectiveExpectedCount === 0) {'),
               ('parsed.key?.answers?.length === control.expectedCount', 'parsed.key?.answers?.length === effectiveExpectedCount'),
-              ('questions: control.expectedCount', 'questions: effectiveExpectedCount')
+              ('questions: control.expectedCount', 'questions: effectiveExpectedCount'),
+              ("console.log(`${control.pe}: pronto — material ${html.length} caracteres; ${control.expectedCount} questões; correção separada.`);", "console.log(`${control.pe}: pronto — material ${html.length} caracteres; ${effectiveExpectedCount} questões de treino; correção ${effectiveExpectedCount ? 'separada' : 'não aplicável'}.`);")
           ]
           for old, new in substitutions:
               source = replace_once(source, old, new, f'Auditoria: {old}')
@@ -109,7 +110,6 @@ jobs:
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git checkout "$GITHUB_SHA" -- .github/workflows
           rm -f scripts/apply-daily-format-patch.py
           git add -A
           if ! git diff --cached --quiet -- .github/workflows; then
