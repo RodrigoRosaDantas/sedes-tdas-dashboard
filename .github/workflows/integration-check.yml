@@ -21,3 +21,31 @@ jobs:
         with:
           node-version: 22
       - run: npm run check
+      - name: Conferir execução diária publicada
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://rodrigorosadantas.github.io/sedes-tdas-dashboard'
+          nonce="${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          validate() {
+            curl -fsSL -H 'Cache-Control: no-cache' "$base/hoje/?v=$nonce" | grep -q 'today-execution.js'
+            curl -fsSL -H 'Cache-Control: no-cache' "$base/estudar/?pe=PE77&v=$nonce" | grep -q 'module-dashboard.js'
+            curl -fsSL -H 'Cache-Control: no-cache' "$base/resolver/?pe=PE77&v=$nonce" | grep -q 'daily-question-page.js'
+            curl -fsSL -H 'Cache-Control: no-cache' "$base/pe/77/?v=$nonce" | grep -q 'enhance-v20.js'
+            contract="$(curl -fsSL -H 'Cache-Control: no-cache' "$base/data/integration/daily-execution.json?v=$nonce")"
+            jq -e '.mode == "daily-execution-contract" and (.materialPageIds | length) == 112 and (.questionPageIds | length) == 112 and .materialPageIds[77] == "364cf5a267318116ac67e405688a4f2d" and .questionPageIds[77] == "364cf5a2673181a8ad7ae8ed70efc0a5"' <<<"$contract" >/dev/null
+            curl -fsSL -H 'Cache-Control: no-cache' "$base/assets/integration/module-dashboard.js?v=$nonce" | grep -q 'materialUrl'
+            curl -fsSL -H 'Cache-Control: no-cache' "$base/assets/integration/daily-question-page.js?v=$nonce" | grep -q 'questionsUrl'
+            curl -fsSL -H 'Cache-Control: no-cache' "$base/assets/enhance-v20.js?v=$nonce" | grep -q 'dailyPeExecution'
+            sw="$(curl -fsSL -H 'Cache-Control: no-cache' "$base/sw.js?v=$nonce")"
+            grep -q 'daily-execution.json' <<<"$sw"
+            ! grep -Eq 'pe76-catalog|pe76-key|pilot-catalog|real-study' <<<"$sw"
+          }
+          for attempt in $(seq 1 12); do
+            if validate; then
+              echo '{"publicacao":"ok","fluxo":"material-questoes-registro","pares":112,"pe78":"ok","pwa":"ok"}'
+              exit 0
+            fi
+            sleep 10
+          done
+          exit 1
