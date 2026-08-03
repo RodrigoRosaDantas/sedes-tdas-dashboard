@@ -1,0 +1,48 @@
+name: Smoke detalhado da Lei Seca
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/smoke-lei-seca-detalhado.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  detail:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Identificar verificação pendente
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://rodrigorosadantas.github.io/sedes-tdas-dashboard'
+          nonce="$(date +%s)"
+          for entry in 'hoje|/hoje/' 'estudar|/estudar/' 'resolver|/resolver/' 'pe78|/pe/78/'; do
+            name="${entry%%|*}"; route="${entry#*|}"
+            timeout 45s google-chrome --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --virtual-time-budget=12000 --dump-dom "$base$route?v=$nonce" > "/tmp/$name.html" 2> "/tmp/$name.stderr"
+            echo "$name console_error=$(grep -Eic "Lei Seca indisponível|does not provide an export named 'BASE'|Uncaught (TypeError|ReferenceError|SyntaxError)" "/tmp/$name.stderr" || true)"
+            echo "$name law_library=$(grep -c 'Lei Seca e Banco de Leis' "/tmp/$name.html" || true)"
+            echo "$name open_law=$(grep -c 'Abrir Lei Seca' "/tmp/$name.html" || true)"
+          done
+          curl -fsS "$base/sw.js?v=$nonce" -o /tmp/sw.js
+          echo "sw_version=$(grep -o "tdas-v26-daily-[^']*" /tmp/sw.js | head -1)"
+          echo "answer_key_precache=$(grep -c 'question-keys/' /tmp/sw.js || true)"
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const text=file=>fs.readFileSync(file,'utf8');
+          const error=file=>/Lei Seca indisponível|does not provide an export named 'BASE'|Uncaught (TypeError|ReferenceError|SyntaxError)/i.test(text(file));
+          const result={
+            consoleClean:['hoje','estudar','resolver','pe78'].every(name=>!error(`/tmp/${name}.stderr`)),
+            hoje:text('/tmp/hoje.html').includes('Lei Seca e Banco de Leis'),
+            estudar:text('/tmp/estudar.html').includes('Lei Seca e Banco de Leis'),
+            resolver:text('/tmp/resolver.html').includes('Abrir Lei Seca'),
+            pe78:text('/tmp/pe78.html').includes('Lei Seca e Banco de Leis'),
+            cache:text('/tmp/sw.js').match(/const VERSION='([^']+)'/)?.[1]||null,
+            answerKeyPrecached:text('/tmp/sw.js').includes('question-keys/')
+          };
+          console.log(JSON.stringify(result,null,2));
+          if(!result.consoleClean||!result.hoje||!result.estudar||!result.resolver||result.answerKeyPrecached)process.exit(1);
+          NODE
