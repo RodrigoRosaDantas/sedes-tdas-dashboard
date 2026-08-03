@@ -1,5 +1,13 @@
 import assert from 'node:assert/strict';
-import {parseDailyQuestions, renderMaterialMarkdown} from './notion/daily-content.mjs';
+import {isAuxiliaryDailyPage, parseDailyQuestions, peCode, renderMaterialMarkdown} from './notion/daily-content.mjs';
+
+assert.equal(peCode('PE01 — 18/05/2026 — Virada pós-edital'), 'PE01');
+assert.equal(peCode('PE78 — Revisão administrativa'), 'PE78');
+assert.equal(peCode('PE01–PE07'), null);
+assert.equal(peCode('PE01-07'), null);
+assert.equal(peCode('01 — Micro PE01–PE07 | Semana 1'), null);
+assert.equal(isAuxiliaryDailyPage('PE27 — Auditoria do simulado parcial 1 + RD08'), true);
+assert.equal(isAuxiliaryDailyPage('PE27 — Simulado parcial 1 + RD08'), false);
 
 const markdown = `# 1. Dia localizado
 PE78
