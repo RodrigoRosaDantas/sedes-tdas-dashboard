@@ -7,7 +7,6 @@ assert.ok(index.includes('command-center.css?v=1.2.0'));
 assert.ok(index.includes('data-platform-version'));
 assert.ok(!index.includes('SEDES/DF · v26.2'));
 assert.ok(center.includes('Central de execução'));
-assert.ok(center.includes('Continuar de onde parei'));
 assert.ok(center.includes("readSessionDraft()"));
 assert.ok(center.includes("fetch(BASE+'data/today.json'"));
 assert.ok(center.includes("from './daily-priorities.js?v=1.0.0'"));
@@ -16,6 +15,7 @@ assert.ok(center.includes('data.primaryStage')||center.includes('dataset.primary
 assert.ok(center.includes("fetch(BASE+'data/platform-version.json'"));
 assert.ok(center.includes('data.publicationId')||center.includes('platform.publicationId'));
 assert.ok(center.includes('data-publication-summary'));
+assert.ok(priorities.includes('Continuar de onde parei'));
 assert.ok(priorities.includes("id:'redaction'"));
 assert.ok(priorities.includes('pendingRedaction'));
 assert.ok(priorities.includes('official-reviews'));
