@@ -63,6 +63,7 @@ jobs:
           const root='/tmp/tdas-site/sedes-tdas-dashboard';
           const catalog=JSON.parse(fs.readFileSync(`${root}/data/integration/question-catalog.json`,'utf8'));
           const audit=JSON.parse(fs.readFileSync(`${root}/data/audit.json`,'utf8'));
+          const platform=JSON.parse(fs.readFileSync(`${root}/data/platform-version.json`,'utf8'));
           const ids=catalog.questions.map(item=>item.id);
           if(ids.length<3)throw new Error('O smoke exige ao menos três questões no catálogo diário.');
           const currentIndex=2;
@@ -70,9 +71,10 @@ jobs:
           const draft={schemaVersion:'1.0.0',catalogId:catalog.catalogId,peId:catalog.peId,savedAt:Date.now(),session:{schemaVersion:'1.0.0',materialId:catalog.catalogId,questionIds:ids,answers,currentIndex,startedAt:Date.now()-120000,updatedAt:Date.now(),finishedAt:null},responseMeta:{}};
           const progress={version:1,items:{[catalog.peId]:{material:true,questions:false,registered:false,updatedAt:new Date().toISOString()}}};
           const unlinked=(audit.quality||[]).filter(item=>item.title==='Registro incompleto no Caderno de Erros'&&/Origem \/ Dia ID/.test(item.detail||'')).length;
+          const sourceCommit=platform.sourceCommit==='unknown'?'local':String(platform.sourceCommit).slice(0,7);
           const html=`<!doctype html><meta charset="utf-8"><script>localStorage.setItem('tdas.202.question-module.v2.draft',${JSON.stringify(JSON.stringify(draft))});localStorage.setItem('tdas.202.daily-execution.v1',${JSON.stringify(JSON.stringify(progress))});location.replace('/sedes-tdas-dashboard/');<\/script>`;
           fs.writeFileSync(`${root}/__seed.html`,html);
-          fs.writeFileSync('/tmp/tdas-expected.env',`QUESTION_INDEX=${currentIndex+1}\nQUESTION_TOTAL=${ids.length}\nUNLINKED_ERRORS=${unlinked}\n`);
+          fs.writeFileSync('/tmp/tdas-expected.env',`QUESTION_INDEX=${currentIndex+1}\nQUESTION_TOTAL=${ids.length}\nUNLINKED_ERRORS=${unlinked}\nPLATFORM_VERSION=${platform.platformVersion}\nSOURCE_COMMIT_SHORT=${sourceCommit}\n`);
           NODE
           cd /tmp/tdas-site
           python3 -m http.server 4173 >/tmp/tdas-server.log 2>&1 &
@@ -93,6 +95,10 @@ jobs:
           "${chrome[@]}" "$base/auditoria/" >/tmp/audit.html 2>/tmp/audit.stderr
           "${chrome[@]}" "$base/resolver/" >/tmp/resolver.html 2>/tmp/resolver.stderr
           grep -q 'Central de execução' /tmp/home.html
+          grep -q "v${PLATFORM_VERSION}" /tmp/home.html
+          grep -q "Plataforma ${PLATFORM_VERSION}" /tmp/home.html
+          grep -q "publicação ${SOURCE_COMMIT_SHORT}" /tmp/home.html
+          ! grep -q 'versão carregando' /tmp/home.html
           grep -q "Continuar questão ${QUESTION_INDEX} de ${QUESTION_TOTAL}" /tmp/resume.html
           grep -q 'Erros sem origem confirmada' /tmp/audit.html
           grep -q "${UNLINKED_ERRORS} pendentes" /tmp/audit.html
@@ -100,7 +106,7 @@ jobs:
           ! grep -Eqi 'Carregando|Não foi possível carregar esta página' /tmp/home.html
           ! grep -Eqi 'Uncaught (TypeError|ReferenceError|SyntaxError)|Central de execução indisponível|Erros sem origem indisponíveis' /tmp/*.stderr
           ! grep -q 'question-keys/' /tmp/tdas-site/sedes-tdas-dashboard/sw.js
-          printf '{"browser":"ok","commandCenter":true,"resume":"question-%s-of-%s","unlinkedErrors":%s,"answerKeyPrecached":false}\n' "$QUESTION_INDEX" "$QUESTION_TOTAL" "$UNLINKED_ERRORS"
+          printf '{"browser":"ok","commandCenter":true,"platformVersion":"%s","publication":"%s","resume":"question-%s-of-%s","unlinkedErrors":%s,"answerKeyPrecached":false}\n' "$PLATFORM_VERSION" "$SOURCE_COMMIT_SHORT" "$QUESTION_INDEX" "$QUESTION_TOTAL" "$UNLINKED_ERRORS"
 
       - name: Encerrar servidor
         if: always()
