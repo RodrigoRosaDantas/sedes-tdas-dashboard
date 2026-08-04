@@ -1,12 +1,17 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 const read=file=>fs.readFileSync(file,'utf8');
-const index=read('index.html'),center=read('assets/integration/home-command-center.js'),player=read('assets/integration/module-player.js'),audit=read('auditoria/index.html'),unlinked=read('assets/integration/audit-unlinked-errors.js'),auditData=JSON.parse(read('data/audit.json'));
-assert.ok(index.includes('home-command-center.js?v=1.0.0'));
-assert.ok(index.includes('command-center.css?v=1.0.0'));
+const index=read('index.html'),center=read('assets/integration/home-command-center.js'),player=read('assets/integration/module-player.js'),audit=read('auditoria/index.html'),unlinked=read('assets/integration/audit-unlinked-errors.js'),auditData=JSON.parse(read('data/audit.json')),platform=JSON.parse(read('data/platform-version.json'));
+assert.ok(index.includes('home-command-center.js?v=1.1.0'));
+assert.ok(index.includes('command-center.css?v=1.1.0'));
+assert.ok(index.includes('data-platform-version'));
+assert.ok(!index.includes('SEDES/DF · v26.2'));
 assert.ok(center.includes('Central de execução'));
 assert.ok(center.includes('Continuar de onde parei'));
 assert.ok(center.includes("readSessionDraft()"));
+assert.ok(center.includes("fetch(BASE+'data/platform-version.json'"));
+assert.ok(center.includes('data.publicationId')||center.includes('platform.publicationId'));
+assert.ok(center.includes('data-publication-summary'));
 assert.ok(player.includes('matchingSessionDraft'));
 assert.ok(player.includes('writeSessionDraft'));
 assert.ok(player.includes('clearSessionDraft'));
@@ -18,4 +23,5 @@ const missing=(auditData.quality||[]).filter(item=>item.title==='Registro incomp
 assert.ok(Array.isArray(missing));
 assert.ok(!unlinked.includes('setItem(')&&!unlinked.includes('writeback'));
 assert.ok(!unlinked.includes('12 pendentes'));
-console.log(`Fase 1 validada: central de execução, retomada local e ${missing.length} origens pendentes tratadas dinamicamente, sem inferência ou writeback.`);
+assert.equal(platform.peId,JSON.parse(read('data/integration/question-catalog.json')).peId);
+console.log(`Fase 1 validada: central de execução, retomada local, publicação ${platform.publicationId} e ${missing.length} origens pendentes tratadas dinamicamente, sem inferência ou writeback.`);

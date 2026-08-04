@@ -11,6 +11,8 @@ on:
       - 'scripts/prepare-calendar-refresh.mjs'
       - 'scripts/validate-calendar-snapshot.mjs'
       - 'scripts/validate-daily-content.mjs'
+      - 'scripts/sync-platform-version.mjs'
+      - 'scripts/validate-platform-version.mjs'
       - 'scripts/test-calendar-refresh.mjs'
       - 'scripts/test-daily-content.mjs'
       - 'package.json'
@@ -95,6 +97,10 @@ jobs:
           fi
           if [[ $sync_status -eq 0 ]]; then
             node scripts/postprocess-v26.mjs 2>&1 | tee -a /tmp/tdas-sync.log
+            sync_status=${PIPESTATUS[0]}
+          fi
+          if [[ $sync_status -eq 0 ]]; then
+            node scripts/sync-platform-version.mjs 2>&1 | tee -a /tmp/tdas-sync.log
             sync_status=${PIPESTATUS[0]}
           fi
           if [[ $sync_status -eq 0 ]]; then
