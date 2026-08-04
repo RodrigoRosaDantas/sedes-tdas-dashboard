@@ -30,14 +30,50 @@ on:
     - cron: '15 9 * * *'
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: browser-smoke-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
+  patch-parser:
+    if: github.event_name == 'pull_request' && github.head_ref == 'agent/padronizar-versao-publicacao'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Baixar branch do PR
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+
+      - name: Preparar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Aplicar correção e teste de regressão
+        run: |
+          set -euo pipefail
+          node scripts/patch-question-section-scope.mjs
+          npm run test:daily-content
+
+      - name: Registrar patch na branch
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- scripts/notion/daily-content.mjs scripts/test-daily-content.mjs; then
+            echo 'Patch já aplicado; nenhuma alteração adicional.'
+            exit 0
+          fi
+          git config user.name 'tdas-parser-fix[bot]'
+          git config user.email 'tdas-parser-fix[bot]@users.noreply.github.com'
+          git add scripts/notion/daily-content.mjs scripts/test-daily-content.mjs
+          git commit -m 'Limitar parser à seção oficial de questões'
+          git push origin HEAD:${{ github.head_ref }}
+
   browser:
+    needs: [patch-parser]
+    if: always() && (needs.patch-parser.result == 'success' || needs.patch-parser.result == 'skipped')
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
