@@ -239,13 +239,25 @@ function parseQuestionBody(body) {
   };
 }
 
+function answerKeySection(source) {
+  const headingStart = source.search(/^#{1,4}\s+[^\n]*Gabarito[^\n]*$/im);
+  if (headingStart >= 0) {
+    const tail = source.slice(headingStart);
+    const next = tail.slice(1).search(/^#\s+\d+\.[^\n]*$/m);
+    return next >= 0 ? tail.slice(0, next + 1) : tail;
+  }
+  const header = source.search(/<tr>\s*<td>\s*Quest(?:ão|ao)\s*<\/td>\s*<td>\s*(?:Resposta|Gabarito)\s*<\/td>/i);
+  if (header < 0) return '';
+  const tableStart = source.lastIndexOf('<table', header);
+  const tableEnd = source.indexOf('</table>', header);
+  if (tableStart < 0 || tableEnd < 0) return '';
+  return source.slice(tableStart, tableEnd + '</table>'.length);
+}
+
 function parseAnswerKey(markdown) {
   const source = String(markdown ?? '').replace(/\r/g, '');
-  const start = source.search(/^#\s+[^\n]*Gabarito[^\n]*$/im);
-  if (start < 0) return new Map();
-  const tail = source.slice(start);
-  const next = tail.slice(1).search(/^#\s+\d+\.[^\n]*$/m);
-  const section = next >= 0 ? tail.slice(0, next + 1) : tail;
+  const section = answerKeySection(source);
+  if (!section) return new Map();
   const key = new Map();
   const add = (number, answer) => {
     if (key.has(number) && key.get(number) !== answer) throw new Error(`Gabarito divergente para a questão ${number}.`);

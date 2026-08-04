@@ -98,6 +98,26 @@ assert.equal(postResultKey.answers[0].gabarito,'A');
 assert.equal(postResultKey.answers[1].gabarito,'B');
 assert.ok(!JSON.stringify(postResultCatalog).includes('Erro por interpretação'));
 
+const responseTableMarkdown = `# 2. Questões
+**1.** Primeira questão válida.
+A) Correta
+B) Incorreta
+**2.** Segunda questão válida.
+A) Incorreta
+B) Correta
+# 3. Resultado e fundamentos da correção
+<table>
+<tr><td>Questão</td><td>Resposta</td><td>Fundamento sintético</td></tr>
+<tr><td>1</td><td>A</td><td>Fundamento da primeira.</td></tr>
+<tr><td>2</td><td>B</td><td>Fundamento da segunda.</td></tr>
+</table>
+`;
+const {catalog:responseTableCatalog,key:responseTableKey}=parseDailyQuestions(responseTableMarkdown,{pe:'PE79',title:'Arquivologia',expectedCount:2,sourcePageId:'jkl'});
+assert.equal(responseTableCatalog.questionCount,2);
+assert.equal(responseTableKey.answers[0].gabarito,'A');
+assert.equal(responseTableKey.answers[1].gabarito,'B');
+assert.ok(!JSON.stringify(responseTableCatalog).includes('Fundamento da primeira'));
+
 const html=renderMaterialMarkdown(`# Material\n## Objetivo\n**Estudar** com clareza.\n- Primeiro item\n- Segundo item\n<table header-row="true"><tr><td>Campo</td><td>Valor</td></tr><tr><td>PE</td><td>78</td></tr></table>`);
 assert.match(html,/<h2>Material<\/h2>/);
 assert.match(html,/<strong>Estudar<\/strong>/);
