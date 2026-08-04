@@ -240,11 +240,11 @@ function parseQuestionBody(body) {
 }
 
 function answerKeySection(source) {
-  const headingStart = source.search(/^#{1,4}\s+[^\n]*Gabarito[^\n]*$/im);
-  if (headingStart >= 0) {
-    const tail = source.slice(headingStart);
-    const next = tail.slice(1).search(/^#\s+\d+\.[^\n]*$/m);
-    return next >= 0 ? tail.slice(0, next + 1) : tail;
+  const heading = source.match(/^#{1,4}\s+[^\n]*Gabarito[^\n]*$/im);
+  if (heading?.index >= 0) {
+    const tail = source.slice(heading.index + heading[0].length).replace(/^\n/, '');
+    const next = tail.search(/^#\s+\d+\.[^\n]*$/m);
+    return next >= 0 ? tail.slice(0, next) : tail;
   }
   const htmlHeader = source.search(/<tr\b[^>]*>[\s\S]*?<t[dh]\b[^>]*>\s*Quest(?:ão|ao)\s*<\/t[dh]>[\s\S]*?<t[dh]\b[^>]*>[\s\S]*?(?:Resposta|Gabarito)[\s\S]*?<\/t[dh]>[\s\S]*?<\/tr>/i);
   if (htmlHeader >= 0) {
@@ -276,6 +276,7 @@ function parseAnswerKey(markdown) {
   };
   if (section) {
     for (const match of section.matchAll(/\b(\d{1,3})\s*[-–—]\s*([A-E])\b/g)) add(Number(match[1]), match[2]);
+    for (const match of section.matchAll(/(?:^|[,;\s])(\d{1,3})\s*([A-E])(?=\s*(?:[,;.]|$))/gmi)) add(Number(match[1]), match[2].toUpperCase());
   }
   const tableSource = section || source;
   for (const row of tableSource.matchAll(/<tr\b[^>]*>([\s\S]*?)<\/tr>/gi)) {

@@ -152,6 +152,27 @@ const {key:pipeAnswerTableKey}=parseDailyQuestions(pipeAnswerTableMarkdown,{pe:'
 assert.equal(pipeAnswerTableKey.answers[0].gabarito,'A');
 assert.equal(pipeAnswerTableKey.answers[1].gabarito,'B');
 
+const compactKeyMarkdown = `# 2. Questões
+**1.** Primeira questão válida.
+A) Correta
+B) Incorreta
+**2.** Segunda questão válida.
+A) Incorreta
+B) Correta
+## 3.2 Gabarito definitivo
+1A, 2B.
+# 4. Correção detalhada dos erros reais
+## Questão 1 — Exemplo posterior
+**Resposta marcada:** B
+**Gabarito:** A
+`;
+const {catalog:compactKeyCatalog,key:compactKey}=parseDailyQuestions(compactKeyMarkdown,{pe:'PE79',title:'Arquivologia',expectedCount:2,sourcePageId:'stu'});
+assert.equal(compactKeyCatalog.questionCount,2);
+assert.equal(compactKey.answers.length,2);
+assert.equal(compactKey.answers[0].gabarito,'A');
+assert.equal(compactKey.answers[1].gabarito,'B');
+assert.ok(!JSON.stringify(compactKeyCatalog).includes('Gabarito definitivo'));
+
 const html=renderMaterialMarkdown(`# Material\n## Objetivo\n**Estudar** com clareza.\n- Primeiro item\n- Segundo item\n<table header-row="true"><tr><td>Campo</td><td>Valor</td></tr><tr><td>PE</td><td>78</td></tr></table>`);
 assert.match(html,/<h2>Material<\/h2>/);
 assert.match(html,/<strong>Estudar<\/strong>/);
