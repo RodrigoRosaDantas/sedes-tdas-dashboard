@@ -71,6 +71,33 @@ assert.equal(binaryKey.answers[0].gabarito,'A');
 assert.equal(binaryKey.answers[1].gabarito,'B');
 assert.ok(!JSON.stringify(binaryCatalog).includes('Gabarito'));
 
+const postResultMarkdown = `# 2. Questões
+**1.** Primeira questão válida do bloco.
+A) Correta
+B) Incorreta
+**2.** Segunda questão válida do bloco.
+A) Incorreta
+B) Correta
+# 3. Resultado e relatório pós-prova
+**1.** Erro por interpretação registrado após a finalização.
+A) Este item pertence ao relatório, não ao bloco de questões.
+B) Este item também não deve ser importado.
+**2.** Ponto de revisão do estudante.
+A) Relatório posterior.
+B) Relatório posterior.
+**3.** Próxima providência de estudo.
+A) Relatório posterior.
+B) Relatório posterior.
+# 4. Gabarito
+1-A | 2-B
+`;
+const {catalog:postResultCatalog,key:postResultKey}=parseDailyQuestions(postResultMarkdown,{pe:'PE79',title:'Arquivologia',expectedCount:2,sourcePageId:'ghi'});
+assert.equal(postResultCatalog.questionCount,2);
+assert.deepEqual(postResultCatalog.questions.map(item=>item.numeroOriginal),[1,2]);
+assert.equal(postResultKey.answers[0].gabarito,'A');
+assert.equal(postResultKey.answers[1].gabarito,'B');
+assert.ok(!JSON.stringify(postResultCatalog).includes('Erro por interpretação'));
+
 const html=renderMaterialMarkdown(`# Material\n## Objetivo\n**Estudar** com clareza.\n- Primeiro item\n- Segundo item\n<table header-row="true"><tr><td>Campo</td><td>Valor</td></tr><tr><td>PE</td><td>78</td></tr></table>`);
 assert.match(html,/<h2>Material<\/h2>/);
 assert.match(html,/<strong>Estudar<\/strong>/);

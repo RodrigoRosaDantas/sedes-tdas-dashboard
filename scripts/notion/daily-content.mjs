@@ -191,8 +191,17 @@ function cleanQuestionText(value) {
     .trim();
 }
 
-function questionSegments(markdown) {
+function questionSection(markdown) {
   const source = String(markdown ?? '').replace(/\r/g, '');
+  const heading = source.match(/^#\s+[^\n]*Quest(?:ões|oes)[^\n]*$/im);
+  if (!heading) return source;
+  const tail = source.slice(heading.index + heading[0].length);
+  const nextHeading = tail.search(/^#\s+[^\n]+$/m);
+  return nextHeading >= 0 ? tail.slice(0, nextHeading) : tail;
+}
+
+function questionSegments(markdown) {
+  const source = questionSection(markdown);
   const matches = [...source.matchAll(/^(?:##\s+Quest(?:ão|ao)\s+(\d+)\s*|\*\*(\d{1,3})\.\*\*\s*(.*))$/gim)];
   return matches.map((match, index) => {
     const inlineStem = String(match[3] ?? '').trim();
