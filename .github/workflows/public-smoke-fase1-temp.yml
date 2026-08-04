@@ -1,0 +1,55 @@
+name: Verificar Fase 1 no site público
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/public-smoke-fase1-temp.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  public-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Validar GitHub Pages em Chrome
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://rodrigorosadantas.github.io/sedes-tdas-dashboard'
+          chrome=(google-chrome --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --virtual-time-budget=15000 --dump-dom)
+          for attempt in $(seq 1 24); do
+            if curl -fsS "$base/data/integration/question-catalog.json" >/tmp/catalog.json \
+              && curl -fsS "$base/data/audit.json" >/tmp/audit.json \
+              && curl -fsS "$base/sw.js" >/tmp/sw.js; then
+              read -r PE TOTAL UNLINKED < <(node --input-type=module <<'NODE'
+              import fs from 'node:fs';
+              const catalog=JSON.parse(fs.readFileSync('/tmp/catalog.json','utf8'));
+              const audit=JSON.parse(fs.readFileSync('/tmp/audit.json','utf8'));
+              const unlinked=(audit.quality||[]).filter(item=>item.title==='Registro incompleto no Caderno de Erros'&&/Origem \/ Dia ID/.test(item.detail||'')).length;
+              process.stdout.write(`${catalog.peId} ${catalog.questions.length} ${unlinked}`);
+              NODE
+              )
+              "${chrome[@]}" "$base/" >/tmp/public-home.html 2>/tmp/public-home.stderr || true
+              "${chrome[@]}" "$base/auditoria/" >/tmp/public-audit.html 2>/tmp/public-audit.stderr || true
+              "${chrome[@]}" "$base/resolver/" >/tmp/public-resolver.html 2>/tmp/public-resolver.stderr || true
+              if grep -q 'Central de execução' /tmp/public-home.html \
+                && grep -q 'Erros sem origem confirmada' /tmp/public-audit.html \
+                && grep -q "${UNLINKED} pendentes" /tmp/public-audit.html \
+                && grep -q 'Questões do dia' /tmp/public-resolver.html \
+                && grep -q "$PE" /tmp/public-resolver.html \
+                && ! grep -q 'question-keys/' /tmp/sw.js \
+                && ! grep -Eqi 'Uncaught (TypeError|ReferenceError|SyntaxError)|Central de execução indisponível|Erros sem origem indisponíveis' /tmp/public-*.stderr; then
+                printf '{"publicacao":"ok","pe":"%s","questoes":%s,"central":true,"auditoria":true,"origensPendentes":%s,"resolver":true,"gabaritoNoPrecache":false}\n' "$PE" "$TOTAL" "$UNLINKED"
+                exit 0
+              fi
+            fi
+            sleep 15
+          done
+          echo 'O site público não refletiu integralmente a Fase 1 dentro da janela de verificação.' >&2
+          echo '--- home ---' >&2; tail -c 3000 /tmp/public-home.html 2>/dev/null >&2 || true
+          echo '--- audit ---' >&2; tail -c 3000 /tmp/public-audit.html 2>/dev/null >&2 || true
+          echo '--- resolver ---' >&2; tail -c 3000 /tmp/public-resolver.html 2>/dev/null >&2 || true
+          exit 1
