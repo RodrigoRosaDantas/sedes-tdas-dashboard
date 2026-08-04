@@ -24,14 +24,8 @@ jobs:
             if curl -fsS "$base/data/integration/question-catalog.json" >/tmp/catalog.json \
               && curl -fsS "$base/data/audit.json" >/tmp/audit.json \
               && curl -fsS "$base/sw.js" >/tmp/sw.js; then
-              read -r PE TOTAL UNLINKED < <(node --input-type=module <<'NODE'
-              import fs from 'node:fs';
-              const catalog=JSON.parse(fs.readFileSync('/tmp/catalog.json','utf8'));
-              const audit=JSON.parse(fs.readFileSync('/tmp/audit.json','utf8'));
-              const unlinked=(audit.quality||[]).filter(item=>item.title==='Registro incompleto no Caderno de Erros'&&/Origem \/ Dia ID/.test(item.detail||'')).length;
-              process.stdout.write(`${catalog.peId} ${catalog.questions.length} ${unlinked}`);
-              NODE
-              )
+              expected=$(node --input-type=module -e "import fs from 'node:fs';const catalog=JSON.parse(fs.readFileSync('/tmp/catalog.json','utf8'));const audit=JSON.parse(fs.readFileSync('/tmp/audit.json','utf8'));const unlinked=(audit.quality||[]).filter(item=>item.title==='Registro incompleto no Caderno de Erros'&&/Origem \\/ Dia ID/.test(item.detail||'')).length;process.stdout.write(catalog.peId+' '+catalog.questions.length+' '+unlinked);")
+              read -r PE TOTAL UNLINKED <<<"$expected"
               "${chrome[@]}" "$base/" >/tmp/public-home.html 2>/tmp/public-home.stderr || true
               "${chrome[@]}" "$base/auditoria/" >/tmp/public-audit.html 2>/tmp/public-audit.stderr || true
               "${chrome[@]}" "$base/resolver/" >/tmp/public-resolver.html 2>/tmp/public-resolver.stderr || true
