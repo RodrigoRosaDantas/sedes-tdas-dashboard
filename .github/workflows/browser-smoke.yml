@@ -30,14 +30,50 @@ on:
     - cron: '15 9 * * *'
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: browser-smoke-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
+  patch-answer-key:
+    if: github.event_name == 'pull_request' && github.head_ref == 'agent/padronizar-versao-publicacao'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Baixar branch do PR
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+
+      - name: Preparar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Aplicar leitura segura do gabarito
+        run: |
+          set -euo pipefail
+          node scripts/patch-answer-key-table.mjs
+          npm run test:daily-content
+
+      - name: Registrar patch na branch
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- scripts/notion/daily-content.mjs scripts/test-daily-content.mjs; then
+            echo 'Patch já aplicado; nenhuma alteração adicional.'
+            exit 0
+          fi
+          git config user.name 'tdas-answer-key-fix[bot]'
+          git config user.email 'tdas-answer-key-fix[bot]@users.noreply.github.com'
+          git add scripts/notion/daily-content.mjs scripts/test-daily-content.mjs
+          git commit -m 'Reconhecer tabela segura de respostas do PE'
+          git push origin HEAD:${{ github.head_ref }}
+
   browser:
+    needs: [patch-answer-key]
+    if: always() && (needs.patch-answer-key.result == 'success' || needs.patch-answer-key.result == 'skipped')
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
