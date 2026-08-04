@@ -118,6 +118,40 @@ assert.equal(responseTableKey.answers[0].gabarito,'A');
 assert.equal(responseTableKey.answers[1].gabarito,'B');
 assert.ok(!JSON.stringify(responseTableCatalog).includes('Fundamento da primeira'));
 
+const formattedAnswerTableMarkdown = `# 2. Questões
+**1.** Primeira questão válida.
+A) Correta
+B) Incorreta
+**2.** Segunda questão válida.
+A) Incorreta
+B) Correta
+# 3. Resultado e fundamentos
+<table header-row="true">
+<tr><td>Questão</td><td>Resposta correta</td><td>Fundamento sintético</td></tr>
+<tr><td>1</td><td>**A**</td><td>Fundamento um.</td></tr>
+<tr><td>2</td><td><strong>B</strong></td><td>Fundamento dois.</td></tr>
+</table>
+`;
+const {key:formattedAnswerTableKey}=parseDailyQuestions(formattedAnswerTableMarkdown,{pe:'PE79',title:'Arquivologia',expectedCount:2,sourcePageId:'mno'});
+assert.equal(formattedAnswerTableKey.answers[0].gabarito,'A');
+assert.equal(formattedAnswerTableKey.answers[1].gabarito,'B');
+
+const pipeAnswerTableMarkdown = `# 2. Questões
+**1.** Primeira questão válida.
+A) Correta
+B) Incorreta
+**2.** Segunda questão válida.
+A) Incorreta
+B) Correta
+# 3. Resultado e fundamentos
+| Questão | Resposta | Fundamento sintético |
+| 1 | A | Fundamento um. |
+| 2 | **B** | Fundamento dois. |
+`;
+const {key:pipeAnswerTableKey}=parseDailyQuestions(pipeAnswerTableMarkdown,{pe:'PE79',title:'Arquivologia',expectedCount:2,sourcePageId:'pqr'});
+assert.equal(pipeAnswerTableKey.answers[0].gabarito,'A');
+assert.equal(pipeAnswerTableKey.answers[1].gabarito,'B');
+
 const html=renderMaterialMarkdown(`# Material\n## Objetivo\n**Estudar** com clareza.\n- Primeiro item\n- Segundo item\n<table header-row="true"><tr><td>Campo</td><td>Valor</td></tr><tr><td>PE</td><td>78</td></tr></table>`);
 assert.match(html,/<h2>Material<\/h2>/);
 assert.match(html,/<strong>Estudar<\/strong>/);

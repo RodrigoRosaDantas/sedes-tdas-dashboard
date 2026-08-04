@@ -244,6 +244,10 @@ export async function fetchPropertyText(pageId, propertyId) {
 
 function blockText(block) {
   const payload = block?.[block.type];
+  if (block?.type === 'table_row') {
+    const cells = (payload?.cells || []).map(items => plain(items).replace(/\|/g, '\\|'));
+    return cells.some(Boolean) ? `| ${cells.join(' | ')} |` : '';
+  }
   const text = plain(payload?.rich_text);
   if (!text) return '';
   const prefix = block.type === 'heading_1' ? '# ' : block.type === 'heading_2' ? '## ' : block.type === 'heading_3' ? '### ' : block.type.includes('bulleted') ? '- ' : block.type.includes('numbered') ? '1. ' : '';

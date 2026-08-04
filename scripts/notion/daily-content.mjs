@@ -246,25 +246,43 @@ function answerKeySection(source) {
     const next = tail.slice(1).search(/^#\s+\d+\.[^\n]*$/m);
     return next >= 0 ? tail.slice(0, next + 1) : tail;
   }
-  const header = source.search(/<tr>\s*<td>\s*Quest(?:ão|ao)\s*<\/td>\s*<td>\s*(?:Resposta|Gabarito)\s*<\/td>/i);
-  if (header < 0) return '';
-  const tableStart = source.lastIndexOf('<table', header);
-  const tableEnd = source.indexOf('</table>', header);
-  if (tableStart < 0 || tableEnd < 0) return '';
-  return source.slice(tableStart, tableEnd + '</table>'.length);
+  const htmlHeader = source.search(/<tr\b[^>]*>[\s\S]*?<t[dh]\b[^>]*>\s*Quest(?:ão|ao)\s*<\/t[dh]>[\s\S]*?<t[dh]\b[^>]*>[\s\S]*?(?:Resposta|Gabarito)[\s\S]*?<\/t[dh]>[\s\S]*?<\/tr>/i);
+  if (htmlHeader >= 0) {
+    const tableStart = source.lastIndexOf('<table', htmlHeader);
+    const tableEnd = source.indexOf('</table>', htmlHeader);
+    if (tableStart >= 0 && tableEnd >= 0) return source.slice(tableStart, tableEnd + '</table>'.length);
+  }
+  const markdownHeader = source.search(/^\s*\|\s*Quest(?:ão|ao)\s*\|[^\n]*(?:Resposta|Gabarito)[^\n]*$/im);
+  if (markdownHeader >= 0) {
+    const tail = source.slice(markdownHeader);
+    const lines = tail.split('\n');
+    const tableLines = [];
+    for (const line of lines) {
+      if (!/^\s*\|/.test(line)) break;
+      tableLines.push(line);
+    }
+    return tableLines.join('\n');
+  }
+  return '';
 }
 
 function parseAnswerKey(markdown) {
   const source = String(markdown ?? '').replace(/\r/g, '');
   const section = answerKeySection(source);
-  if (!section) return new Map();
   const key = new Map();
   const add = (number, answer) => {
     if (key.has(number) && key.get(number) !== answer) throw new Error(`Gabarito divergente para a questão ${number}.`);
     key.set(number, answer);
   };
-  for (const match of section.matchAll(/\b(\d{1,3})\s*[-–—]\s*([A-E])\b/g)) add(Number(match[1]), match[2]);
-  for (const match of section.matchAll(/<tr>\s*<td>\s*(\d{1,3})\s*<\/td>\s*<td>\s*([A-E])\s*<\/td>[\s\S]*?<\/tr>/gi)) add(Number(match[1]), match[2].toUpperCase());
+  if (section) {
+    for (const match of section.matchAll(/\b(\d{1,3})\s*[-–—]\s*([A-E])\b/g)) add(Number(match[1]), match[2]);
+  }
+  const tableSource = section || source;
+  for (const row of tableSource.matchAll(/<tr\b[^>]*>([\s\S]*?)<\/tr>/gi)) {
+    const cells = [...row[1].matchAll(/<t[dh]\b[^>]*>([\s\S]*?)<\/t[dh]>/gi)].map(cell => cleanQuestionText(cell[1]));
+    if (/^\d{1,3}$/.test(cells[0] || '') && /^[A-E]$/i.test(cells[1] || '')) add(Number(cells[0]), cells[1].toUpperCase());
+  }
+  for (const match of tableSource.matchAll(/^\s*\|\s*(\d{1,3})\s*\|\s*(?:\*\*|__|`)?([A-E])(?:\*\*|__|`)?\s*\|/gmi)) add(Number(match[1]), match[2].toUpperCase());
   return key;
 }
 
