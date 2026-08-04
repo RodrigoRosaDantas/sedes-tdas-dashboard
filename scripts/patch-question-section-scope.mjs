@@ -20,9 +20,11 @@ function questionSegments(markdown) {
   const matches = [...source.matchAll(/^(?:##\\s+Quest(?:ão|ao)\\s+(\\d+)\\s*|\\*\\*(\\d{1,3})\\.\\*\\*\\s*(.*))$/gim)];`;
 
 let parser=await fs.readFile(parserFile,'utf8');
-if(!parser.includes(parserBefore))throw new Error('Trecho esperado do parser não foi localizado.');
-parser=parser.replace(parserBefore,parserAfter);
-await fs.writeFile(parserFile,parser,'utf8');
+if(!parser.includes('function questionSection(markdown)')){
+ if(!parser.includes(parserBefore))throw new Error('Trecho esperado do parser não foi localizado.');
+ parser=parser.replace(parserBefore,parserAfter);
+ await fs.writeFile(parserFile,parser,'utf8');
+}
 
 const testMarker=`const html=renderMaterialMarkdown(`;
 const regression=`const postResultMarkdown = \`# 2. Questões
@@ -54,8 +56,10 @@ assert.ok(!JSON.stringify(postResultCatalog).includes('Erro por interpretação'
 
 `;
 let tests=await fs.readFile(testFile,'utf8');
-if(!tests.includes(testMarker))throw new Error('Ponto de inserção do teste não foi localizado.');
-tests=tests.replace(testMarker,`${regression}${testMarker}`);
-await fs.writeFile(testFile,tests,'utf8');
+if(!tests.includes('const postResultMarkdown =')){
+ if(!tests.includes(testMarker))throw new Error('Ponto de inserção do teste não foi localizado.');
+ tests=tests.replace(testMarker,`${regression}${testMarker}`);
+ await fs.writeFile(testFile,tests,'utf8');
+}
 
-console.log('Parser limitado à seção oficial de questões e teste de regressão incluído.');
+console.log('Parser limitado à seção oficial de questões e teste de regressão garantido.');
