@@ -1,0 +1,8 @@
+Acionador técnico da sincronização TDAS.
+
+Atualize este arquivo somente quando for necessário solicitar uma recuperação manual da publicação automática.
+
+Última solicitação:
+- data: 2026-08-05
+- horário: 19:42 BRT
+- motivo: snapshot e última sincronização permaneceram em 2026-08-04 após a conclusão do PE80.
