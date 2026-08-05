@@ -6,6 +6,7 @@ on:
     branches: [main]
     paths:
       - '.github/workflows/notion-sync.yml'
+      - '.github/tdas-sync-trigger.txt'
       - 'scripts/sync-notion.mjs'
       - 'scripts/notion/**'
       - 'scripts/prepare-calendar-refresh.mjs'
