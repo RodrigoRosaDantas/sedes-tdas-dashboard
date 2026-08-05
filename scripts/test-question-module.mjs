@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {createSession, evaluateSession, selectAnswer} from '../assets/integration/player-core.js';
 import {readModuleState, saveCompletedAttempt, STORAGE_KEY} from '../assets/integration/module-store.js';
+import {REVIEW_OUTCOMES} from '../assets/integration/review-engine.js';
 
 class MemoryStorage {
   constructor() { this.items = new Map(); }
@@ -33,7 +34,35 @@ assert.equal(saved.state.marked.length, 1);
 assert.equal(saved.state.reviews.length, 6);
 assert.equal(saved.state.aiQueue.length, 0);
 assert.ok(storage.getItem(STORAGE_KEY));
+
+const wrongSource=saved.state.reviews.find(item=>item.questionId==='q2'&&item.stage==='D+1');
+const wrongCatalog={...catalog,catalogId:`${catalog.catalogId}:review:${wrongSource.id}`,questions:[catalog.questions[1]]};
+let wrongSession=createSession({id:wrongCatalog.catalogId,questoes:wrongCatalog.questions},100_000);
+wrongSession=selectAnswer(wrongSession,'q2','C',101_000);
+const wrongEvaluation=evaluateSession(wrongSession,{material_id:wrongCatalog.catalogId,answers:[{id:'q2',gabarito:'B'}]},110_000);
+const wrongSaved=saveCompletedAttempt({catalog:wrongCatalog,evaluation:wrongEvaluation,mode:'review',reviewId:wrongSource.id,reviewOutcome:REVIEW_OUTCOMES.WRONG_AGAIN},storage);
+assert.equal(wrongSaved.attempt.reviewOutcome,REVIEW_OUTCOMES.WRONG_AGAIN);
+assert.equal(wrongSaved.state.errors.length,2);
+assert.equal(wrongSaved.state.reviews.length,7);
+assert.equal(wrongSaved.state.reviews.find(item=>item.id===wrongSource.id).status,'completed');
+assert.equal(wrongSaved.reinforcement.stage,'Reforço 24h');
+assert.equal(wrongSaved.reinforcement.recurrenceCount,1);
+assert.equal(wrongSaved.reinforcement.originReviewId,wrongSource.id);
+
+const masteredSource=wrongSaved.state.reviews.find(item=>item.questionId==='q1'&&item.stage==='D+1'&&item.status==='pending');
+const masteredCatalog={...catalog,catalogId:`${catalog.catalogId}:review:${masteredSource.id}`,questions:[catalog.questions[0]]};
+let masteredSession=createSession({id:masteredCatalog.catalogId,questoes:masteredCatalog.questions},200_000);
+masteredSession=selectAnswer(masteredSession,'q1','A',201_000);
+const masteredEvaluation=evaluateSession(masteredSession,{material_id:masteredCatalog.catalogId,answers:[{id:'q1',gabarito:'A'}]},210_000);
+const masteredSaved=saveCompletedAttempt({catalog:masteredCatalog,evaluation:masteredEvaluation,mode:'review',reviewId:masteredSource.id,reviewOutcome:REVIEW_OUTCOMES.MASTERED},storage);
+assert.equal(masteredSaved.attempt.reviewOutcome,REVIEW_OUTCOMES.MASTERED);
+assert.equal(masteredSaved.reinforcement,null);
+assert.equal(masteredSaved.state.reviews.length,7);
+assert.equal(masteredSaved.state.reviews.find(item=>item.id===masteredSource.id).outcome,REVIEW_OUTCOMES.MASTERED);
+
 const restored = readModuleState(storage);
-assert.equal(restored.attempts[0].catalogId, 'authorized-test-catalog');
+assert.equal(restored.attempts.length,3);
+assert.equal(restored.attempts[0].mode,'review');
+assert.equal(restored.attempts[0].reviewOutcome,REVIEW_OUTCOMES.MASTERED);
 assert.equal(restored.errors[0].questionResults, undefined);
-console.log('Módulo testado com catálogo sintético: correção, tentativa, erro, marcação e revisões, sem conteúdo de exemplo.');
+console.log('Módulo testado: estudo, correção separada, decisão pedagógica, reforço adaptativo e persistência local sem writeback.');
