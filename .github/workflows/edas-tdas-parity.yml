@@ -30,6 +30,19 @@ jobs:
           mkdir -p edas-administracao
           tar -xzf /tmp/edas-migration.tar.gz -C edas-administracao
 
+      - name: Corrigir escopo do player de questões
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('edas-administracao/assets/integration/module-player.js')
+          text = path.read_text(encoding='utf-8')
+          text = text.replace("\ntry{\n const d=", "\nasync function init(){\ntry{\n const d=", 1)
+          text = text.replace("\n}catch(error){setLoadingError(error)}\n", "\n}catch(error){setLoadingError(error)}\n}\ninit();\n", 1)
+          path.write_text(text, encoding='utf-8')
+          PY
+
       - name: Validar módulos e dados
         shell: bash
         run: |
