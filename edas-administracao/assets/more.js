@@ -1,0 +1,8 @@
+import{loadData,setupShell,routes,setLoadingError}from'./common.js?v=20260804.1';
+try{
+ const d=await loadData();setupShell('mais',d.meta);
+ const cards=[
+  [routes.estudar,'Execução diária','Estudar','Material, sequência e acesso às questões.'],[routes.resolver,'Módulo local','Resolver','Player preparado para catálogo EDAS autorizado.'],[routes.revisar,'Revisão espaçada','Revisar','Agenda D+1, D+7 e D+20 deste aparelho.'],[routes.caderno,'Diagnóstico local','Caderno de erros','Erros confirmados e questões marcadas nas sessões.'],[routes.desempenho,'Métricas locais','Desempenho','Tentativas, aproveitamento e tempo de resposta.'],[routes.fila,'Análise humana','Fila de IA','Ressalvas sem alterar gabaritos automaticamente.'],[routes.agenda,'Planejamento','Agenda','S01–S42 e ritmo necessário.'],[routes.casos,'Discursiva','Estudos de caso','SEC01–SEC12 e D+1.'],[routes.auditoria,'Governança','Auditoria','Fontes, qualidade, PWA e downloads.']
+ ];
+ document.querySelector('main').innerHTML=`<section class="hero"><span class="kicker">Navegação completa</span><h1>Mais áreas</h1><p>Acesse o painel executivo e o módulo operacional do EDAS pelo celular.</p></section><section class="section"><div class="grid portal-grid">${cards.map(item=>`<a class="card portal" href="${item[0]}"><small>${item[1]}</small><b>${item[2]}</b><span>${item[3]}</span><em>Abrir →</em></a>`).join('')}</div></section><footer class="footer"><span>EDAS · recursos do modelo TDAS</span><span>Snapshot <span data-snapshot></span></span></footer>`;
+}catch(error){setLoadingError(error)}
