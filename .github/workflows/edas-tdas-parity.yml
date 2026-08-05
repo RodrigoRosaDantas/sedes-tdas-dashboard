@@ -1,7 +1,7 @@
 name: Aplicar paridade TDAS no EDAS
 
 on:
-  push:
+  pull_request:
     branches:
       - main
     paths:
@@ -14,10 +14,10 @@ jobs:
   migrate:
     runs-on: ubuntu-latest
     steps:
-      - name: Obter revisão publicada
+      - name: Obter branch do pull request
         uses: actions/checkout@v4
         with:
-          ref: main
+          ref: ${{ github.head_ref }}
           fetch-depth: 0
 
       - name: Reconstruir e aplicar pacote validado
@@ -42,13 +42,13 @@ jobs:
           grep -q "edas.400.question-module.v2.state" edas-administracao/assets/integration/module-store.js
           ! grep -R "tdas.202.question-module" edas-administracao/assets/integration
 
-      - name: Consolidar publicação
+      - name: Consolidar branch técnica
         shell: bash
         run: |
           set -euo pipefail
           git config user.name "EDAS Platform Bot"
           git config user.email "actions@users.noreply.github.com"
           git add edas-administracao
-          git rm -r --ignore-unmatch edas-migration.bundle.b64 edas-migration.parts edas-migration.ready .github/workflows/edas-tdas-parity.yml
+          git rm -r --ignore-unmatch edas-migration.bundle.b64 edas-migration.parts edas-migration.ready
           git commit -m "Aplicar estrutura e recursos do TDAS ao EDAS v20260804.1"
-          git push origin HEAD:main
+          git push origin HEAD:${{ github.head_ref }}
