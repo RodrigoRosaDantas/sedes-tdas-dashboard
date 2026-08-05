@@ -8,6 +8,7 @@ on:
       - 'index.html'
       - 'auditoria/**'
       - 'resolver/**'
+      - 'revisar/**'
       - 'redacoes/**'
       - 'assets/**'
       - 'data/**'
@@ -21,6 +22,7 @@ on:
       - 'index.html'
       - 'auditoria/**'
       - 'resolver/**'
+      - 'revisar/**'
       - 'redacoes/**'
       - 'assets/**'
       - 'data/**'
@@ -54,7 +56,7 @@ jobs:
       - name: Executar gate estrutural
         run: npm run check
 
-      - name: Preparar site e sessão interrompida
+      - name: Preparar site, sessão interrompida e revisão
         shell: bash
         run: |
           set -euo pipefail
@@ -73,14 +75,22 @@ jobs:
           const answers=Object.fromEntries(ids.slice(0,currentIndex).map((id,index)=>[id,index%2===0?'A':'B']));
           const draft={schemaVersion:'1.0.0',catalogId:catalog.catalogId,peId:catalog.peId,savedAt:Date.now(),session:{schemaVersion:'1.0.0',materialId:catalog.catalogId,questionIds:ids,answers,currentIndex,startedAt:Date.now()-120000,updatedAt:Date.now(),finishedAt:null},responseMeta:{}};
           const progress={version:1,items:{[catalog.peId]:{material:true,questions:false,registered:false,updatedAt:new Date().toISOString()}}};
+          const question=catalog.questions[0],reviewId=`review:smoke:${catalog.catalogId}:${question.id}:D+1`;
+          const review={id:reviewId,sourceAttemptId:'attempt:smoke',questionId:question.id,peId:catalog.peId,stage:'D+1',dueAt:Date.now()-60000,status:'pending',completedAt:null,reviewAttemptId:null,outcome:null,originReviewId:null,rootReviewId:reviewId,recurrenceCount:1,sourceOutcome:'wrong_again',classification:'incorrect_confirmed',confidence:'secure',marked:false,numeroOriginal:question.numero_original??1,assunto:question.assunto||'Questão',subassunto:question.subassunto||''};
+          const moduleState={schemaVersion:'2.0.0',updatedAt:Date.now(),attempts:[],errors:[],marked:[],reviews:[review],aiQueue:[]};
           const unlinked=(audit.quality||[]).filter(item=>item.title==='Registro incompleto no Caderno de Erros'&&/Origem \/ Dia ID/.test(item.detail||'')).length;
           const redactionItem=(today.checklist||[]).find(item=>item.done!==true&&/^Produzir\s+RD\d+/i.test(item.title||''));
           const focusRd=(redactionItem?.title||'').match(/RD\d+/i)?.[0]||'';
           const focusPe=focusRd?String(today.current?.pe||''):'';
           const sourceCommit=platform.sourceCommit==='unknown'?'local':String(platform.sourceCommit).slice(0,7);
-          const html=`<!doctype html><meta charset="utf-8"><script>localStorage.setItem('tdas.202.question-module.v2.draft',${JSON.stringify(JSON.stringify(draft))});localStorage.setItem('tdas.202.daily-execution.v1',${JSON.stringify(JSON.stringify(progress))});location.replace('/sedes-tdas-dashboard/');<\/script>`;
-          fs.writeFileSync(`${root}/__seed.html`,html);
-          fs.writeFileSync('/tmp/tdas-expected.env',`QUESTION_INDEX=${currentIndex+1}\nQUESTION_TOTAL=${ids.length}\nUNLINKED_ERRORS=${unlinked}\nPLATFORM_VERSION=${platform.platformVersion}\nSOURCE_COMMIT_SHORT=${sourceCommit}\nFOCUS_RD=${focusRd}\nFOCUS_PE=${focusPe}\n`);
+          const draftHtml=`<!doctype html><meta charset="utf-8"><script>localStorage.setItem('tdas.202.question-module.v2.draft',${JSON.stringify(JSON.stringify(draft))});localStorage.setItem('tdas.202.daily-execution.v1',${JSON.stringify(JSON.stringify(progress))});location.replace('/sedes-tdas-dashboard/');<\/script>`;
+          const reviewScript=`localStorage.setItem('tdas.202.question-module.v2.state',${JSON.stringify(JSON.stringify(moduleState))});`;
+          const reviewHtml=`<!doctype html><meta charset="utf-8"><script>${reviewScript}location.replace('/sedes-tdas-dashboard/resolver/?review='+encodeURIComponent(${JSON.stringify(reviewId)}));<\/script>`;
+          const reviewHomeHtml=`<!doctype html><meta charset="utf-8"><script>${reviewScript}location.replace('/sedes-tdas-dashboard/');<\/script>`;
+          fs.writeFileSync(`${root}/__seed.html`,draftHtml);
+          fs.writeFileSync(`${root}/__review.html`,reviewHtml);
+          fs.writeFileSync(`${root}/__review-home.html`,reviewHomeHtml);
+          fs.writeFileSync('/tmp/tdas-expected.env',`QUESTION_INDEX=${currentIndex+1}\nQUESTION_TOTAL=${ids.length}\nUNLINKED_ERRORS=${unlinked}\nPLATFORM_VERSION=${platform.platformVersion}\nSOURCE_COMMIT_SHORT=${sourceCommit}\nFOCUS_RD=${focusRd}\nFOCUS_PE=${focusPe}\nREVIEW_STAGE=D+1\n`);
           NODE
           cd /tmp/tdas-site
           python3 -m http.server 4173 >/tmp/tdas-server.log 2>&1 &
@@ -89,7 +99,7 @@ jobs:
           cat /tmp/tdas-server.log >&2
           exit 1
 
-      - name: Validar central, retomada e auditoria
+      - name: Validar central, retomada, revisão e auditoria
         shell: bash
         run: |
           set -euo pipefail
@@ -98,6 +108,8 @@ jobs:
           chrome=(google-chrome --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --virtual-time-budget=15000 --dump-dom)
           "${chrome[@]}" "$base/" >/tmp/home.html 2>/tmp/home.stderr
           "${chrome[@]}" --user-data-dir=/tmp/tdas-profile "$base/__seed.html" >/tmp/resume.html 2>/tmp/resume.stderr
+          "${chrome[@]}" --user-data-dir=/tmp/tdas-review-profile "$base/__review.html" >/tmp/review.html 2>/tmp/review.stderr
+          "${chrome[@]}" --user-data-dir=/tmp/tdas-review-home-profile "$base/__review-home.html" >/tmp/review-home.html 2>/tmp/review-home.stderr
           "${chrome[@]}" "$base/auditoria/" >/tmp/audit.html 2>/tmp/audit.stderr
           "${chrome[@]}" "$base/resolver/" >/tmp/resolver.html 2>/tmp/resolver.stderr
           grep -q 'Central de execução' /tmp/home.html
@@ -107,6 +119,11 @@ jobs:
           grep -q "publicação ${SOURCE_COMMIT_SHORT}" /tmp/home.html
           ! grep -q 'versão carregando' /tmp/home.html
           grep -q "Continuar questão ${QUESTION_INDEX} de ${QUESTION_TOTAL}" /tmp/resume.html
+          grep -q "Revisão ${REVIEW_STAGE}" /tmp/review.html
+          grep -q 'Revisar questão' /tmp/review.html
+          grep -q 'Correção somente ao finalizar' /tmp/review.html
+          grep -q 'data-primary-stage="review"' /tmp/review-home.html
+          grep -q "Fazer revisão ${REVIEW_STAGE}" /tmp/review-home.html
           grep -q 'Erros sem origem confirmada' /tmp/audit.html
           grep -q "${UNLINKED_ERRORS} pendentes" /tmp/audit.html
           grep -q 'Questões do dia' /tmp/resolver.html
@@ -119,9 +136,10 @@ jobs:
             grep -q "${FOCUS_PE}" /tmp/redactions.html
           fi
           ! grep -Eqi 'Carregando|Não foi possível carregar esta página' /tmp/home.html
-          ! grep -Eqi 'Uncaught (TypeError|ReferenceError|SyntaxError)|Central de execução indisponível|Erros sem origem indisponíveis' /tmp/*.stderr
+          ! grep -Eqi 'Uncaught (TypeError|ReferenceError|SyntaxError)|Central de execução indisponível|Erros sem origem indisponíveis|Revisão local não encontrada' /tmp/*.stderr
+          grep -q 'assets/integration/review-engine.js' /tmp/tdas-site/sedes-tdas-dashboard/sw.js
           ! grep -q 'question-keys/' /tmp/tdas-site/sedes-tdas-dashboard/sw.js
-          printf '{"browser":"ok","commandCenter":true,"cycleClosure":true,"focusedRedaction":"%s","platformVersion":"%s","publication":"%s","resume":"question-%s-of-%s","unlinkedErrors":%s,"answerKeyPrecached":false}\n' "$FOCUS_RD" "$PLATFORM_VERSION" "$SOURCE_COMMIT_SHORT" "$QUESTION_INDEX" "$QUESTION_TOTAL" "$UNLINKED_ERRORS"
+          printf '{"browser":"ok","commandCenter":true,"cycleClosure":true,"adaptiveReview":true,"reviewStage":"%s","focusedRedaction":"%s","platformVersion":"%s","publication":"%s","resume":"question-%s-of-%s","unlinkedErrors":%s,"answerKeyPrecached":false}\n' "$REVIEW_STAGE" "$FOCUS_RD" "$PLATFORM_VERSION" "$SOURCE_COMMIT_SHORT" "$QUESTION_INDEX" "$QUESTION_TOTAL" "$UNLINKED_ERRORS"
 
       - name: Encerrar servidor
         if: always()
