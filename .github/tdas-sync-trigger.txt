@@ -4,6 +4,6 @@ Atualize este arquivo somente quando for necessário solicitar uma recuperação
 
 Última solicitação:
 - data: 2026-08-05
-- horário: 20:02 BRT
-- tentativa: 3
-- motivo: executar diagnóstico rastreável da publicação do PE80, com registro do workflow originador no incidente técnico.
+- horário: 20:08 BRT
+- tentativa: 4
+- motivo: publicar PE80 após corrigir o teste histórico que exigia PE79.
