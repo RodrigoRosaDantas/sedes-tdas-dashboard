@@ -5,6 +5,13 @@
   "events": [
     {
       "at": "2026-08-05T10:10:00-03:00",
+      "status": "success",
+      "type": "validation",
+      "title": "Pacote avançado validado no GitHub",
+      "detail": "Hash, JavaScript, JSON, 19 rotas, PWA, escopo do aplicativo e preservação dos 42 Sprints passaram na validação específica do EDAS."
+    },
+    {
+      "at": "2026-08-05T10:10:00-03:00",
       "status": "warning",
       "type": "source",
       "title": "Notion indisponível na rodada de paridade avançada",
