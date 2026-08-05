@@ -1,0 +1,135 @@
+name: Sincronizar EDAS S10
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - .github/sync-edas-s10.marker
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+      - name: Atualizar snapshot e material do S10
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          root=Path('edas-administracao')
+          old='20260805.2'; new='20260805.3'
+          for p in root.rglob('*'):
+              if p.is_file() and p.suffix.lower() in {'.html','.js','.json','.webmanifest','.css'}:
+                  text=p.read_text(encoding='utf-8')
+                  if old in text:
+                      p.write_text(text.replace(old,new),encoding='utf-8')
+
+          site_path=root/'data/site.json'
+          d=json.loads(site_path.read_text(encoding='utf-8'))
+          d['meta'].update({'version':'20260805.1','snapshotDate':'2026-08-05','generatedAt':'2026-08-05T13:20:10-03:00'})
+          d['today']={
+            'sprint':'S10','title':'Centralização, descentralização, desconcentração, delegação e amplitude',
+            'scheduledDate':'2026-08-05','status':'Não iniciada','planned':40,
+            'block':'30 questões do Material do dia + 5 de Comuns + 5 de Português',
+            'review':'R24 de S09','time':165,
+            'material':'S10 — Centralização, descentralização, desconcentração, delegação e amplitude',
+            'common':'C9 — diversidade, igualdade racial, preconceito e homotransfobia',
+            'portuguese':'P9 — pontuação e estrutura do período','deliverable':'Quadro de contrastes',
+            'steps':[
+              {'id':'revisoes','label':'Revisão de abertura','detail':'R24 de S09','minutes':10},
+              {'id':'material','label':'Material Premium','detail':'Centralização, descentralização, desconcentração, delegação e amplitude','minutes':40},
+              {'id':'quadro','label':'Quadro de contrastes','detail':'Conceito × núcleo × pegadinha','minutes':10},
+              {'id':'questoes','label':'Material do dia','detail':'30 questões específicas','minutes':45},
+              {'id':'comuns','label':'Conhecimentos comuns','detail':'C9 — 5 questões','minutes':10},
+              {'id':'portugues','label':'Microdose de Português','detail':'P9 — 5 questões','minutes':10},
+              {'id':'correcao','label':'Correção ativa','detail':'Fundamento, erro reaplicável e regra de prevenção','minutes':35},
+              {'id':'fechamento','label':'Fechamento','detail':'Registrar resultado real e próximas revisões','minutes':5}],
+            'links':{
+              'sprint':'https://app.notion.com/p/3a9cf5a26731816bab6ef2889e62b1bd',
+              'material':'https://app.notion.com/p/3a9cf5a26731819787f7e1b25fde4b41',
+              'questions':'https://app.notion.com/p/3a9cf5a267318151a464c2ce8d693025',
+              'control':'https://app.notion.com/p/51c357e5bf1c47fea1c40357bf4c8801?v=362cf5a2673181218f66000c90df5be0&source=copy_link',
+              'errors':'https://app.notion.com/p/705bb839a4be4be497ae192cd62c9540?v=d860b6eeb7be43b6a903e0603f25264d&source=copy_link',
+              'cases':'https://app.notion.com/p/4a0a746eb92642489db14f3cbc3fd5d8?v=362cf5a2673181b9b0b1000c1f1e7039&source=copy_link'}}
+          by_id={x['id']:x for x in d['sprints']}
+          by_id['S08'].update({'title':'Estruturas e arquitetura organizacional','status':'Não iniciada'})
+          by_id['S09'].update({'title':'Departamentalização','status':'Não iniciada'})
+          by_id['S10'].update({'title':'Centralização, descentralização, desconcentração, delegação e amplitude','status':'Não iniciada'})
+          d['alerts']=[
+            {'level':'critical','title':'S04–S09 vencidos sem execução registrada','detail':'Os Sprints programados entre 30/07 e 04/08 permanecem sem bloco objetivo concluído no Notion.','action':'Ver agenda','href':'/sedes-tdas-dashboard/edas-administracao/agenda/'},
+            {'level':'warning','title':'S03 executado, mas ainda em andamento','detail':'O bloco objetivo foi concluído em 30/40; revisões, mapa e fechamento integral permanecem pendentes.','action':'Ver evolução','href':'/sedes-tdas-dashboard/edas-administracao/evolucao/'},
+            {'level':'warning','title':'S10 é o foco programado de hoje','detail':'R24 de S09, Material Premium, quadro de contrastes, 30 questões específicas, C9 e P9.','action':'Abrir foco de hoje','href':'/sedes-tdas-dashboard/edas-administracao/hoje/'}]
+          d['projections']=[
+            {'label':'Progresso do ciclo','value':'7,14%','formula':'3 Sprints com bloco objetivo concluído ÷ 42 × 100'},
+            {'label':'Ritmo necessário','value':'1,22 Sprint/dia','formula':'39 Sprints restantes ÷ 32 dias até a prova'},
+            {'label':'Taxa de erro atual','value':'18,26%','formula':'21 erros ÷ 115 questões × 100'}]
+          d['agenda']=[
+            {'date':'2026-07-31','id':'S05','title':'Mapeamento, análise e distribuição de processos e do trabalho','status':'Atrasado','detail':'40 questões planejadas · sem execução registrada'},
+            {'date':'2026-08-01','id':'S06','title':'Revisão semanal da Semana 1 + R7–R40','status':'Atrasado','detail':'Amostra de até 20 questões · sem execução registrada'},
+            {'date':'2026-08-02','id':'S07','title':'Descanso real','status':'Planejado','detail':'Nenhuma questão programada'},
+            {'date':'2026-08-03','id':'S08','title':'Estruturas e arquitetura organizacional','status':'Atrasado','detail':'35 questões · SEC03 · sem execução registrada'},
+            {'date':'2026-08-04','id':'S09','title':'Departamentalização','status':'Atrasado','detail':'40 questões · D+1 SEC03 · sem execução registrada'},
+            {'date':'2026-08-05','id':'S10','title':'Centralização, descentralização, desconcentração, delegação e amplitude','status':'Pendente','detail':'40 questões · R24 S09 · foco atual'},
+            {'date':'2026-08-06','id':'S11','title':'OS&M, fluxogramas, formulários, manuais e layout','status':'Planejado','detail':'Inclui SEC04'}]
+          d['quality']=[
+            {'level':'critical','title':'Seis Sprints vencidos sem execução registrada','detail':'S04, S05, S06, S08 e S09 permanecem não iniciados; S07 era descanso real.'},
+            {'level':'warning','title':'S03 com entregáveis pendentes','detail':'Resultado objetivo 30/40; revisões, mapa e fechamento integral continuam pendentes.'},
+            {'level':'warning','title':'Português em 66,67% no acumulado','detail':'O bloco soma 5 erros em 15 questões e requer reforço semanal.'},
+            {'level':'info','title':'Leitura integral validada','detail':'Controle, Caderno de Erros e Estudos de Caso foram percorridos até has_more=false em 05/08/2026.'},
+            {'level':'warning','title':'Página oficial de questões S10 sem acesso pelo conector','detail':'O link foi preservado, mas o catálogo local anterior não foi substituído nem esvaziado.'},
+            {'level':'info','title':'Cobertura detalhada de erros','detail':'15 de 21 erros permanecem carregados individualmente; o total oficial foi preservado.'}]
+          site_path.write_text(json.dumps(d,ensure_ascii=False,separators=(',',':')),encoding='utf-8')
+
+          html='''<article><h2>Objetivo Master</h2><p>Distinguir centralização, descentralização, desconcentração, delegação e amplitude de controle, relacionando cada conceito aos efeitos gerenciais e jurídicos.</p><h2>Centralização</h2><p>Concentra autoridade decisória nos níveis superiores. Favorece uniformidade, controle e coerência, mas pode causar lentidão, sobrecarga e distanciamento do problema.</p><h2>Descentralização administrativa</h2><p>Distribui competências a outras pessoas jurídicas ou unidades com maior autonomia decisória. Aproxima a decisão da execução, mas exige coordenação, controle e responsabilização.</p><h2>Desconcentração</h2><p>Distribui competências internamente, dentro da mesma pessoa jurídica, criando órgãos ou unidades. Não cria nova pessoa jurídica.</p><h2>Delegação</h2><p>Transfere o exercício de atribuições nos limites permitidos. Não transfere definitivamente a titularidade e exige acompanhamento dos resultados.</p><h2>Amplitude de controle</h2><p>É o número de subordinados sob supervisão direta. Amplitude ampla reduz níveis e aumenta autonomia; amplitude estreita aproxima a supervisão, mas pode burocratizar.</p><h2>Quadro de contrastes</h2><ul><li><strong>Centralização:</strong> decisão no topo; não significa ausência de execução local.</li><li><strong>Descentralização:</strong> autonomia distribuída; não elimina controle.</li><li><strong>Desconcentração:</strong> distribuição interna; não cria pessoa jurídica.</li><li><strong>Delegação:</strong> transferência do exercício; não extingue a responsabilidade gerencial.</li><li><strong>Amplitude:</strong> subordinados diretos; não existe número universal ideal.</li></ul><h2>Pegadinhas Quadrix</h2><ul><li>descentralizar não é descontrolar;</li><li>desconcentração ocorre na mesma pessoa jurídica;</li><li>delegação exige autoridade compatível e acompanhamento;</li><li>amplitude ampla não é sempre melhor;</li><li>centralização pode ser adequada em decisões estratégicas ou de alto risco.</li></ul></article>'''
+          material={'schemaVersion':'1.0.0','status':'ready','sprintId':'S10','snapshotDate':'2026-08-05','capturedAt':'2026-08-05T13:20:10-03:00','title':'S10 — Material Premium | Centralização, descentralização, desconcentração, delegação e amplitude','sourceUrl':'https://app.notion.com/p/3a9cf5a26731819787f7e1b25fde4b41','html':html,'notice':'Material oficial lido e sanitizado. A página de questões S10 permaneceu inacessível ao conector; o catálogo autorizado anterior foi preservado.'}
+          (root/'data/integration/daily-material.json').write_text(json.dumps(material,ensure_ascii=False,indent=2),encoding='utf-8')
+
+          contract_path=root/'data/integration/daily-contract.json'
+          contract=json.loads(contract_path.read_text(encoding='utf-8'))
+          contract['release']=new; contract['capturedAt']='2026-08-05T13:20:10-03:00'
+          contract_path.write_text(json.dumps(contract,ensure_ascii=False,indent=2),encoding='utf-8')
+
+          hist_path=root/'data/sync-history.json'
+          hist=json.loads(hist_path.read_text(encoding='utf-8'))
+          hist['release']=new; hist['updatedAt']='2026-08-05T13:20:10-03:00'
+          event={'at':'2026-08-05T13:20:10-03:00','status':'success','type':'snapshot','title':'Snapshot EDAS sincronizado para o S10','detail':'42 Sprints, 21 erros oficiais, 12 estudos de caso e material oficial do S10 validados. Métricas executadas permaneceram em 3 Sprints, 115 questões e 94 acertos. A página de questões S10 não estava acessível; o catálogo anterior foi preservado.'}
+          hist['events']=[event]+hist.get('events',[])
+          hist['events']=hist['events'][:40]
+          hist_path.write_text(json.dumps(hist,ensure_ascii=False,indent=2),encoding='utf-8')
+          PY
+
+          for file in edas-administracao/assets/*.js edas-administracao/assets/integration/*.js; do node --check "$file"; done
+          python -m json.tool edas-administracao/data/site.json >/dev/null
+          python -m json.tool edas-administracao/data/integration/daily-material.json >/dev/null
+          python -m json.tool edas-administracao/data/integration/daily-contract.json >/dev/null
+          python -m json.tool edas-administracao/data/integration/question-catalog.json >/dev/null
+          python -m json.tool edas-administracao/data/sync-history.json >/dev/null
+          test "$(python - <<'PY'
+          import json
+          print(len(json.load(open('edas-administracao/data/site.json'))['sprints']))
+          PY
+          )" = "42"
+          grep -q "home.js?v=20260805.3" edas-administracao/index.html
+          grep -q "home-command-center.js?v=20260805.3" edas-administracao/index.html
+          grep -q "edas.400.question-module.v2.state" edas-administracao/assets/integration/module-store.js
+          ! grep -R "tdas.202.question-module" edas-administracao
+          ! grep -R "20260805.2" edas-administracao
+
+      - name: Consolidar atualização
+        shell: bash
+        run: |
+          git config user.name "EDAS Sync Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add edas-administracao
+          git rm .github/sync-edas-s10.marker .github/workflows/sync-edas-s10.yml
+          git commit -m "Sincronizar EDAS com S10 e material oficial"
+          git push origin HEAD:${{ github.head_ref }}
