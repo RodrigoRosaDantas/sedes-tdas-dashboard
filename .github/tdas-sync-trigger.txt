@@ -4,5 +4,6 @@ Atualize este arquivo somente quando for necessário solicitar uma recuperação
 
 Última solicitação:
 - data: 2026-08-05
-- horário: 19:42 BRT
-- motivo: snapshot e última sincronização permaneceram em 2026-08-04 após a conclusão do PE80.
+- horário: 19:54 BRT
+- tentativa: 2
+- motivo: snapshot e última sincronização permaneceram em 2026-08-04 após a conclusão do PE80; nova solicitação emitida com o acionador já presente na main.
