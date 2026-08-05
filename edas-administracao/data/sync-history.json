@@ -1,8 +1,15 @@
 {
   "schemaVersion": "1.0.0",
   "release": "20260805.2",
-  "updatedAt": "2026-08-05T10:10:00-03:00",
+  "updatedAt": "2026-08-05T10:40:00-03:00",
   "events": [
+    {
+      "at": "2026-08-05T10:40:00-03:00",
+      "status": "error",
+      "type": "source",
+      "title": "Sincronização manual bloqueada pelo conector do Notion",
+      "detail": "A leitura da página principal, Controle de Questões, Caderno de Erros e Estudos de Caso não pôde ser iniciada porque o conector do Notion ficou indisponível. Nenhum snapshot, material, catálogo, métrica ou arquivo funcional foi alterado; o último conjunto válido foi preservado integralmente."
+    },
     {
       "at": "2026-08-05T10:10:00-03:00",
       "status": "success",
