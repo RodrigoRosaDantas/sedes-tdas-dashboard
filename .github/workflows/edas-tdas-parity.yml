@@ -1,0 +1,54 @@
+name: Aplicar paridade TDAS no EDAS
+
+on:
+  push:
+    branches:
+      - edas-tdas-parity-20260804
+    paths:
+      - edas-migration.bundle.b64
+
+permissions:
+  contents: write
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Obter branch técnica
+        uses: actions/checkout@v4
+        with:
+          ref: edas-tdas-parity-20260804
+          fetch-depth: 0
+
+      - name: Aplicar pacote validado
+        shell: bash
+        run: |
+          set -euo pipefail
+          base64 --decode edas-migration.bundle.b64 > /tmp/edas-migration.tar.gz
+          test "$(sha256sum /tmp/edas-migration.tar.gz | awk '{print $1}')" = "8057aa6da25f3a8dd10caf37b84538a504f23a5a52b7b834cd471c58f5b01649"
+          mkdir -p edas-administracao
+          tar -xzf /tmp/edas-migration.tar.gz -C edas-administracao
+          rm -f edas-migration.bundle.b64
+
+      - name: Validar módulos e dados
+        shell: bash
+        run: |
+          set -euo pipefail
+          for file in edas-administracao/assets/*.js edas-administracao/assets/integration/*.js; do node --check "$file"; done
+          python -m json.tool edas-administracao/manifest.webmanifest >/dev/null
+          python -m json.tool edas-administracao/data/integration/question-catalog.json >/dev/null
+          test "$(find edas-administracao -name index.html | wc -l)" -ge 14
+          grep -q "20260804.1" edas-administracao/assets/common.js
+          grep -q "edas.400.question-module.v2.state" edas-administracao/assets/integration/module-store.js
+          ! grep -R "tdas.202.question-module" edas-administracao/assets/integration
+
+      - name: Consolidar branch técnica
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "EDAS Platform Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add edas-administracao edas-migration.bundle.b64
+          git rm --ignore-unmatch .github/workflows/edas-tdas-parity.yml
+          git commit -m "Aplicar estrutura e recursos do TDAS ao EDAS v20260804.1"
+          git push origin HEAD:edas-tdas-parity-20260804
