@@ -1,4 +1,4 @@
-import{loadData,setupShell,fmtDate,escapeHTML,alertCard,routes,setLoadingError}from'./common.js?v=20260805.2';
+import{loadData,setupShell,fmtDate,escapeHTML,alertCard,routes,setLoadingError}from'./common.js?v=20260805.3';
 try{
  const d=await loadData();setupShell('hoje',d.meta);const current=d.today,minimum=Math.ceil(Number(current.planned||0)*.9),recent=(d.errors||[]).slice(0,8);
  document.querySelector('main').innerHTML=`

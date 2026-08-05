@@ -1,11 +1,11 @@
 {
   "schemaVersion": "1.0.0",
-  "status": "source_unavailable",
-  "sprintId": "S06",
-  "snapshotDate": "2026-08-01",
-  "capturedAt": "2026-08-05T10:10:00-03:00",
-  "title": "S06 — Revisão semanal da Semana 1 + R7–R40",
-  "sourceUrl": "https://app.notion.com/p/3a9cf5a267318178bddfeec3b724462e",
-  "html": null,
-  "notice": "A consulta ao Notion ficou indisponível nesta rodada. O plano do último snapshot validado permanece visível e será substituído apenas após leitura oficial suficiente."
+  "status": "ready",
+  "sprintId": "S10",
+  "snapshotDate": "2026-08-05",
+  "capturedAt": "2026-08-05T13:20:10-03:00",
+  "title": "S10 — Material Premium | Centralização, descentralização, desconcentração, delegação e amplitude",
+  "sourceUrl": "https://app.notion.com/p/3a9cf5a26731819787f7e1b25fde4b41",
+  "html": "<article><h2>Objetivo Master</h2><p>Distinguir centralização, descentralização, desconcentração, delegação e amplitude de controle, relacionando cada conceito aos efeitos gerenciais e jurídicos.</p><h2>Centralização</h2><p>Concentra autoridade decisória nos níveis superiores. Favorece uniformidade, controle e coerência, mas pode causar lentidão, sobrecarga e distanciamento do problema.</p><h2>Descentralização administrativa</h2><p>Distribui competências a outras pessoas jurídicas ou unidades com maior autonomia decisória. Aproxima a decisão da execução, mas exige coordenação, controle e responsabilização.</p><h2>Desconcentração</h2><p>Distribui competências internamente, dentro da mesma pessoa jurídica, criando órgãos ou unidades. Não cria nova pessoa jurídica.</p><h2>Delegação</h2><p>Transfere o exercício de atribuições nos limites permitidos. Não transfere definitivamente a titularidade e exige acompanhamento dos resultados.</p><h2>Amplitude de controle</h2><p>É o número de subordinados sob supervisão direta. Amplitude ampla reduz níveis e aumenta autonomia; amplitude estreita aproxima a supervisão, mas pode burocratizar.</p><h2>Quadro de contrastes</h2><ul><li><strong>Centralização:</strong> decisão no topo; não significa ausência de execução local.</li><li><strong>Descentralização:</strong> autonomia distribuída; não elimina controle.</li><li><strong>Desconcentração:</strong> distribuição interna; não cria pessoa jurídica.</li><li><strong>Delegação:</strong> transferência do exercício; não extingue a responsabilidade gerencial.</li><li><strong>Amplitude:</strong> subordinados diretos; não existe número universal ideal.</li></ul><h2>Pegadinhas Quadrix</h2><ul><li>descentralizar não é descontrolar;</li><li>desconcentração ocorre na mesma pessoa jurídica;</li><li>delegação exige autoridade compatível e acompanhamento;</li><li>amplitude ampla não é sempre melhor;</li><li>centralização pode ser adequada em decisões estratégicas ou de alto risco.</li></ul></article>",
+  "notice": "Material oficial lido e sanitizado. A página de questões S10 permaneceu inacessível ao conector; o catálogo autorizado anterior foi preservado."
 }

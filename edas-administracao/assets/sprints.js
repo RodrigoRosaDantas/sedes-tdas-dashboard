@@ -1,4 +1,4 @@
-import{loadData,setupShell,fmtDate,fmtNumber,escapeHTML,routes,setLoadingError}from'./common.js?v=20260805.2';
+import{loadData,setupShell,fmtDate,fmtNumber,escapeHTML,routes,setLoadingError}from'./common.js?v=20260805.3';
 try{
  const d=await loadData();setupShell('sprints',d.meta);
  const rows=d.sprints||[];

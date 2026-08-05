@@ -1,4 +1,4 @@
-import{loadData,setupShell,fmtPct,fmtNumber,fmtDate,metric,renderLineChart,renderBars,escapeHTML,countdown,setLoadingError}from'./common.js?v=20260805.2';
+import{loadData,setupShell,fmtPct,fmtNumber,fmtDate,metric,renderLineChart,renderBars,escapeHTML,countdown,setLoadingError}from'./common.js?v=20260805.3';
 const DAY=86400000;
 const isoUTC=iso=>{const[y,m,d]=String(iso).slice(0,10).split('-').map(Number);return Date.UTC(y,m-1,d)};
 const diffDays=(start,end)=>Math.floor((isoUTC(end)-isoUTC(start))/DAY);

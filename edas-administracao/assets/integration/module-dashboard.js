@@ -1,5 +1,5 @@
-import{loadData,loadJSON,setupShell,escapeHTML,routes,setLoadingError}from'../common.js?v=20260805.2';
-import{readModuleState}from'./module-store.js?v=20260805.2';
+import{loadData,loadJSON,setupShell,escapeHTML,routes,setLoadingError}from'../common.js?v=20260805.3';
+import{readModuleState}from'./module-store.js?v=20260805.3';
 const CATALOG_KEY='edas.400.question-catalog.v1';
 try{
  const [d,material]=await Promise.all([loadData(),loadJSON('data/integration/daily-material.json',{optional:true})]);setupShell('estudar',d.meta);const current=d.today;let state;try{state=readModuleState()}catch{state={attempts:[],reviews:[],errors:[],aiQueue:[]}};
