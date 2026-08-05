@@ -1,0 +1,35 @@
+{
+  "schemaVersion": "1.0.0",
+  "release": "20260805.2",
+  "updatedAt": "2026-08-05T10:10:00-03:00",
+  "events": [
+    {
+      "at": "2026-08-05T10:10:00-03:00",
+      "status": "warning",
+      "type": "source",
+      "title": "Notion indisponível na rodada de paridade avançada",
+      "detail": "O último snapshot validado foi preservado. Nenhum valor foi zerado e nenhum dado parcial foi publicado."
+    },
+    {
+      "at": "2026-08-05T10:10:00-03:00",
+      "status": "success",
+      "type": "release",
+      "title": "Paridade avançada preparada",
+      "detail": "Sprints individuais, matérias, caderno integrado, contrato de integração e histórico foram adicionados em branch isolada."
+    },
+    {
+      "at": "2026-08-05T00:13:08-03:00",
+      "status": "success",
+      "type": "release",
+      "title": "Arquitetura modular do TDAS aplicada ao EDAS",
+      "detail": "PR #67 integrou painel executivo, módulos operacionais, PWA e armazenamento exclusivo do Cargo 400."
+    },
+    {
+      "at": "2026-08-01T01:07:00-03:00",
+      "status": "success",
+      "type": "snapshot",
+      "title": "Último snapshot de dados validado",
+      "detail": "3/42 Sprints, 115 questões, 94 acertos, 21 erros e 12 estudos de caso planejados."
+    }
+  ]
+}

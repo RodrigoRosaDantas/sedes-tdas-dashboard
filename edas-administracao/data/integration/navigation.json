@@ -1,0 +1,60 @@
+{
+  "schemaVersion": "1.0.0",
+  "phase": "advanced-parity",
+  "mode": "daily-execution-integrated",
+  "basePath": "/sedes-tdas-dashboard/edas-administracao/",
+  "routes": [
+    {
+      "key": "home",
+      "path": "/sedes-tdas-dashboard/edas-administracao/",
+      "status": "operational"
+    },
+    {
+      "key": "today",
+      "path": "/sedes-tdas-dashboard/edas-administracao/hoje/",
+      "status": "operational"
+    },
+    {
+      "key": "sprints",
+      "path": "/sedes-tdas-dashboard/edas-administracao/sprints/",
+      "status": "operational"
+    },
+    {
+      "key": "sprint",
+      "path": "/sedes-tdas-dashboard/edas-administracao/sprint/?id=S01",
+      "status": "operational"
+    },
+    {
+      "key": "subjects",
+      "path": "/sedes-tdas-dashboard/edas-administracao/materias/",
+      "status": "operational"
+    },
+    {
+      "key": "subject",
+      "path": "/sedes-tdas-dashboard/edas-administracao/materia/?id=Administração",
+      "status": "operational"
+    },
+    {
+      "key": "study",
+      "path": "/sedes-tdas-dashboard/edas-administracao/estudar/",
+      "status": "integrated-contract"
+    },
+    {
+      "key": "resolve",
+      "path": "/sedes-tdas-dashboard/edas-administracao/resolver/",
+      "status": "authorized-catalog-only"
+    },
+    {
+      "key": "history",
+      "path": "/sedes-tdas-dashboard/edas-administracao/historico/",
+      "status": "operational"
+    }
+  ],
+  "invariants": [
+    "official-edas-sources-only",
+    "no-tdas-content",
+    "local-storage-edas-only",
+    "no-notion-writeback",
+    "pwa-scope-isolated"
+  ]
+}
