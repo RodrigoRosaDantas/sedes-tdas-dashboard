@@ -1,6 +1,6 @@
 {
   "name": "sedes-tdas-dashboard",
-  "version": "26.12.0-adaptive-review",
+  "version": "26.13.0-sync-timestamp",
   "private": true,
   "type": "module",
   "scripts": {
