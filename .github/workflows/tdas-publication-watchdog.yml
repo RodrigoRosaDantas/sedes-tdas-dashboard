@@ -2,13 +2,16 @@ name: Monitorar publicação diária TDAS
 
 on:
   workflow_dispatch:
+  workflow_run:
+    workflows: ['Sincronizar Plataforma TDAS v26']
+    types: [completed]
   pull_request:
     branches: [main]
     paths:
       - '.github/workflows/tdas-publication-watchdog.yml'
       - 'scripts/monitor-tdas-publication.mjs'
   schedule:
-    - cron: '20 4,10,16,22 * * *'
+    - cron: '20 5,11,17,23 * * *'
 
 permissions:
   contents: read
@@ -37,7 +40,7 @@ jobs:
           MONITOR_SELF_TEST: 'true'
         run: node scripts/monitor-tdas-publication.mjs
 
-      - name: Verificar publicação diária vigente
+      - name: Verificar publicação técnica vigente
         if: github.event_name != 'pull_request'
         id: publication
         continue-on-error: true
@@ -47,7 +50,7 @@ jobs:
           MONITOR_REPORT_PATH: /tmp/tdas-publication-monitor.json
         run: node scripts/monitor-tdas-publication.mjs
 
-      - name: Manter alerta rastreável
+      - name: Manter incidente técnico único
         if: github.event_name != 'pull_request' && always()
         uses: actions/github-script@v7
         env:
@@ -55,7 +58,8 @@ jobs:
         with:
           script: |
             const fs = require('fs');
-            const title = '[Monitor] Publicação diária TDAS atrasada';
+            const title = '[Monitor] Site TDAS sem publicação atual do dia';
+            const legacyTitles = new Set([title, '[Monitor] Publicação diária TDAS atrasada']);
             const reportPath = process.env.MONITOR_REPORT_PATH;
             if (!fs.existsSync(reportPath)) {
               core.setFailed('O watchdog não gerou o relatório esperado.');
@@ -64,21 +68,25 @@ jobs:
             const report = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
             const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
             const body = `${report.markdown}\n\n[Consultar execução técnica](${runUrl})`;
-            const { data: issues } = await github.rest.issues.listForRepo({
+            const issues = await github.paginate(github.rest.issues.listForRepo, {
               owner: context.repo.owner,
               repo: context.repo.repo,
               state: 'all',
               per_page: 100
             });
-            const existing = issues.find(issue => !issue.pull_request && issue.title === title);
+            const existing = issues
+              .filter(issue => !issue.pull_request && legacyTitles.has(issue.title))
+              .sort((left, right) => right.number - left.number)[0];
 
             if (!report.healthy) {
-              if (existing?.state === 'open') {
+              if (existing) {
                 await github.rest.issues.update({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
                   issue_number: existing.number,
-                  body
+                  title,
+                  body,
+                  state: 'open'
                 });
               } else {
                 await github.rest.issues.create({
@@ -97,17 +105,25 @@ jobs:
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: existing.number,
-                body: `✅ Recuperação confirmada em ${report.checkedAtLocal}. ${report.summary}\n\n[Consultar execução técnica](${runUrl})`
+                body: `✅ Recuperação técnica do site confirmada em ${report.checkedAtLocal}. ${report.summary}\n\n[Consultar execução técnica](${runUrl})`
               });
               await github.rest.issues.update({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: existing.number,
+                title,
                 state: 'closed'
+              });
+            } else if (existing && existing.title !== title) {
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: existing.number,
+                title
               });
             }
             core.info(report.summary);
 
-      - name: Sinalizar publicação inconsistente
+      - name: Sinalizar publicação técnica inconsistente
         if: github.event_name != 'pull_request' && steps.publication.outcome == 'failure'
         run: exit 1

@@ -11,6 +11,10 @@ const VALID_SYNC_STATUSES = new Set(['success', 'no_changes']);
 const readJson = async file => JSON.parse(await fs.readFile(path.join(ROOT, file), 'utf8'));
 const peCode = value => String(value || '').toUpperCase().match(/^PE\d{1,3}$/)?.[0] || '';
 const validIso = value => !Number.isNaN(Date.parse(String(value || '')));
+const integerValue = value => {
+  const number = Number(value);
+  return Number.isInteger(number) ? number : Number.NaN;
+};
 
 function dateParts(value, timeZone = TIME_ZONE) {
   const parts = new Intl.DateTimeFormat('en-CA', {
@@ -49,10 +53,28 @@ function issue(code, message, detail = '') {
   return { code, message, detail };
 }
 
+function scheduledDays(agenda) {
+  const candidates = [agenda?.current, ...(agenda?.next || []), ...(agenda?.allFuture || [])].filter(Boolean);
+  const seen = new Set();
+  return candidates.filter(item => {
+    const key = `${String(item?.date || '')}|${peCode(item?.pe)}`;
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function latestValidSync(history) {
+  return (history?.entries || [])
+    .filter(entry => VALID_SYNC_STATUSES.has(entry?.status) && validIso(entry?.at))
+    .sort((left, right) => Date.parse(right.at) - Date.parse(left.at))[0] || null;
+}
+
 export function evaluatePublication({
   now = new Date(),
   platform,
   today,
+  agenda,
   catalog,
   material,
   contract,
@@ -60,13 +82,14 @@ export function evaluatePublication({
   maxAgeMinutes = DEFAULT_MAX_AGE_MINUTES
 }) {
   const currentDate = localDate(now);
-  const examDate = String(today?.meta?.examDate || '2026-09-06');
+  const examDate = String(today?.meta?.examDate || agenda?.meta?.examDate || '2026-09-06');
   const cycleStart = '2026-07-03';
 
   if (currentDate < cycleStart || currentDate > examDate) {
     return {
       status: 'skipped',
       healthy: true,
+      scope: 'publicação técnica GitHub/site',
       currentDate,
       examDate,
       summary: `Monitoramento dispensado fora da janela operacional ${cycleStart}–${examDate}.`,
@@ -75,9 +98,18 @@ export function evaluatePublication({
   }
 
   const issues = [];
+  const expectedDay = scheduledDays(agenda).find(item => String(item?.date || '') === currentDate) || null;
+  const expectedPe = peCode(expectedDay?.pe);
+  const expectedTitle = String(expectedDay?.title || '');
+  const expectedQuestions = integerValue(expectedDay?.planned_questions ?? expectedDay?.meta ?? today?.current?.meta);
+
+  if (!expectedDay || !expectedPe) {
+    issues.push(issue('AGENDA_DAY_MISSING', 'O calendário técnico não identifica o PE esperado para a data atual.', `Data: ${currentDate}`));
+  }
+
   const syncAt = platform?.syncAt;
   const syncTimestamp = Date.parse(String(syncAt || ''));
-  const latestValid = (history?.entries || []).find(entry => VALID_SYNC_STATUSES.has(entry?.status) && validIso(entry?.at));
+  const latestValid = latestValidSync(history);
 
   if (!validIso(syncAt)) {
     issues.push(issue('SYNC_AT_INVALID', 'O manifesto não possui data/hora válida da última sincronização.', String(syncAt || 'ausente')));
@@ -86,23 +118,23 @@ export function evaluatePublication({
     if (ageMinutes < -10) {
       issues.push(issue('SYNC_AT_FUTURE', 'A última sincronização está registrada no futuro.', `${formatLocal(syncAt)}; agora ${formatLocal(now)}`));
     } else if (ageMinutes > maxAgeMinutes) {
-      issues.push(issue('SYNC_STALE', `A publicação está há ${ageMinutes} minutos sem sincronização válida.`, `Limite operacional: ${maxAgeMinutes} minutos; última: ${formatLocal(syncAt)}`));
+      issues.push(issue('SYNC_STALE', `O site está há ${ageMinutes} minutos sem sincronização técnica válida.`, `Limite operacional: ${maxAgeMinutes} minutos; última: ${formatLocal(syncAt)}`));
     }
   }
 
   if (!latestValid) {
     issues.push(issue('HISTORY_MISSING', 'O histórico não contém execução válida de sincronização.', 'Esperado status success ou no_changes.'));
   } else if (validIso(syncAt) && new Date(latestValid.at).getTime() !== syncTimestamp) {
-    issues.push(issue('HISTORY_DIVERGENCE', 'O manifesto e o histórico apontam sincronizações diferentes.', `Manifesto: ${syncAt}; histórico: ${latestValid.at}`));
+    issues.push(issue('HISTORY_DIVERGENCE', 'O manifesto e o histórico apontam sincronizações diferentes.', `Manifesto: ${syncAt}; histórico mais recente: ${latestValid.at}`));
   }
 
   const snapshotDate = String(today?.meta?.snapshotDate || '');
-  const executionDate = String(today?.current?.date || '');
+  const publishedExecutionDate = String(today?.current?.date || '');
   if (snapshotDate !== currentDate) {
-    issues.push(issue('SNAPSHOT_DATE_STALE', 'O snapshot público não corresponde à data atual.', `Snapshot: ${snapshotDate || 'ausente'}; esperado: ${currentDate}`));
+    issues.push(issue('SNAPSHOT_DATE_STALE', 'O snapshot técnico do site não corresponde à data atual.', `Snapshot publicado: ${snapshotDate || 'ausente'}; esperado: ${currentDate}`));
   }
-  if (executionDate !== currentDate) {
-    issues.push(issue('EXECUTION_DATE_STALE', 'O PE publicado não corresponde ao dia atual.', `PE ${today?.current?.pe || 'ausente'} está associado a ${executionDate || 'data ausente'}; esperado: ${currentDate}`));
+  if (publishedExecutionDate !== currentDate) {
+    issues.push(issue('EXECUTION_DATE_STALE', 'O registro exibido no site não corresponde ao dia atual.', `Registro publicado: ${today?.current?.pe || 'ausente'} em ${publishedExecutionDate || 'data ausente'}; esperado no calendário: ${expectedPe || 'não identificado'} em ${currentDate}`));
   }
 
   const peValues = {
@@ -112,22 +144,25 @@ export function evaluatePublication({
     material: peCode(material?.peId),
     contrato: peCode(contract?.current?.peId)
   };
+  const publishedPe = peValues.hoje || peValues.plataforma || peValues.catalogo || peValues.material || peValues.contrato || '';
   const peSet = new Set(Object.values(peValues).filter(Boolean));
   if (Object.values(peValues).some(value => !value) || peSet.size !== 1) {
-    issues.push(issue('PE_DIVERGENCE', 'PE, material, questões e contrato diário não estão alinhados.', JSON.stringify(peValues)));
+    issues.push(issue('PE_DIVERGENCE', 'Manifesto, página Hoje, material, questões e contrato diário não estão alinhados entre si.', JSON.stringify(peValues)));
+  }
+  if (expectedPe && Object.values(peValues).some(value => value && value !== expectedPe)) {
+    issues.push(issue('EXPECTED_PE_MISMATCH', 'O site/GitHub ainda não publicou o PE previsto no calendário para hoje.', `Esperado: ${expectedPe}; publicado: ${JSON.stringify(peValues)}`));
   }
 
-  const expectedQuestions = Number(today?.current?.meta ?? 0);
   const questionCount = Number(catalog?.questionCount ?? -1);
   const questionsLength = Array.isArray(catalog?.questions) ? catalog.questions.length : -1;
   if (!Number.isInteger(expectedQuestions) || expectedQuestions < 0) {
-    issues.push(issue('QUESTION_TARGET_INVALID', 'A meta oficial de questões é inválida.', String(today?.current?.meta)));
+    issues.push(issue('QUESTION_TARGET_INVALID', 'A meta de questões do calendário é inválida.', String(expectedDay?.planned_questions ?? expectedDay?.meta ?? today?.current?.meta)));
   } else if (questionCount !== expectedQuestions || questionsLength !== expectedQuestions) {
-    issues.push(issue('QUESTION_COUNT_DIVERGENCE', 'A quantidade publicada de questões diverge da meta oficial.', `Meta: ${expectedQuestions}; catálogo: ${questionCount}; lista: ${questionsLength}`));
+    issues.push(issue('QUESTION_COUNT_DIVERGENCE', 'A quantidade publicada de questões diverge da meta do PE esperado.', `PE esperado: ${expectedPe || 'não identificado'}; meta: ${expectedQuestions}; catálogo: ${questionCount}; lista: ${questionsLength}`));
   }
 
   if (material?.mode !== 'notion-daily-material' || String(material?.html || '').trim().length < 200) {
-    issues.push(issue('MATERIAL_INVALID', 'O material diário está ausente ou incompleto.', `Modo: ${material?.mode || 'ausente'}; HTML: ${String(material?.html || '').length} caracteres`));
+    issues.push(issue('MATERIAL_INVALID', 'O material diário publicado está ausente ou incompleto.', `Modo: ${material?.mode || 'ausente'}; HTML: ${String(material?.html || '').length} caracteres`));
   }
 
   if (contract?.current?.materialPageId !== material?.source?.pageId) {
@@ -138,6 +173,7 @@ export function evaluatePublication({
   return {
     status: healthy ? 'healthy' : 'blocked',
     healthy,
+    scope: 'publicação técnica GitHub/site',
     checkedAt: new Date(now).toISOString(),
     checkedAtLocal: formatLocal(now),
     currentDate,
@@ -145,68 +181,95 @@ export function evaluatePublication({
     maxAgeMinutes,
     syncAt: validIso(syncAt) ? new Date(syncAt).toISOString() : null,
     syncAtLocal: formatLocal(syncAt),
-    pe: peValues.hoje || peValues.plataforma || '',
+    expectedPe,
+    expectedTitle,
+    publishedPe,
     expectedQuestions,
     questionCount,
     summary: healthy
-      ? `${peValues.hoje}: publicação diária íntegra, atual e alinhada entre snapshot, material, questões e contrato.`
-      : `${issues.length} inconsistência(s) bloqueiam a confirmação da publicação diária TDAS.`,
+      ? `${expectedPe}: publicação técnica do site íntegra e alinhada entre calendário, snapshot, material, questões e contrato.`
+      : `O site/GitHub ainda não confirmou integralmente a publicação técnica de ${expectedPe || 'PE do dia'}; isso não altera nem invalida a execução registrada no Notion.`,
     issues
   };
 }
 
 function markdownReport(report) {
   const lines = [
-    `## Monitoramento da publicação diária TDAS`,
+    '## Monitoramento da publicação técnica TDAS',
     '',
-    `- **Estado:** ${report.healthy ? 'recuperado/íntegro' : 'atenção necessária'}`,
+    '> Este monitor verifica somente o GitHub e o site público. Ele não mede, desconsidera ou altera a conclusão do estudo registrada no Notion.',
+    '',
+    `- **Estado do site:** ${report.healthy ? 'atualizado/íntegro' : 'publicação técnica pendente'}`,
     `- **Verificação:** ${report.checkedAtLocal || report.currentDate}`,
-    `- **Última sincronização válida:** ${report.syncAtLocal || 'não informada'}`,
-    `- **PE observado:** ${report.pe || 'não identificado'}`,
+    `- **PE esperado pelo calendário:** ${report.expectedPe || 'não identificado'}${report.expectedTitle ? ` — ${report.expectedTitle}` : ''}`,
+    `- **PE atualmente publicado no site:** ${report.publishedPe || 'não identificado'}`,
+    `- **Última sincronização técnica válida:** ${report.syncAtLocal || 'não informada'}`,
     `- **Resumo:** ${report.summary}`
   ];
   if (report.issues?.length) {
-    lines.push('', '### Inconsistências');
+    lines.push('', '### Inconsistências técnicas');
     for (const item of report.issues) lines.push(`- **${item.code}:** ${item.message}${item.detail ? ` — ${item.detail}` : ''}`);
   }
-  lines.push('', 'Este alerta é mantido automaticamente. Ele será fechado quando uma verificação posterior confirmar a recuperação integral.');
+  lines.push('', 'Este incidente é reutilizado pelo watchdog e será fechado quando uma verificação posterior confirmar a recuperação integral do site.');
   return lines.join('\n');
 }
 
 async function runSelfTest() {
   const now = new Date('2026-08-05T15:20:00-03:00');
   const syncAt = '2026-08-05T14:50:00-03:00';
+  const agenda = {
+    meta: { examDate: '2026-09-06' },
+    current: { pe: 'PE79', date: '2026-08-04', title: 'Arquivologia', planned_questions: '35' },
+    next: [{ pe: 'PE80', date: '2026-08-05', title: 'Materiais e estoque', planned_questions: '35' }],
+    allFuture: []
+  };
   const base = {
     now,
     platform: { syncAt, peId: 'PE80' },
     today: { meta: { snapshotDate: '2026-08-05', examDate: '2026-09-06' }, current: { date: '2026-08-05', pe: 'PE80', meta: 35 } },
+    agenda,
     catalog: { peId: 'PE80', questionCount: 35, questions: Array.from({ length: 35 }, (_, index) => ({ id: `q${index + 1}` })) },
     material: { mode: 'notion-daily-material', peId: 'PE80', html: 'x'.repeat(300), source: { pageId: 'material-page' } },
     contract: { current: { peId: 'PE80', materialPageId: 'material-page' } },
-    history: { entries: [{ at: syncAt, status: 'success' }] },
+    history: { entries: [{ at: '2026-08-04T23:27:19-03:00', status: 'success' }, { at: syncAt, status: 'success' }] },
     maxAgeMinutes: 180
   };
   const healthy = evaluatePublication(base);
   assert.equal(healthy.status, 'healthy');
+  assert.equal(healthy.expectedPe, 'PE80');
+  assert.equal(healthy.publishedPe, 'PE80');
   assert.equal(healthy.issues.length, 0);
 
   const stale = evaluatePublication({ ...base, now: new Date('2026-08-05T19:30:00-03:00') });
   assert.equal(stale.status, 'blocked');
   assert.ok(stale.issues.some(item => item.code === 'SYNC_STALE'));
 
-  const divergent = evaluatePublication({ ...base, catalog: { ...base.catalog, peId: 'PE79' } });
-  assert.equal(divergent.status, 'blocked');
-  assert.ok(divergent.issues.some(item => item.code === 'PE_DIVERGENCE'));
+  const previousSync = '2026-08-04T23:27:19-03:00';
+  const outdated = evaluatePublication({
+    ...base,
+    now: new Date('2026-08-05T18:30:00-03:00'),
+    platform: { syncAt: previousSync, peId: 'PE79' },
+    today: { meta: { snapshotDate: '2026-08-04', examDate: '2026-09-06' }, current: { date: '2026-08-04', pe: 'PE79', meta: 35 } },
+    catalog: { peId: 'PE79', questionCount: 35, questions: Array.from({ length: 35 }, (_, index) => ({ id: `q${index + 1}` })) },
+    material: { mode: 'notion-daily-material', peId: 'PE79', html: 'x'.repeat(300), source: { pageId: 'material-page-79' } },
+    contract: { current: { peId: 'PE79', materialPageId: 'material-page-79' } },
+    history: { entries: [{ at: previousSync, status: 'success' }] }
+  });
+  assert.equal(outdated.status, 'blocked');
+  assert.equal(outdated.expectedPe, 'PE80');
+  assert.equal(outdated.publishedPe, 'PE79');
+  assert.ok(outdated.issues.some(item => item.code === 'EXPECTED_PE_MISMATCH'));
 
-  console.log('Watchdog TDAS validado: fluxo íntegro, atraso e divergência de PE cobertos.');
+  console.log('Watchdog TDAS auditado: calendário independente, histórico ordenado, atraso e publicação de PE incorreto cobertos.');
 }
 
 if (process.env.MONITOR_SELF_TEST === 'true') {
   await runSelfTest();
 } else {
-  const [platform, today, catalog, material, contract, history] = await Promise.all([
+  const [platform, today, agenda, catalog, material, contract, history] = await Promise.all([
     readJson('data/platform-version.json'),
     readJson('data/today.json'),
+    readJson('data/agenda.json'),
     readJson('data/integration/question-catalog.json'),
     readJson('data/integration/daily-material.json'),
     readJson('data/integration/daily-execution.json'),
@@ -214,7 +277,7 @@ if (process.env.MONITOR_SELF_TEST === 'true') {
   ]);
   const now = process.env.MONITOR_NOW ? new Date(process.env.MONITOR_NOW) : new Date();
   const maxAgeMinutes = Number(process.env.MAX_SYNC_AGE_MINUTES || DEFAULT_MAX_AGE_MINUTES);
-  const report = evaluatePublication({ now, platform, today, catalog, material, contract, history, maxAgeMinutes });
+  const report = evaluatePublication({ now, platform, today, agenda, catalog, material, contract, history, maxAgeMinutes });
   report.markdown = markdownReport(report);
   await fs.writeFile(REPORT_PATH, `${JSON.stringify(report, null, 2)}\n`, 'utf8');
   console.log(JSON.stringify(report));
