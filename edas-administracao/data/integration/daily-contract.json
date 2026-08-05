@@ -1,8 +1,8 @@
 {
   "schemaVersion": "1.0.0",
   "mode": "edas-daily-execution-contract",
-  "release": "20260805.2",
-  "capturedAt": "2026-08-05T10:10:00-03:00",
+  "release": "20260805.3",
+  "capturedAt": "2026-08-05T13:20:10-03:00",
   "basePath": "/sedes-tdas-dashboard/edas-administracao/",
   "sources": {
     "dashboard": "https://app.notion.com/p/SEDES-DF-EDAS-Administra-o-Cargo-400-Dashboard-PRO-362cf5a2673181e5b0ccd3055fa57524",

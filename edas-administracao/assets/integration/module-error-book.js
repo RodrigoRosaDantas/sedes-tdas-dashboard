@@ -1,5 +1,5 @@
-import{loadData,setupShell,fmtDate,escapeHTML,routes,setLoadingError}from'../common.js?v=20260805.2';
-import{readModuleState}from'./module-store.js?v=20260805.2';
+import{loadData,setupShell,fmtDate,escapeHTML,routes,setLoadingError}from'../common.js?v=20260805.3';
+import{readModuleState}from'./module-store.js?v=20260805.3';
 const format=value=>new Intl.DateTimeFormat('pt-BR',{dateStyle:'short',timeStyle:'short'}).format(new Date(value));
 try{
  const d=await loadData();setupShell('caderno',d.meta);const{errors:localErrors,marked}=readModuleState(),official=d.errors||[],coverage=d.errorCoverage||{loaded:official.length,total:d.metrics?.errors||official.length};

@@ -1,4 +1,4 @@
-import{loadData,loadJSON,setupShell,fmtDateTime,escapeHTML,routes,setLoadingError}from'./common.js?v=20260805.2';
+import{loadData,loadJSON,setupShell,fmtDateTime,escapeHTML,routes,setLoadingError}from'./common.js?v=20260805.3';
 try{
  const [d,h]=await Promise.all([loadData(),loadJSON('data/sync-history.json')]);setupShell('historico',d.meta);
  const events=h.events||[];

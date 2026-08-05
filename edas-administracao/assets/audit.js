@@ -1,5 +1,5 @@
-import{loadData,loadJSON,setupShell,fmtNumber,fmtDate,fmtDateTime,escapeHTML,routes,RELEASE,setLoadingError}from'./common.js?v=20260805.2';
-import{readModuleState,exportModuleState,clearModuleState}from'./integration/module-store.js?v=20260805.2';
+import{loadData,loadJSON,setupShell,fmtNumber,fmtDate,fmtDateTime,escapeHTML,routes,RELEASE,setLoadingError}from'./common.js?v=20260805.3';
+import{readModuleState,exportModuleState,clearModuleState}from'./integration/module-store.js?v=20260805.3';
 const toCSV=rows=>{if(!rows.length)return'';const keys=[...new Set(rows.flatMap(Object.keys))],quote=value=>`"${String(value??'').replace(/"/g,'""')}"`;return[keys.map(quote).join(','),...rows.map(row=>keys.map(key=>quote(row[key])).join(','))].join('\n')};
 const download=(name,content,type)=>{const blob=new Blob(['\ufeff'+content],{type}),url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download=name;document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)};
 try{

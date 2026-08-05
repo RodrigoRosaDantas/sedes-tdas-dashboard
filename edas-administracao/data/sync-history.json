@@ -1,8 +1,15 @@
 {
   "schemaVersion": "1.0.0",
-  "release": "20260805.2",
-  "updatedAt": "2026-08-05T10:40:00-03:00",
+  "release": "20260805.3",
+  "updatedAt": "2026-08-05T13:20:10-03:00",
   "events": [
+    {
+      "at": "2026-08-05T13:20:10-03:00",
+      "status": "success",
+      "type": "snapshot",
+      "title": "Snapshot EDAS sincronizado para o S10",
+      "detail": "42 Sprints, 21 erros oficiais, 12 estudos de caso e material oficial do S10 validados. Métricas executadas permaneceram em 3 Sprints, 115 questões e 94 acertos. A página de questões S10 não estava acessível; o catálogo anterior foi preservado."
+    },
     {
       "at": "2026-08-05T10:40:00-03:00",
       "status": "error",

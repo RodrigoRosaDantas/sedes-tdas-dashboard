@@ -1,4 +1,4 @@
-const VERSION='edas-20260805.2';
+const VERSION='edas-20260805.3';
 const BASE='/sedes-tdas-dashboard/edas-administracao/';
 const CORE=[
  BASE,BASE+'hoje/',BASE+'evolucao/',BASE+'riscos/',BASE+'agenda/',BASE+'estudos-caso/',BASE+'auditoria/',BASE+'mais/',
