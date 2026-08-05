@@ -1,8 +1,9 @@
-export const RELEASE='20260804.1';
+export const RELEASE='20260805.2';
 export const BASE='/sedes-tdas-dashboard/edas-administracao/';
 export const routes={
  home:BASE,hoje:BASE+'hoje/',evolucao:BASE+'evolucao/',riscos:BASE+'riscos/',agenda:BASE+'agenda/',casos:BASE+'estudos-caso/',auditoria:BASE+'auditoria/',mais:BASE+'mais/',
- estudar:BASE+'estudar/',resolver:BASE+'resolver/',revisar:BASE+'revisar/',caderno:BASE+'caderno-erros/',desempenho:BASE+'desempenho/',fila:BASE+'fila-ia/'
+ estudar:BASE+'estudar/',resolver:BASE+'resolver/',revisar:BASE+'revisar/',caderno:BASE+'caderno-erros/',desempenho:BASE+'desempenho/',fila:BASE+'fila-ia/',
+ sprints:BASE+'sprints/',sprint:BASE+'sprint/',materias:BASE+'materias/',materia:BASE+'materia/',historico:BASE+'historico/'
 };
 const icons={home:'⌂',hoje:'◎',evolucao:'↗',riscos:'!',agenda:'◷',casos:'✎',auditoria:'✓',mais:'•••'};
 const labels={home:'Início',hoje:'Hoje',evolucao:'Evolução',riscos:'Riscos',agenda:'Agenda',casos:'Estudos de caso',auditoria:'Auditoria',mais:'Mais'};
@@ -20,15 +21,19 @@ export async function loadData(){
  }
  return dataPromise;
 }
-export async function loadJSON(path){
- const response=await fetch(BASE+path+'?v='+RELEASE,{cache:'no-store'});
- if(!response.ok)throw new Error('Falha ao carregar recurso ('+response.status+')');
- return response.json();
+export async function loadJSON(path,{optional=false}={}){
+ try{
+  const response=await fetch(BASE+path+'?v='+RELEASE,{cache:'no-store'});
+  if(!response.ok)throw new Error('Falha ao carregar recurso ('+response.status+')');
+  return await response.json();
+ }catch(error){if(optional)return null;throw error}
 }
 export function fmtNumber(value){return new Intl.NumberFormat('pt-BR').format(Number(value||0))}
 export function fmtPct(value,digits=2){return new Intl.NumberFormat('pt-BR',{minimumFractionDigits:digits,maximumFractionDigits:digits}).format(Number(value||0))+'%'}
 export function fmtDate(iso){if(!iso)return'—';const[y,m,d]=String(iso).slice(0,10).split('-').map(Number);return new Intl.DateTimeFormat('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric'}).format(new Date(y,m-1,d))}
+export function fmtDateTime(value){if(!value)return'—';return new Intl.DateTimeFormat('pt-BR',{dateStyle:'short',timeStyle:'short'}).format(new Date(value))}
 export function escapeHTML(value){return String(value??'').replace(/[&<>'"]/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]))}
+export function slug(value){return String(value??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')}
 export function countdown(iso){const[y,m,d]=iso.split('-').map(Number),now=new Date();return Math.max(0,Math.ceil((Date.UTC(y,m-1,d)-Date.UTC(now.getFullYear(),now.getMonth(),now.getDate()))/86400000))}
 export function metric(label,value,detail){return`<article class="card metric"><small>${escapeHTML(label)}</small><strong>${escapeHTML(value)}</strong><span>${escapeHTML(detail)}</span></article>`}
 export function alertCard(item){return`<article class="card alert" data-level="${escapeHTML(item.level)}"><span class="alert-icon">${item.level==='critical'?'!':item.level==='warning'?'△':'i'}</span><div><b>${escapeHTML(item.title)}</b><p>${escapeHTML(item.detail)}</p></div>${item.href?`<a href="${item.href}">${escapeHTML(item.action||'Abrir')} →</a>`:''}</article>`}
@@ -81,14 +86,14 @@ function showUpdate(registration){
 export function setupShell(page,meta){
  const desktop=['home','hoje','evolucao','riscos','agenda','casos','auditoria'];
  const mobile=['home','hoje','evolucao','riscos','mais'];
- const active=['estudar','resolver','revisar','caderno','desempenho','fila'].includes(page)?'mais':page;
- document.querySelector('.brand small')?.replaceChildren(`SEDES/DF · v${meta?.version||RELEASE}`);
+ const active=['estudar','resolver','revisar','caderno','desempenho','fila','sprints','sprint','materias','materia','historico'].includes(page)?'mais':page;
+ document.querySelector('.brand small')?.replaceChildren(`SEDES/DF · v${RELEASE}`);
  const desktopNav=document.querySelector('#desktop-nav');if(desktopNav)desktopNav.innerHTML='<div class="nav-label">Plataforma de estudo</div>'+desktop.map(key=>`<a href="${routes[key]}" class="${key===active?'active':''}"><span class="nav-icon">${icons[key]}</span>${labels[key]}</a>`).join('');
  const mobileActive=['agenda','casos','auditoria'].includes(active)?'mais':active;
  const mobileNav=document.querySelector('#mobile-nav');if(mobileNav)mobileNav.innerHTML=mobile.map(key=>`<a href="${routes[key]}" class="${key===mobileActive?'active':''}"><span>${icons[key]}</span><span>${labels[key]}</span></a>`).join('');
  document.querySelectorAll('[data-snapshot]').forEach(node=>node.textContent=fmtDate(meta?.snapshotDate));
  document.querySelectorAll('[data-sync]').forEach(node=>node.textContent=(meta?.syncTimes||[]).join(' · '));
- document.querySelectorAll('[data-platform-version]').forEach(node=>node.textContent=`v${meta?.version||RELEASE}`);
+ document.querySelectorAll('[data-platform-version]').forEach(node=>node.textContent=`v${RELEASE}`);
  const stored=localStorage.getItem('edas-theme');if(stored)document.documentElement.dataset.theme=stored;
  if(!document.documentElement.dataset.edasControlsReady){
   document.documentElement.dataset.edasControlsReady='1';

@@ -1,4 +1,4 @@
-import{loadData,escapeHTML}from'../common.js?v=20260804.1';
+import{loadData,escapeHTML}from'../common.js?v=20260805.2';
 const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 const format=seconds=>{const h=Math.floor(seconds/3600),m=Math.floor(seconds%3600/60),s=Math.floor(seconds%60);return[h,m,s].map(value=>String(value).padStart(2,'0')).join(':')};
 try{

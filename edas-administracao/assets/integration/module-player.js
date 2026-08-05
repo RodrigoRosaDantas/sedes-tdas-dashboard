@@ -1,5 +1,5 @@
-import{loadData,setupShell,escapeHTML,routes,setLoadingError}from'../common.js?v=20260804.1';
-import{readModuleState,saveCompletedAttempt}from'./module-store.js?v=20260804.1';
+import{loadData,setupShell,escapeHTML,routes,setLoadingError}from'../common.js?v=20260805.2';
+import{readModuleState,saveCompletedAttempt}from'./module-store.js?v=20260805.2';
 const CATALOG_KEY='edas.400.question-catalog.v1';
 const now=()=>Date.now();
 const validateCatalog=catalog=>{
@@ -8,7 +8,7 @@ const validateCatalog=catalog=>{
  catalog.questions.forEach((question,index)=>{if(!question.id)question.id=`Q${index+1}`;if(!question.enunciado||!question.alternativas||!question.gabarito)throw new Error(`Questão ${index+1} incompleta.`)});
  return catalog;
 };
-const readCatalog=async()=>{let local=null;try{local=JSON.parse(localStorage.getItem(CATALOG_KEY)||'null')}catch{}if(local)return validateCatalog(local);const response=await fetch('../data/integration/question-catalog.json?v=20260804.1',{cache:'no-store'});if(response.ok){const data=await response.json();if(data?.questions?.length)return validateCatalog(data)}return null};
+const readCatalog=async()=>{let local=null;try{local=JSON.parse(localStorage.getItem(CATALOG_KEY)||'null')}catch{}if(local)return validateCatalog(local);const response=await fetch('../data/integration/question-catalog.json?v=20260805.2',{cache:'no-store'});if(response.ok){const data=await response.json();if(data?.questions?.length)return validateCatalog(data)}return null};
 const letters=alternatives=>Array.isArray(alternatives)?alternatives.map((text,index)=>[String.fromCharCode(65+index),text]):Object.entries(alternatives||{});
 async function init(){
 try{

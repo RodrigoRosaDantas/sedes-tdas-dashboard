@@ -1,5 +1,5 @@
-import{loadData,routes,escapeHTML}from'../common.js?v=20260804.1';
-import{readModuleState}from'./module-store.js?v=20260804.1';
+import{loadData,routes,escapeHTML}from'../common.js?v=20260805.2';
+import{readModuleState}from'./module-store.js?v=20260805.2';
 const waitForHome=()=>new Promise((resolve,reject)=>{let attempts=0;const tick=()=>{const hero=document.querySelector('main .hero');if(hero&&!/Carregando/.test(document.querySelector('main')?.textContent||''))return resolve(hero);if(attempts++>150)return reject(new Error('Página inicial não ficou pronta.'));setTimeout(tick,40)};tick()});
 const step=(number,title,done,active)=>`<div class="command-step ${done?'done':''} ${active?'active':''}"><span>${done?'✓':number}</span><div><b>${escapeHTML(title)}</b><small>${done?'Concluído neste dispositivo':active?'Próxima ação recomendada':'Pendente'}</small></div></div>`;
 try{

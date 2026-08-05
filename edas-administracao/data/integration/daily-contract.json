@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0.0",
+  "mode": "edas-daily-execution-contract",
+  "release": "20260805.2",
+  "capturedAt": "2026-08-05T10:10:00-03:00",
+  "basePath": "/sedes-tdas-dashboard/edas-administracao/",
+  "sources": {
+    "dashboard": "https://app.notion.com/p/SEDES-DF-EDAS-Administra-o-Cargo-400-Dashboard-PRO-362cf5a2673181e5b0ccd3055fa57524",
+    "control": "collection://754d97fb-da34-4050-82f4-a056126bb6b5",
+    "errors": "collection://c67ff9ea-b229-4198-aafd-0de5cfccfc7d",
+    "cases": "collection://774d93e2-dc21-461d-818e-d35f081dcbe4"
+  },
+  "paths": {
+    "snapshot": "data/site.json",
+    "material": "data/integration/daily-material.json",
+    "catalog": "data/integration/question-catalog.json",
+    "history": "data/sync-history.json"
+  },
+  "invariants": [
+    "official-edas-sources-only",
+    "last-valid-snapshot-preserved",
+    "no-tdas-question-copy",
+    "answer-key-after-finish",
+    "local-storage-edas-only",
+    "no-notion-writeback"
+  ]
+}
