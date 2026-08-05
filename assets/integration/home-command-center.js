@@ -1,7 +1,8 @@
 import {BASE,escapeHTML} from '../common.js?v=26.1';
 import {loadDailyExecution,findDailyExecution,normalizePe} from './daily-execution.js?v=1.1.2';
 import {readPeProgress,summarizeProgress} from './daily-progress.js?v=1.0.0';
-import {readModuleState} from './module-store.js?v=2.0.0';
+import {readModuleState} from './module-store.js?v=2.1.0';
+import {sortReviewsByPriority} from './review-engine.js?v=1.0.0';
 import {readSessionDraft} from './session-draft.js?v=1.0.0';
 import {buildOfficialCycleTasks,selectPrimaryAction} from './daily-priorities.js?v=1.0.0';
 
@@ -17,7 +18,7 @@ try{
  document.querySelectorAll('[data-platform-version]').forEach(node=>{node.textContent=`v${platform.platformVersion}`});
  const pe=normalizePe(home.today?.pe),local=readModuleState(),draft=readSessionDraft(),progress=summarizeProgress(readPeProgress(pe)),officialCompleted=completedStatus(home.today?.status);
  const attempt=local.attempts.find(item=>normalizePe(item.peId)===pe&&item.mode==='study')||null;
- const dueReview=local.reviews.filter(item=>item.status==='pending'&&Number(item.dueAt)<=Date.now()).sort((a,b)=>a.dueAt-b.dueAt)[0]||null;
+ const dueReview=sortReviewsByPriority(local.reviews.filter(item=>item.status==='pending'&&Number(item.dueAt)<=Date.now()),Date.now())[0]||null;
  const nextPeNumber=Math.min(112,peNumber(pe)+1),nextPe=nextPeNumber>peNumber(pe)?findDailyExecution(contract,`PE${String(nextPeNumber).padStart(2,'0')}`):null;
  const effective=officialCompleted?{...progress,material:true,questions:true,registered:true,completed:3,total:3,percent:100,done:true}:{...progress,questions:progress.questions||Boolean(attempt)};
  const officialTasks=buildOfficialCycleTasks({today,nextPe,base:BASE});
