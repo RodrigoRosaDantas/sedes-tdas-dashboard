@@ -16,6 +16,12 @@ const required=(value,label)=>{
  if(value===undefined||value===null||String(value).trim()==='')throw new Error(`Versionamento: ${label} ausente.`);
  return String(value).trim();
 };
+function resolveSyncAt(history){
+ const entry=(history?.entries||[]).find(item=>['success','no_changes'].includes(item?.status)&&item?.at);
+ const syncAt=required(entry?.at,'data e hora da sincronização');
+ if(Number.isNaN(Date.parse(syncAt)))throw new Error(`Versionamento: data e hora da sincronização inválida (${syncAt}).`);
+ return syncAt;
+}
 async function resolveSourceCommit(root){
  const supplied=String(process.env.GITHUB_SHA||process.env.TDAS_SOURCE_COMMIT||'').trim();
  if(/^[0-9a-f]{40}$/i.test(supplied))return supplied.toLowerCase();
@@ -26,20 +32,22 @@ async function resolveSourceCommit(root){
  }catch{return'unknown'}
 }
 export async function buildPlatformVersion(root=process.cwd()){
- const[packageData,home,catalog]=await Promise.all([
+ const[packageData,home,catalog,syncHistory]=await Promise.all([
   readJSON(root,'package.json'),
   readJSON(root,'data/home.json'),
-  readJSON(root,'data/integration/question-catalog.json')
+  readJSON(root,'data/integration/question-catalog.json'),
+  readJSON(root,'data/sync-history.json')
  ]);
  const platformVersion=required(packageData.version,'versão da plataforma');
  const dataVersion=required(home.meta?.version,'versão dos dados');
  const catalogVersion=required(catalog.catalogId,'versão do catálogo diário');
  const peId=required(catalog.peId||home.today?.pe,'PE vigente');
  const syncDate=required(home.meta?.snapshotDate,'data da sincronização');
+ const syncAt=resolveSyncAt(syncHistory);
  const sourceCommit=await resolveSourceCommit(root);
  const serviceWorkerVersion=`tdas-${sanitize(platformVersion)}-${compactDate(syncDate)}-${sanitize(peId)}-${shortCatalog(catalogVersion)}`;
- const publicationId=[platformVersion,dataVersion,catalogVersion,syncDate,sourceCommit==='unknown'?'unknown':sourceCommit.slice(0,12)].join('|');
- return{schemaVersion:'1.0.0',platformVersion,dataVersion,catalogVersion,serviceWorkerVersion,sourceCommit,syncDate,peId,publicationId};
+ const publicationId=[platformVersion,dataVersion,catalogVersion,syncAt,sourceCommit==='unknown'?'unknown':sourceCommit.slice(0,12)].join('|');
+ return{schemaVersion:'1.1.0',platformVersion,dataVersion,catalogVersion,serviceWorkerVersion,sourceCommit,syncDate,syncAt,peId,publicationId};
 }
 function replaceConstant(source,name,value){
  const pattern=new RegExp(`const ${name}=['\"][^'\"]+['\"];`);

@@ -71,6 +71,7 @@ jobs:
           const today=JSON.parse(fs.readFileSync(`${root}/data/today.json`,'utf8'));
           const ids=catalog.questions.map(item=>item.id);
           if(ids.length<3)throw new Error('O smoke exige ao menos três questões no catálogo diário.');
+          if(Number.isNaN(Date.parse(platform.syncAt)))throw new Error('O smoke exige syncAt válido no manifesto.');
           const currentIndex=2;
           const answers=Object.fromEntries(ids.slice(0,currentIndex).map((id,index)=>[id,index%2===0?'A':'B']));
           const draft={schemaVersion:'1.0.0',catalogId:catalog.catalogId,peId:catalog.peId,savedAt:Date.now(),session:{schemaVersion:'1.0.0',materialId:catalog.catalogId,questionIds:ids,answers,currentIndex,startedAt:Date.now()-120000,updatedAt:Date.now(),finishedAt:null},responseMeta:{}};
@@ -83,6 +84,8 @@ jobs:
           const focusRd=(redactionItem?.title||'').match(/RD\d+/i)?.[0]||'';
           const focusPe=focusRd?String(today.current?.pe||''):'';
           const sourceCommit=platform.sourceCommit==='unknown'?'local':String(platform.sourceCommit).slice(0,7);
+          const syncDate=new Intl.DateTimeFormat('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',timeZone:'America/Sao_Paulo'}).format(new Date(platform.syncAt));
+          const syncTime=new Intl.DateTimeFormat('pt-BR',{hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'America/Sao_Paulo'}).format(new Date(platform.syncAt));
           const draftHtml=`<!doctype html><meta charset="utf-8"><script>localStorage.setItem('tdas.202.question-module.v2.draft',${JSON.stringify(JSON.stringify(draft))});localStorage.setItem('tdas.202.daily-execution.v1',${JSON.stringify(JSON.stringify(progress))});location.replace('/sedes-tdas-dashboard/');<\/script>`;
           const reviewScript=`localStorage.setItem('tdas.202.question-module.v2.state',${JSON.stringify(JSON.stringify(moduleState))});`;
           const reviewHtml=`<!doctype html><meta charset="utf-8"><script>${reviewScript}location.replace('/sedes-tdas-dashboard/resolver/?review='+encodeURIComponent(${JSON.stringify(reviewId)}));<\/script>`;
@@ -90,7 +93,7 @@ jobs:
           fs.writeFileSync(`${root}/__seed.html`,draftHtml);
           fs.writeFileSync(`${root}/__review.html`,reviewHtml);
           fs.writeFileSync(`${root}/__review-home.html`,reviewHomeHtml);
-          fs.writeFileSync('/tmp/tdas-expected.env',`QUESTION_INDEX=${currentIndex+1}\nQUESTION_TOTAL=${ids.length}\nUNLINKED_ERRORS=${unlinked}\nPLATFORM_VERSION=${platform.platformVersion}\nSOURCE_COMMIT_SHORT=${sourceCommit}\nFOCUS_RD=${focusRd}\nFOCUS_PE=${focusPe}\nREVIEW_STAGE=D+1\n`);
+          fs.writeFileSync('/tmp/tdas-expected.env',`QUESTION_INDEX=${currentIndex+1}\nQUESTION_TOTAL=${ids.length}\nUNLINKED_ERRORS=${unlinked}\nPLATFORM_VERSION=${platform.platformVersion}\nSOURCE_COMMIT_SHORT=${sourceCommit}\nFOCUS_RD=${focusRd}\nFOCUS_PE=${focusPe}\nREVIEW_STAGE=D+1\nLAST_SYNC_DATE=${syncDate}\nLAST_SYNC_TIME=${syncTime}\n`);
           NODE
           cd /tmp/tdas-site
           python3 -m http.server 4173 >/tmp/tdas-server.log 2>&1 &
@@ -117,6 +120,10 @@ jobs:
           grep -q "v${PLATFORM_VERSION}" /tmp/home.html
           grep -q "Plataforma ${PLATFORM_VERSION}" /tmp/home.html
           grep -q "publicação ${SOURCE_COMMIT_SHORT}" /tmp/home.html
+          grep -q 'Última sincronização' /tmp/home.html
+          grep -q "${LAST_SYNC_DATE} às ${LAST_SYNC_TIME}" /tmp/home.html
+          grep -q 'data-last-sync-at=' /tmp/home.html
+          ! grep -q '00h50 · 06h50 · 12h50 · 18h50</span>' /tmp/home.html
           ! grep -q 'versão carregando' /tmp/home.html
           grep -q "Continuar questão ${QUESTION_INDEX} de ${QUESTION_TOTAL}" /tmp/resume.html
           grep -q "Revisão ${REVIEW_STAGE}" /tmp/review.html
@@ -139,7 +146,7 @@ jobs:
           ! grep -Eqi 'Uncaught (TypeError|ReferenceError|SyntaxError)|Central de execução indisponível|Erros sem origem indisponíveis|Revisão local não encontrada' /tmp/*.stderr
           grep -q 'assets/integration/review-engine.js' /tmp/tdas-site/sedes-tdas-dashboard/sw.js
           ! grep -q 'question-keys/' /tmp/tdas-site/sedes-tdas-dashboard/sw.js
-          printf '{"browser":"ok","commandCenter":true,"cycleClosure":true,"adaptiveReview":true,"reviewStage":"%s","focusedRedaction":"%s","platformVersion":"%s","publication":"%s","resume":"question-%s-of-%s","unlinkedErrors":%s,"answerKeyPrecached":false}\n' "$REVIEW_STAGE" "$FOCUS_RD" "$PLATFORM_VERSION" "$SOURCE_COMMIT_SHORT" "$QUESTION_INDEX" "$QUESTION_TOTAL" "$UNLINKED_ERRORS"
+          printf '{"browser":"ok","commandCenter":true,"lastSync":"%sT%s","cycleClosure":true,"adaptiveReview":true,"reviewStage":"%s","focusedRedaction":"%s","platformVersion":"%s","publication":"%s","resume":"question-%s-of-%s","unlinkedErrors":%s,"answerKeyPrecached":false}\n' "$LAST_SYNC_DATE" "$LAST_SYNC_TIME" "$REVIEW_STAGE" "$FOCUS_RD" "$PLATFORM_VERSION" "$SOURCE_COMMIT_SHORT" "$QUESTION_INDEX" "$QUESTION_TOTAL" "$UNLINKED_ERRORS"
 
       - name: Encerrar servidor
         if: always()
