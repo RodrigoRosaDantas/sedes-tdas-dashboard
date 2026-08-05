@@ -1,0 +1,49 @@
+const DAY_MS=86_400_000;
+export const REVIEW_OUTCOMES=Object.freeze({MASTERED:'mastered',UNSURE:'unsure',WRONG_AGAIN:'wrong_again'});
+const VALID_OUTCOMES=new Set(Object.values(REVIEW_OUTCOMES));
+export const outcomeLabel=outcome=>({mastered:'Dominei',unsure:'Ainda tenho dúvida',wrong_again:'Errei novamente'}[outcome]||'Resultado não informado');
+export function inferReviewOutcome(result={}){
+ if(result.correct===false||result.classification==='incorrect_confirmed')return REVIEW_OUTCOMES.WRONG_AGAIN;
+ if(['doubt','guess'].includes(result.confidence)||['correct_with_doubt','correct_by_guess','marked'].includes(result.classification))return REVIEW_OUTCOMES.UNSURE;
+ return REVIEW_OUTCOMES.MASTERED;
+}
+export function normalizeReviewOutcome(outcome,result={}){
+ const value=String(outcome||'').trim();
+ return VALID_OUTCOMES.has(value)?value:inferReviewOutcome(result);
+}
+export function reinforcementDelayDays(outcome){
+ if(outcome===REVIEW_OUTCOMES.WRONG_AGAIN)return 1;
+ if(outcome===REVIEW_OUTCOMES.UNSURE)return 3;
+ return null;
+}
+export function buildReinforcementReview({sourceReview,item,attemptId,finishedAt,outcome}={}){
+ const normalized=normalizeReviewOutcome(outcome,item),days=reinforcementDelayDays(normalized);
+ if(!days||!sourceReview||!item)return null;
+ const recurrenceCount=Number(sourceReview.recurrenceCount||0)+1;
+ return{
+  ...item,
+  id:`review:${attemptId}:${item.id}:reinforcement:${recurrenceCount}`,
+  sourceAttemptId:String(attemptId),
+  questionId:item.id,
+  peId:sourceReview.peId||null,
+  stage:normalized===REVIEW_OUTCOMES.WRONG_AGAIN?'Reforço 24h':'Reforço 3d',
+  dueAt:Number(finishedAt)+days*DAY_MS,
+  status:'pending',
+  completedAt:null,
+  reviewAttemptId:null,
+  outcome:null,
+  originReviewId:sourceReview.id,
+  rootReviewId:sourceReview.rootReviewId||sourceReview.id,
+  recurrenceCount,
+  sourceOutcome:normalized,
+ };
+}
+export function reviewPriorityScore(review={},now=Date.now()){
+ const overdueDays=Math.max(0,(Number(now)-Number(review.dueAt||now))/DAY_MS);
+ const signal=review.sourceOutcome||review.outcome||review.classification;
+ const base={wrong_again:520,unsure:340,incorrect_confirmed:260,correct_by_guess:210,correct_with_doubt:190,marked:150,mastered:20}[signal]||100;
+ return base+Number(review.recurrenceCount||0)*60+Math.min(120,overdueDays*12);
+}
+export function sortReviewsByPriority(reviews=[],now=Date.now()){
+ return[...reviews].sort((a,b)=>reviewPriorityScore(b,now)-reviewPriorityScore(a,now)||Number(a.dueAt||0)-Number(b.dueAt||0));
+}

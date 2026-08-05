@@ -1,10 +1,11 @@
 import {BASE, escapeHTML, loadJSON, setupShell, setLoadingError} from '../common.js?v=26.1';
 import {ANSWER_OPTIONS, canFinish, createSession, evaluateSession, formatElapsed, moveToQuestion, selectAnswer, sessionProgress} from './player-core.js?v=1.0.0';
-import {readModuleState, saveCompletedAttempt} from './module-store.js?v=2.0.0';
+import {readModuleState, saveCompletedAttempt} from './module-store.js?v=2.1.0';
+import {inferReviewOutcome,outcomeLabel,REVIEW_OUTCOMES} from './review-engine.js?v=1.0.0';
 import {clearSessionDraft, matchingSessionDraft, writeSessionDraft} from './session-draft.js?v=1.0.0';
 
 const main = document.querySelector('main');
-const state = {catalog: null, session: null, responseMeta: {}, review: null, timer: null, draft: null};
+const state = {catalog: null, session: null, responseMeta: {}, review: null, timer: null, draft: null, pendingReview: null};
 const safeKeyPath = path => /^data\/integration\/question-keys\/[a-z0-9._-]+\.json$/i.test(String(path || ''));
 
 function stopTimer(){if(state.timer)clearInterval(state.timer);state.timer=null}
@@ -14,10 +15,11 @@ function metaFor(id){return{confidence:'secure',marked:false,issue:'none',...(st
 function questionCatalog(){if(!state.review)return state.catalog;const question=state.catalog.questions.find(item=>item.id===state.review.questionId);return question?{...state.catalog,catalogId:`${state.catalog.catalogId}:review:${state.review.id}`,title:`Revisão ${state.review.stage}`,questionCount:1,questions:[question]}:null}
 function persistDraft(){if(state.review||!state.session)return;state.draft=writeSessionDraft({catalogId:state.catalog.catalogId,peId:state.catalog.peId,session:state.session,responseMeta:state.responseMeta})}
 function resumeDraft(){if(!state.draft)return false;state.session=state.draft.session;state.responseMeta={...state.draft.responseMeta};startTimer();renderQuestion();return true}
+function formatDate(value){return new Intl.DateTimeFormat('pt-BR',{dateStyle:'short',timeStyle:'short'}).format(new Date(value))}
 function renderEmpty(){main.innerHTML=`<section class="hero"><span class="kicker">Resolver · uso real</span><h1>Nenhuma questão disponível</h1><p>O player está operacional, mas nenhum catálogo autorizado foi incorporado ao módulo.</p><div class="hero-actions"><a class="btn primary" href="${BASE}estudar/">Voltar para Estudar</a><a class="btn" href="${BASE}revisar/">Abrir revisões</a></div></section>`}
 function renderUnavailableReview(){main.innerHTML=`<section class="hero"><span class="kicker">Revisão local</span><h1>Questão não disponível no catálogo atual</h1><p>A referência de revisão foi preservada, mas o conteúdo correspondente não integra o catálogo autorizado atual.</p><div class="hero-actions"><a class="btn primary" href="${BASE}revisar/">Voltar às revisões</a></div></section>`}
 function renderIntro(){
- const catalog=questionCatalog();if(!catalog)return renderUnavailableReview();state.session=null;state.responseMeta={};
+ const catalog=questionCatalog();if(!catalog)return renderUnavailableReview();state.session=null;state.responseMeta={};state.pendingReview=null;
  const resume=state.draft&&!state.review,progress=resume?sessionProgress(state.draft.session):null;
  main.innerHTML=`<section class="hero"><span class="kicker">${state.review?`Revisão ${escapeHTML(state.review.stage)}`:'Sessão local'}</span><h1>${escapeHTML(state.review?`Revisar questão ${state.review.numeroOriginal??''}`:catalog.title)}</h1><p>${escapeHTML(catalog.description||'Responda todas as questões antes da correção.')}</p><div class="tags"><span class="tag">${catalog.questions.length} ${catalog.questions.length===1?'questão':'questões'}</span><span class="tag">Correção somente ao finalizar</span><span class="tag">Salvo neste dispositivo</span></div><div class="hero-actions">${resume?`<button class="btn primary" data-module-resume>Continuar questão ${state.draft.session.currentIndex+1} de ${progress.total}</button><button class="btn" data-module-start>Recomeçar</button>`:'<button class="btn primary" data-module-start>Iniciar</button>'}<a class="btn" href="${state.review?`${BASE}revisar/`:`${BASE}estudar/`}">Voltar</a></div>${resume?`<p><small>${progress.answered} respostas preservadas. O gabarito continua indisponível até a finalização.</small></p>`:''}</section>`
 }
@@ -25,15 +27,36 @@ function renderQuestion(){
  const catalog=questionCatalog(),progress=sessionProgress(state.session),question=catalog.questions[state.session.currentIndex],selected=state.session.answers[question.id]||'',meta=metaFor(question.id);
  main.innerHTML=`<section class="hero pilot-shell"><div class="pilot-toolbar"><div class="pilot-progress"><div><strong>Questão ${state.session.currentIndex+1} de ${progress.total}</strong> · ${progress.answered} respondidas</div><div class="pilot-progress-track"><div class="pilot-progress-fill" style="width:${progress.percent}%"></div></div></div><strong class="pilot-timer" data-module-timer>${formatElapsed(Date.now()-state.session.startedAt)}</strong></div></section><section class="section pilot-shell"><article class="card panel pilot-question"><span class="kicker">${escapeHTML(question.assunto||'Questão')}</span><h1>${escapeHTML(question.enunciado)}</h1>${question.texto_base?`<blockquote class="pilot-text">${escapeHTML(question.texto_base)}</blockquote>`:''}<fieldset class="pilot-options"><legend class="skip">Escolha uma alternativa</legend>${ANSWER_OPTIONS.filter(option=>question.alternativas?.[option]).map(option=>`<label class="pilot-option"><input type="radio" name="module-answer" value="${option}" ${selected===option?'checked':''}><span><strong>${option})</strong> ${escapeHTML(question.alternativas[option])}</span></label>`).join('')}</fieldset><fieldset class="pilot-meta"><legend><strong>Como você chegou à resposta?</strong></legend><div class="pilot-meta-grid"><label><input type="radio" name="module-confidence" value="secure" ${meta.confidence==='secure'?'checked':''}> Segurança</label><label><input type="radio" name="module-confidence" value="doubt" ${meta.confidence==='doubt'?'checked':''}> Dúvida</label><label><input type="radio" name="module-confidence" value="guess" ${meta.confidence==='guess'?'checked':''}> Chute</label></div><label><input type="checkbox" data-module-marked ${meta.marked?'checked':''}> Marcar para revisão</label><label>Ressalva editorial<select data-module-issue><option value="none" ${meta.issue==='none'?'selected':''}>Nenhuma</option><option value="annulment_pending" ${meta.issue==='annulment_pending'?'selected':''}>Possível anulação</option><option value="source_error" ${meta.issue==='source_error'?'selected':''}>Possível erro da fonte</option></select></label></fieldset></article><article class="card panel"><h2>Mapa da sessão</h2><div class="pilot-map">${catalog.questions.map((item,index)=>`<button class="btn ${state.session.answers[item.id]?'answered':''} ${index===state.session.currentIndex?'current':''}" data-module-index="${index}">${index+1}</button>`).join('')}</div></article><div class="pilot-actions"><button class="btn" data-module-prev ${state.session.currentIndex===0?'disabled':''}>← Anterior</button><a class="btn" href="${state.review?`${BASE}revisar/`:`${BASE}estudar/`}">Sair</a>${state.session.currentIndex<progress.total-1?'<button class="btn primary" data-module-next>Próxima →</button>':`<button class="btn primary" data-module-finish ${canFinish(state.session)?'':'disabled'}>Finalizar (${progress.remaining} pendentes)</button>`}</div></section>`;updateTimer()
 }
+function renderStudyResult(evaluation,saved){
+ main.innerHTML=`<section class="hero pilot-result"><span class="kicker">Resultado local</span><h1>${evaluation.correct}/${evaluation.total} acertos · ${evaluation.percent.toFixed(0)}%</h1><p>Tentativa salva somente neste dispositivo. Foram registrados ${saved.state.errors.length} erros, ${saved.state.reviews.filter(item=>item.status==='pending').length} revisões pendentes e ${saved.state.aiQueue.length} ressalvas para análise.</p><div class="hero-actions"><a class="btn primary" href="${BASE}resolver/">Nova sessão</a><a class="btn" href="${BASE}caderno-erros/">Abrir caderno</a><a class="btn" href="${BASE}desempenho/">Ver desempenho</a></div></section>`
+}
+function renderReviewDecision(evaluation){
+ const catalog=questionCatalog(),question=catalog.questions[0],result=evaluation.results[0],meta=metaFor(question.id),recommended=inferReviewOutcome({correct:result.correct,confidence:meta.confidence});
+ state.pendingReview={catalog,evaluation,result,recommended};
+ main.innerHTML=`<section class="hero pilot-result"><span class="kicker">Correção da revisão</span><h1>${result.correct?'Resposta correta':'Resposta incorreta'}</h1><p>A revisão só será concluída depois que você registrar o estado real da aprendizagem.</p></section><section class="section pilot-shell"><article class="card panel review-answer-card"><span class="kicker">${escapeHTML(question.assunto||'Questão')}</span><h2>Questão ${question.numero_original??'—'}</h2><div class="review-answer-grid"><div><small>Sua resposta</small><strong>${escapeHTML(result.selected||'—')}</strong></div><div><small>Gabarito</small><strong>${escapeHTML(result.correctAnswer||'—')}</strong></div><div><small>Confiança informada</small><strong>${meta.confidence==='secure'?'Segurança':meta.confidence==='doubt'?'Dúvida':'Chute'}</strong></div></div></article><article class="card panel review-decision"><span class="kicker">Resultado pedagógico</span><h2>Como esta questão ficou agora?</h2><p>A opção recomendada aparece em destaque. Você pode escolher “Ainda tenho dúvida” mesmo após acertar ou errar.</p><div class="review-decision-grid"><button class="btn ${recommended===REVIEW_OUTCOMES.MASTERED?'primary':''}" data-review-outcome="${REVIEW_OUTCOMES.MASTERED}" ${result.correct?'':'disabled'}><strong>Dominei</strong><small>Não criar reforço extra</small></button><button class="btn ${recommended===REVIEW_OUTCOMES.UNSURE?'primary':''}" data-review-outcome="${REVIEW_OUTCOMES.UNSURE}"><strong>Ainda tenho dúvida</strong><small>Reforçar em 3 dias</small></button><button class="btn ${recommended===REVIEW_OUTCOMES.WRONG_AGAIN?'primary':''}" data-review-outcome="${REVIEW_OUTCOMES.WRONG_AGAIN}" ${result.correct?'disabled':''}><strong>Errei novamente</strong><small>Reforçar em 24 horas</small></button></div><a class="btn" href="${BASE}revisar/">Cancelar e voltar</a></article></section>`
+}
+function renderReviewCompleted(saved){
+ const reinforcement=saved.reinforcement;
+ main.innerHTML=`<section class="hero pilot-result"><span class="kicker">Revisão concluída</span><h1>${escapeHTML(outcomeLabel(saved.attempt.reviewOutcome))}</h1><p>${reinforcement?`Novo ${escapeHTML(reinforcement.stage)} agendado para ${escapeHTML(formatDate(reinforcement.dueAt))}.`:'Nenhum reforço extra foi criado. As revisões futuras já existentes foram preservadas.'}</p><div class="hero-actions"><a class="btn primary" href="${BASE}revisar/">Voltar às revisões</a><a class="btn" href="${BASE}caderno-erros/">Abrir caderno</a><a class="btn" href="${BASE}desempenho/">Ver desempenho</a></div></section>`
+}
 async function finishSession(){
  if(!canFinish(state.session))return;const catalog=questionCatalog();if(!safeKeyPath(state.catalog.keyPath))throw new Error('O catálogo autorizado não possui caminho de gabarito válido.');
  const key=await fetch(BASE+state.catalog.keyPath,{cache:'no-store'}).then(response=>{if(!response.ok)throw new Error(`Falha ao carregar gabarito (${response.status}).`);return response.json()});
- const normalizedKey=state.review?{...key,material_id:catalog.catalogId,answers:key.answers.filter(item=>item.id===catalog.questions[0].id)}:key,evaluation=evaluateSession(state.session,normalizedKey,Date.now()),saved=saveCompletedAttempt({catalog,evaluation,responseMeta:state.responseMeta,mode:state.review?'review':'study',reviewId:state.review?.id||null});
- if(!state.review)clearSessionDraft();state.draft=null;stopTimer();
- main.innerHTML=`<section class="hero pilot-result"><span class="kicker">Resultado local</span><h1>${evaluation.correct}/${evaluation.total} acertos · ${evaluation.percent.toFixed(0)}%</h1><p>Tentativa salva somente neste dispositivo. Foram registrados ${saved.state.errors.length} erros, ${saved.state.reviews.filter(item=>item.status==='pending').length} revisões pendentes e ${saved.state.aiQueue.length} ressalvas para análise.</p><div class="hero-actions"><a class="btn primary" href="${state.review?`${BASE}revisar/`:`${BASE}resolver/`}">${state.review?'Voltar às revisões':'Nova sessão'}</a><a class="btn" href="${BASE}caderno-erros/">Abrir caderno</a><a class="btn" href="${BASE}desempenho/">Ver desempenho</a></div></section>`
+ const normalizedKey=state.review?{...key,material_id:catalog.catalogId,answers:key.answers.filter(item=>item.id===catalog.questions[0].id)}:key,evaluation=evaluateSession(state.session,normalizedKey,Date.now());
+ stopTimer();
+ if(state.review){renderReviewDecision(evaluation);return}
+ const saved=saveCompletedAttempt({catalog,evaluation,responseMeta:state.responseMeta,mode:'study'});clearSessionDraft();state.draft=null;renderStudyResult(evaluation,saved)
+}
+function completeReview(outcome){
+ if(!state.review||!state.pendingReview)throw new Error('Correção de revisão indisponível.');
+ const {catalog,evaluation,result}=state.pendingReview;
+ if(outcome===REVIEW_OUTCOMES.MASTERED&&!result.correct)throw new Error('Uma resposta incorreta não pode ser registrada como dominada.');
+ if(outcome===REVIEW_OUTCOMES.WRONG_AGAIN&&result.correct)throw new Error('Uma resposta correta não pode ser registrada como novo erro.');
+ const saved=saveCompletedAttempt({catalog,evaluation,responseMeta:state.responseMeta,mode:'review',reviewId:state.review.id,reviewOutcome:outcome});
+ state.pendingReview=null;state.session=null;renderReviewCompleted(saved)
 }
 main.addEventListener('change',event=>{
- if(!state.session)return;const questionId=state.session.questionIds[state.session.currentIndex];
+ if(!state.session||state.pendingReview)return;const questionId=state.session.questionIds[state.session.currentIndex];
  if(event.target.matches('input[name="module-answer"]'))state.session=selectAnswer(state.session,questionId,event.target.value,Date.now());
  else if(event.target.matches('input[name="module-confidence"]'))state.responseMeta[questionId]={...metaFor(questionId),confidence:event.target.value};
  else if(event.target.matches('[data-module-marked]'))state.responseMeta[questionId]={...metaFor(questionId),marked:event.target.checked};
@@ -41,9 +64,10 @@ main.addEventListener('change',event=>{
  persistDraft();renderQuestion()
 });
 main.addEventListener('click',event=>{
+ const outcome=event.target.closest('[data-review-outcome]');if(outcome){try{completeReview(outcome.dataset.reviewOutcome)}catch(error){alert(error.message)}return}
  if(event.target.closest('[data-module-resume]')){resumeDraft();return}
- if(event.target.closest('[data-module-start]')){if(!state.review)clearSessionDraft();state.draft=null;const catalog=questionCatalog();state.session=createSession({id:catalog.catalogId,questoes:catalog.questions},Date.now());state.responseMeta={};persistDraft();startTimer();renderQuestion();return}
- if(!state.session)return;const index=event.target.closest('[data-module-index]');
+ if(event.target.closest('[data-module-start]')){if(!state.review)clearSessionDraft();state.draft=null;state.pendingReview=null;const catalog=questionCatalog();state.session=createSession({id:catalog.catalogId,questoes:catalog.questions},Date.now());state.responseMeta={};persistDraft();startTimer();renderQuestion();return}
+ if(!state.session||state.pendingReview)return;const index=event.target.closest('[data-module-index]');
  if(index)state.session=moveToQuestion(state.session,Number(index.dataset.moduleIndex),Date.now());
  else if(event.target.closest('[data-module-prev]'))state.session=moveToQuestion(state.session,state.session.currentIndex-1,Date.now());
  else if(event.target.closest('[data-module-next]'))state.session=moveToQuestion(state.session,state.session.currentIndex+1,Date.now());

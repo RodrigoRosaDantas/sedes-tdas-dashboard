@@ -1,3 +1,5 @@
+import {buildReinforcementReview,normalizeReviewOutcome} from './review-engine.js';
+
 const STORAGE_KEY = 'tdas.202.question-module.v2.state';
 const SCHEMA_VERSION = '2.0.0';
 const DAY_MS = 86_400_000;
@@ -83,7 +85,7 @@ function questionRecord(attempt, question, result, meta) {
   });
 }
 
-export function saveCompletedAttempt({catalog, evaluation, responseMeta = {}, mode = 'study', reviewId = null}, storage) {
+export function saveCompletedAttempt({catalog, evaluation, responseMeta = {}, mode = 'study', reviewId = null, reviewOutcome = null}, storage) {
   if (!catalog || !evaluation || !['study', 'review'].includes(mode)) throw new TypeError('Conclusão inválida.');
   if (mode === 'review' && !reviewId) throw new TypeError('Revisão de origem obrigatória.');
   const target = resolveStorage(storage);
@@ -95,11 +97,13 @@ export function saveCompletedAttempt({catalog, evaluation, responseMeta = {}, mo
     if (!question) throw new Error(`Questão ausente do catálogo: ${result.id}.`);
     return questionRecord(null, question, result, responseMeta[result.id]);
   });
+  const resolvedReviewOutcome = mode === 'review' ? normalizeReviewOutcome(reviewOutcome, results[0]) : null;
   const attempt = Object.freeze({
     schemaVersion: '2.0.0',
     id: `attempt:${mode}:${catalog.catalogId}:${evaluation.session.startedAt}`,
     mode,
     reviewId: mode === 'review' ? String(reviewId) : null,
+    reviewOutcome: resolvedReviewOutcome,
     catalogId: catalog.catalogId,
     peId: catalog.peId || null,
     startedAt: evaluation.session.startedAt,
@@ -124,28 +128,42 @@ export function saveCompletedAttempt({catalog, evaluation, responseMeta = {}, mo
     ...item, id: `ai:${attempt.id}:${item.id}`, attemptId: attempt.id, peId: attempt.peId, createdAt: attempt.finishedAt, status: 'pending',
   }));
   const eligible = results.filter(item => ['incorrect_confirmed', 'correct_with_doubt', 'correct_by_guess', 'marked'].includes(item.classification));
-  const reviews = mode === 'study' ? eligible.flatMap(item => [1, 7, 20].map(days => ({
-    ...item,
-    id: `review:${attempt.id}:${item.id}:D+${days}`,
-    sourceAttemptId: attempt.id,
-    questionId: item.id,
-    peId: attempt.peId,
-    stage: `D+${days}`,
-    dueAt: attempt.finishedAt + days * DAY_MS,
-    status: 'pending',
-    completedAt: null,
-    reviewAttemptId: null,
-  }))) : [];
+  const reviews = mode === 'study' ? eligible.flatMap(item => [1, 7, 20].map(days => {
+    const id=`review:${attempt.id}:${item.id}:D+${days}`;
+    return{
+      ...item,
+      id,
+      sourceAttemptId: attempt.id,
+      questionId: item.id,
+      peId: attempt.peId,
+      stage: `D+${days}`,
+      dueAt: attempt.finishedAt + days * DAY_MS,
+      status: 'pending',
+      completedAt: null,
+      reviewAttemptId: null,
+      outcome: null,
+      originReviewId: null,
+      rootReviewId: id,
+      recurrenceCount: 0,
+      sourceOutcome: item.classification,
+    };
+  })) : [];
 
   let updatedReviews = mergeUnique(reviews, state.reviews);
+  let reinforcement = null;
   if (mode === 'review') {
-    let found = false;
-    updatedReviews = updatedReviews.map(review => {
-      if (review.id !== reviewId) return review;
-      found = true;
-      return {...review, status: 'completed', completedAt: attempt.finishedAt, reviewAttemptId: attempt.id, outcome: results[0]?.classification || null};
-    });
-    if (!found) throw new Error('Revisão de origem não encontrada.');
+    const sourceReview=updatedReviews.find(review=>review.id===reviewId);
+    if (!sourceReview) throw new Error('Revisão de origem não encontrada.');
+    updatedReviews = updatedReviews.map(review => review.id !== reviewId ? review : ({
+      ...review,
+      status: 'completed',
+      completedAt: attempt.finishedAt,
+      reviewAttemptId: attempt.id,
+      outcome: resolvedReviewOutcome,
+      outcomeClassification: results[0]?.classification || null,
+    }));
+    reinforcement=buildReinforcementReview({sourceReview,item:results[0],attemptId:attempt.id,finishedAt:attempt.finishedAt,outcome:resolvedReviewOutcome});
+    if(reinforcement)updatedReviews=mergeUnique([reinforcement],updatedReviews);
   }
 
   const next = {
@@ -166,7 +184,7 @@ export function saveCompletedAttempt({catalog, evaluation, responseMeta = {}, mo
     } catch {}
     throw new Error(`Conclusão local revertida: ${error.message}`);
   }
-  return Object.freeze({attempt, state: freezeState(next)});
+  return Object.freeze({attempt, state: freezeState(next), reinforcement: reinforcement ? Object.freeze(reinforcement) : null});
 }
 
 export function clearModuleState(storage) {
