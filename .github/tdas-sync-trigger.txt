@@ -4,6 +4,6 @@ Atualize este arquivo somente quando for necessário solicitar uma recuperação
 
 Última solicitação:
 - data: 2026-08-05
-- horário: 19:54 BRT
-- tentativa: 2
-- motivo: snapshot e última sincronização permaneceram em 2026-08-04 após a conclusão do PE80; nova solicitação emitida com o acionador já presente na main.
+- horário: 20:02 BRT
+- tentativa: 3
+- motivo: executar diagnóstico rastreável da publicação do PE80, com registro do workflow originador no incidente técnico.
