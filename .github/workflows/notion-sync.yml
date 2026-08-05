@@ -16,6 +16,7 @@ on:
       - 'scripts/validate-platform-version.mjs'
       - 'scripts/test-calendar-refresh.mjs'
       - 'scripts/test-daily-content.mjs'
+      - 'scripts/test-sync-operational-guards.mjs'
       - 'package.json'
   schedule:
     - cron: '50 3,9,15,21 * * *'
@@ -81,6 +82,7 @@ jobs:
         shell: bash
         run: |
           set -uo pipefail
+          set +e
           : > /tmp/tdas-sync.log
           node scripts/prepare-calendar-refresh.mjs 2>&1 | tee -a /tmp/tdas-sync.log
           sync_status=${PIPESTATUS[0]}
@@ -113,6 +115,7 @@ jobs:
             sync_status=${PIPESTATUS[0]}
           fi
           if [[ $sync_status -ne 0 ]]; then
+            set -e
             git reset --hard "$GITHUB_SHA"
             export SYNC_ERROR_DETAIL="$(tail -c 4800 /tmp/tdas-sync.log | tr '\n' ' ')"
             node scripts/record-sync-error.mjs
@@ -122,6 +125,7 @@ jobs:
             echo 'A publicação foi bloqueada; main permaneceu intacto.'
             exit $sync_status
           fi
+          set -e
 
       - name: Criar conjunto integral validado
         if: steps.cycle.outputs.run == 'true'
