@@ -3,7 +3,5 @@ Acionador técnico da sincronização TDAS.
 Atualize este arquivo somente quando for necessário solicitar uma recuperação manual da publicação automática.
 
 Última solicitação:
-- data: 2026-08-05
-- horário: 20:08 BRT
-- tentativa: 4
-- motivo: publicar PE80 após corrigir o teste histórico que exigia PE79.
+- data: 2026-08-06
+- motivo: publicar o contrato discursivo 1.1 após corrigir a preservação do cache offline no gerador diário.
