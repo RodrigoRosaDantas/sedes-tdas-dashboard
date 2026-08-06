@@ -54,6 +54,7 @@ function weekNumber(value, rd) {
 async function buildDetail(record) {
   const rd = safeText(read(record, ['RD ID'])).toUpperCase();
   const date = safeText(read(record, ['Data'])).slice(0, 10);
+  const correctionDate = safeText(read(record, ['Data da correção'])).slice(0, 10);
   const status = safeText(read(record, ['Status', 'Resultado automático', 'Situação', 'Estado da versão'])) || 'Não informado';
   const corrected = bool(record, ['Diagnóstico feito?', 'Corrigida?', 'Correção feita?']) || correctedStatus(status);
   const locked = !corrected && Boolean(date && date > snapshotDate) && pendingStatus(status);
@@ -62,6 +63,7 @@ async function buildDetail(record) {
     pe: peByRd.get(rd) || '',
     week: weekNumber(read(record, ['Semana']), rd),
     date,
+    correctionDate,
     status,
     axis: safeText(read(record, ['Eixo'])),
     type: safeText(read(record, ['Tipo'])),
@@ -160,6 +162,7 @@ async function buildDetail(record) {
       keyPhrase: safeText(read(record, ['Frase-chave para memorizar'])),
       structureUsed: safeText(read(record, ['Estrutura usada'])),
       rewriteRequired: bool(record, ['Reescrever?']),
+      rewriteCompleted: bool(record, ['Reescrita concluída?']),
       portugueseReviewed: bool(record, ['Português revisado?']),
       canBeModel: bool(record, ['Pode virar modelo?']),
       allCommandsAnswered: bool(record, ['Respondeu todos os comandos?']),
@@ -192,6 +195,7 @@ const redactions = details.map(detail => ({
   week: detail.meta.week,
   pe: detail.meta.pe,
   date: detail.meta.date,
+  correctionDate: detail.meta.correctionDate || '',
   theme: detail.meta.theme,
   status: detail.meta.status,
   axis: detail.meta.axis,
@@ -204,7 +208,8 @@ const redactions = details.map(detail => ({
   classification: detail.performance?.classification || 'Sem nota',
   mainFailure: detail.feedback?.mainFailure || '',
   nextAction: detail.feedback?.nextAction || '',
-  rewriteRequired: Boolean(detail.feedback?.rewriteRequired),
+  rewriteCompleted: Boolean(detail.feedback?.rewriteCompleted),
+  rewriteRequired: Boolean(detail.feedback?.rewriteRequired && !detail.feedback?.rewriteCompleted),
   portugueseReviewed: Boolean(detail.feedback?.portugueseReviewed),
   detailPath: `data/redactions/${detail.rd.toLowerCase()}.json`
 }));

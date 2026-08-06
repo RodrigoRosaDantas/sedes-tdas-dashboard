@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 const read=file=>fs.readFileSync(file,'utf8');
-const index=read('index.html'),center=read('assets/integration/home-command-center.js'),priorities=read('assets/integration/daily-priorities.js'),reviewEngine=read('assets/integration/review-engine.js'),reviews=read('assets/integration/module-reviews.js'),redactions=read('assets/redactions.js'),redactionsPage=read('redacoes/index.html'),player=read('assets/integration/module-player.js'),audit=read('auditoria/index.html'),unlinked=read('assets/integration/audit-unlinked-errors.js'),auditData=JSON.parse(read('data/audit.json')),platform=JSON.parse(read('data/platform-version.json'));
+const index=read('index.html'),center=read('assets/integration/home-command-center.js'),priorities=read('assets/integration/daily-priorities.js'),reviewEngine=read('assets/integration/review-engine.js'),reviews=read('assets/integration/module-reviews.js'),redactions=read('assets/redactions.js'),redactionsPage=read('redacoes/index.html'),player=read('assets/integration/module-player.js'),audit=read('auditoria/index.html'),unlinked=read('assets/integration/audit-unlinked-errors.js'),auditData=JSON.parse(read('data/audit.json')),platform=JSON.parse(read('data/platform-version.json')),packageData=JSON.parse(read('package.json'));
 assert.ok(index.includes('home-command-center.js?v=1.4.0'));
 assert.ok(index.includes('command-center.css?v=1.2.0'));
 assert.ok(index.includes('data-platform-version'));
@@ -29,7 +29,7 @@ assert.ok(!priorities.includes('localStorage.setItem')&&!priorities.includes('fe
 assert.ok(reviewEngine.includes("MASTERED:'mastered'"));
 assert.ok(reviewEngine.includes('reviewPriorityScore'));
 assert.ok(reviews.includes('Iniciar revisão prioritária'));
-assert.match(redactionsPage,/assets\/redactions\.js\?v=\d+(?:\.\d+)*/,'A página deve carregar uma versão explícita do módulo de redações.');
+assert.ok(redactionsPage.includes(`assets/redactions.js?v=${packageData.version}`),'A página deve carregar o módulo de redações com a versão consolidada.');
 assert.ok(/(?:params|currentParams)\.get\('rd'\)/.test(redactions),'O Dashboard Discursivo deve aceitar foco por RD na URL.');
 assert.ok(/(?:params|currentParams)\.get\('pe'\)/.test(redactions),'O Dashboard Discursivo deve aceitar foco por PE na URL.');
 assert.ok(redactions.includes('data-focused-redaction'));

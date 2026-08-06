@@ -1,0 +1,88 @@
+name: Validar Banco Discursivo no navegador
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/redactions-browser.yml'
+      - 'assets/common.js'
+      - 'assets/redactions.js'
+      - 'assets/redaction-detail.js'
+      - 'assets/redactions-dashboard.css'
+      - 'redacoes/**'
+      - 'data/redactions.json'
+      - 'data/redactions/**'
+      - 'scripts/test-redactions-browser.mjs'
+      - 'scripts/test-redactions-operational.mjs'
+      - 'scripts/test-redactions-dashboard.mjs'
+      - 'scripts/validate-redactions-publication.mjs'
+      - 'sw.js'
+      - 'package.json'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/redactions-browser.yml'
+      - 'assets/common.js'
+      - 'assets/redactions.js'
+      - 'assets/redaction-detail.js'
+      - 'assets/redactions-dashboard.css'
+      - 'redacoes/**'
+      - 'data/redactions.json'
+      - 'data/redactions/**'
+      - 'scripts/test-redactions-browser.mjs'
+      - 'scripts/test-redactions-operational.mjs'
+      - 'scripts/test-redactions-dashboard.mjs'
+      - 'scripts/validate-redactions-publication.mjs'
+      - 'sw.js'
+      - 'package.json'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: redactions-browser-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Baixar repositório
+        uses: actions/checkout@v4
+
+      - name: Preparar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Executar guardas do Banco Discursivo
+        run: |
+          node scripts/test-redactions-dashboard.mjs
+          node scripts/test-redactions-operational.mjs
+          node scripts/validate-redactions-publication.mjs
+
+      - name: Preparar site local
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/tdas-site/sedes-tdas-dashboard
+          cp -a . /tmp/tdas-site/sedes-tdas-dashboard/
+          cd /tmp/tdas-site
+          python3 -m http.server 4173 >/tmp/tdas-redactions-server.log 2>&1 &
+          echo $! >/tmp/tdas-redactions-server.pid
+          for attempt in $(seq 1 30); do
+            curl -fsS http://127.0.0.1:4173/sedes-tdas-dashboard/redacoes/ >/dev/null && exit 0
+            sleep 1
+          done
+          cat /tmp/tdas-redactions-server.log >&2
+          exit 1
+
+      - name: Validar navegação, celular, bloqueio e offline
+        env:
+          TDAS_BASE_URL: http://127.0.0.1:4173/sedes-tdas-dashboard
+          CHROME_BIN: google-chrome
+        run: node scripts/test-redactions-browser.mjs
+
+      - name: Encerrar servidor
+        if: always()
+        run: kill "$(cat /tmp/tdas-redactions-server.pid 2>/dev/null)" 2>/dev/null || true
