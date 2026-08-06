@@ -16,10 +16,24 @@ for (const file of required) assert.ok(fs.existsSync(file), `Banco Discursivo: a
 const page = fs.readFileSync('assets/redactions.js', 'utf8');
 assert.doesNotMatch(page, />Não exportado</, 'O status da redação não pode ser fixado como “Não exportado”.');
 assert.match(page, /item\.status/, 'A tabela deve usar o status real exportado.');
-assert.match(page, /dashboard/i, 'A página deve renderizar o Dashboard Discursivo.');
+assert.match(page, /data-tab="overview"/, 'O Dashboard Discursivo deve possuir navegação por áreas.');
+assert.match(page, /rd-bank-cards/, 'O Banco Discursivo deve oferecer cartões para telas pequenas.');
+assert.match(page, /clear-filters/, 'O Banco Discursivo deve permitir limpar os filtros.');
+assert.match(page, /result-count/, 'O Banco Discursivo deve informar quantos registros estão visíveis.');
+assert.match(page, /action-filter/, 'O Banco Discursivo deve filtrar prioridades de produção e reescrita.');
 const detailPage = fs.readFileSync('assets/redaction-detail.js', 'utf8');
 assert.match(detailPage, /access\?\.locked/, 'A página individual deve respeitar o bloqueio da aplicação cega.');
-assert.match(detailPage, /Baixar para estudo offline/, 'A página individual deve oferecer armazenamento offline.');
+assert.match(detailPage, /tdas-redactions-user-v1/, 'A página individual deve usar cache offline exclusivo.');
+assert.match(detailPage, /split\(\/\\n\{2,\}\//, 'Textos longos devem preservar parágrafos reais.');
+assert.match(detailPage, /rd-pager/, 'A página individual deve permitir navegar para a RD anterior e seguinte.');
+assert.match(detailPage, /rd-section-nav/, 'A página individual deve possuir índice interno de seções.');
+assert.doesNotMatch(detailPage, /Abrir registro no Notion/, 'A interface pública não deve expor link direto do registro editorial.');
+const common = fs.readFileSync('assets/common.js', 'utf8');
+assert.match(common, /const mobile=\['home','hoje','redacoes','riscos','mais'\]/, 'Redações deve permanecer visível na navegação móvel.');
+assert.match(common, /data-last-sync/, 'O shell deve exibir a última sincronização real.');
+assert.match(common, /platform-version\.json/, 'O shell deve consultar o manifesto técnico vigente.');
+const css = fs.readFileSync('assets/redactions-dashboard.css', 'utf8');
+assert.match(css, /@media\(max-width:640px\)[\s\S]*\.rd-bank-table\{display:none\}[\s\S]*\.rd-bank-cards\{display:grid/, 'No celular, a tabela deve ser substituída por cartões.');
 
 const payloadPath = 'data/redactions.json';
 if (!fs.existsSync(payloadPath)) {
@@ -43,10 +57,13 @@ validatePublicRedactions(payload, details, { requireEnriched: true });
 assert.equal(payload.dashboard?.summary?.total, payload.redactions.length, 'Resumo e índice devem ter a mesma quantidade de RDs.');
 assert.ok(payload.dashboard?.evolution?.every(item => Number.isFinite(item.score)), 'A evolução deve conter apenas notas numéricas.');
 assert.ok(payload.privacy?.futureCorrectionsExported === false, 'Correções futuras devem permanecer fora da publicação.');
+if (payload.privacy?.sourceLinksExported === false) {
+  assert.doesNotMatch(JSON.stringify({ payload, details }), /https?:\/\/[^"\s]*notion\.(?:so|com)/i, 'A publicação com privacidade reforçada não pode expor links do Notion.');
+}
 if (strict) {
   const sw = fs.readFileSync('sw.js', 'utf8');
   for (const route of ['redacoes/detalhe/', 'assets/redaction-detail.js', 'assets/redactions-dashboard.css']) {
     assert.ok(sw.includes(route), `Service worker não contempla ${route}.`);
   }
 }
-console.log(`Banco Discursivo validado: ${details.length} RDs, dashboard, detalhes individuais, privacidade e offline.`);
+console.log(`Banco Discursivo validado: ${details.length} RDs, navegação, leitura, privacidade e offline.`);
