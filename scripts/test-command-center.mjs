@@ -29,7 +29,7 @@ assert.ok(!priorities.includes('localStorage.setItem')&&!priorities.includes('fe
 assert.ok(reviewEngine.includes("MASTERED:'mastered'"));
 assert.ok(reviewEngine.includes('reviewPriorityScore'));
 assert.ok(reviews.includes('Iniciar revisão prioritária'));
-assert.ok(redactionsPage.includes('redactions.js?v=26.2'));
+assert.match(redactionsPage,/assets\/redactions\.js\?v=\d+(?:\.\d+)*/,'A página deve carregar uma versão explícita do módulo de redações.');
 assert.ok(redactions.includes("params.get('rd')"));
 assert.ok(redactions.includes("params.get('pe')"));
 assert.ok(redactions.includes('data-focused-redaction'));
