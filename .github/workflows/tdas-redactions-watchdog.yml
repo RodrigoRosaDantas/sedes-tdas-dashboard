@@ -1,0 +1,109 @@
+name: Monitorar Banco Discursivo TDAS
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: ['Sincronizar Plataforma TDAS v26']
+    types: [completed]
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/tdas-redactions-watchdog.yml'
+      - 'scripts/postprocess-redactions.mjs'
+      - 'scripts/notion/redactions-public.mjs'
+      - 'scripts/validate-redactions-publication.mjs'
+      - 'scripts/test-redactions-dashboard.mjs'
+      - 'assets/redactions.js'
+      - 'assets/redaction-detail.js'
+      - 'assets/redactions-dashboard.css'
+      - 'redacoes/**'
+  schedule:
+    - cron: '20 4,10,16,22 * * *'
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: tdas-redactions-watchdog
+  cancel-in-progress: true
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Baixar repositório
+        uses: actions/checkout@v4
+
+      - name: Preparar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Testar motor discursivo no pull request
+        if: github.event_name == 'pull_request'
+        run: |
+          node scripts/test-redactions-dashboard.mjs
+          node scripts/validate-redactions-publication.mjs
+
+      - name: Verificar publicação discursiva
+        if: github.event_name != 'pull_request'
+        id: validation
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          REQUIRE_REDACTIONS_PUBLICATION=true node scripts/validate-redactions-publication.mjs 2>&1 | tee /tmp/tdas-redactions-monitor.log
+
+      - name: Manter incidente discursivo único
+        if: github.event_name != 'pull_request' && always()
+        uses: actions/github-script@v7
+        env:
+          VALIDATION_OUTCOME: ${{ steps.validation.outcome }}
+        with:
+          script: |
+            const fs = require('fs');
+            const title = '[Monitor] Banco Discursivo TDAS inconsistente';
+            const log = fs.existsSync('/tmp/tdas-redactions-monitor.log')
+              ? fs.readFileSync('/tmp/tdas-redactions-monitor.log', 'utf8').slice(-5000)
+              : 'O validador não produziu log.';
+            const healthy = process.env.VALIDATION_OUTCOME === 'success';
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const sourceRun = context.eventName === 'workflow_run' ? context.payload.workflow_run : null;
+            const source = sourceRun
+              ? `\n\n- **Sincronização originadora:** [${sourceRun.name} #${sourceRun.run_number}](${sourceRun.html_url}) — ${sourceRun.conclusion || sourceRun.status}.`
+              : '';
+            const issues = await github.paginate(github.rest.issues.listForRepo, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'all',
+              per_page: 100
+            });
+            const existing = issues
+              .filter(issue => !issue.pull_request && issue.title === title)
+              .sort((a, b) => b.number - a.number)[0];
+            if (!healthy) {
+              const body = `## Publicação discursiva bloqueada ou inconsistente\n\nO monitor encontrou falha na sequência RD01–RD32, no contrato do dashboard, nos arquivos individuais, na proteção de propostas futuras ou na integração offline.\n\n### Diagnóstico técnico\n\n\`\`\`text\n${log}\n\`\`\`${source}\n\n[Consultar execução do monitor](${runUrl})`;
+              if (existing) {
+                await github.rest.issues.update({ owner: context.repo.owner, repo: context.repo.repo, issue_number: existing.number, body, state: 'open' });
+              } else {
+                await github.rest.issues.create({ owner: context.repo.owner, repo: context.repo.repo, title, body });
+              }
+              core.setFailed('Banco Discursivo inconsistente; incidente técnico atualizado.');
+              return;
+            }
+            if (existing?.state === 'open') {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: existing.number,
+                body: `✅ Banco Discursivo recuperado e validado. RD01 até a última, dashboard, detalhes, privacidade e offline estão íntegros.${source}\n\n[Consultar execução](${runUrl})`
+              });
+              await github.rest.issues.update({ owner: context.repo.owner, repo: context.repo.repo, issue_number: existing.number, state: 'closed' });
+            }
+            core.info('Banco Discursivo íntegro.');
+
+      - name: Sinalizar inconsistência discursiva
+        if: github.event_name != 'pull_request' && steps.validation.outcome == 'failure'
+        run: exit 1
