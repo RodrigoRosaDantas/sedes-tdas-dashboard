@@ -2,9 +2,9 @@ export const BASE='/sedes-tdas-dashboard/';
 export const routes={home:BASE,hoje:BASE+'hoje/',evolucao:BASE+'evolucao/',riscos:BASE+'riscos/',agenda:BASE+'agenda/',redacoes:BASE+'redacoes/',auditoria:BASE+'auditoria/',mais:BASE+'mais/',pe:BASE+'pe/',materias:BASE+'materias/',questoesErros:BASE+'questoes-erros/'};
 const icons={home:'⌂',hoje:'◎',evolucao:'↗',riscos:'!',agenda:'◷',redacoes:'✎',auditoria:'✓',mais:'•••'};
 const labels={home:'Início',hoje:'Hoje',evolucao:'Evolução',riscos:'Riscos',agenda:'Agenda',redacoes:'Redações',auditoria:'Auditoria',mais:'Mais'};
-const LIVE_VERSION='20260730-v25-ui';
+const APP_SHELL_VERSION='26.14.0-redactions-ux';
 let patchesPromise=null;
-async function loadPatches(){if(!patchesPromise)patchesPromise=Promise.all([fetch(BASE+'data/live-v23.json?v='+LIVE_VERSION,{cache:'no-store'}).then(r=>r.ok?r.json():{}).catch(()=>({})),fetch(BASE+'data/live-v24.json?v='+LIVE_VERSION,{cache:'no-store'}).then(r=>r.ok?r.json():{}).catch(()=>({}))]);return patchesPromise}
+async function loadPatches(){if(!patchesPromise)patchesPromise=Promise.all([fetch(BASE+'data/live-v23.json?v='+APP_SHELL_VERSION,{cache:'no-store'}).then(r=>r.ok?r.json():{}).catch(()=>({})),fetch(BASE+'data/live-v24.json?v='+APP_SHELL_VERSION,{cache:'no-store'}).then(r=>r.ok?r.json():{}).catch(()=>({}))]);return patchesPromise}
 function patchValue(base,patch){
  if(patch===undefined)return base;
  if(patch===null||typeof patch!=='object')return patch;
@@ -29,26 +29,51 @@ function patchValue(base,patch){
 export async function loadJSON(path){const r=await fetch(BASE+path,{cache:'no-store'});if(!r.ok)throw new Error('Falha ao carregar dados ('+r.status+')');const data=await r.json();if(path==='data/live-v23.json'||path==='data/live-v24.json')return data;const[legacy,current]=await loadPatches();return patchValue(patchValue(data,legacy[path]),current[path])}
 export function fmtNumber(v){return new Intl.NumberFormat('pt-BR').format(v)}
 export function fmtPct(v,d=2){return new Intl.NumberFormat('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d}).format(v)+'%'}
-export function fmtDate(iso){if(!iso)return'—';const[y,m,d]=iso.split('-').map(Number);return new Intl.DateTimeFormat('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric'}).format(new Date(y,m-1,d))}
+export function fmtDate(iso){if(!iso)return'—';const[y,m,d]=String(iso).slice(0,10).split('-').map(Number);return new Intl.DateTimeFormat('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric'}).format(new Date(y,m-1,d))}
+export function fmtDateTime(iso){if(!iso)return'—';const date=new Date(iso);if(Number.isNaN(date.getTime()))return'—';return new Intl.DateTimeFormat('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'America/Sao_Paulo'}).format(date).replace(',', ' às')}
 export function escapeHTML(s){return String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
-export function setupShell(page,meta){
+function setText(selector,value){document.querySelectorAll(selector).forEach(el=>el.textContent=value)}
+async function refreshPublicationMeta(meta){
+ try{
+  const response=await fetch(BASE+'data/platform-version.json?v='+Date.now(),{cache:'no-store'});
+  if(!response.ok)throw new Error(String(response.status));
+  const publication=await response.json();
+  const last=fmtDateTime(publication.syncAt);
+  setText('[data-last-sync]',last);
+  setText('[data-sync]',last);
+  setText('[data-publication-status]','Atualizado');
+  if(publication.platformVersion)document.querySelector('.brand small')?.replaceChildren(`SEDES/DF · v${publication.platformVersion}`);
+  if('serviceWorker'in navigator){
+   const version=encodeURIComponent(publication.serviceWorkerVersion||publication.platformVersion||APP_SHELL_VERSION);
+   navigator.serviceWorker.register(BASE+'sw.js?v='+version).catch(console.error);
+  }
+ }catch(error){
+  const fallback=Array.isArray(meta?.syncTimes)?meta.syncTimes.join(' · '):'—';
+  setText('[data-last-sync]',fallback);
+  setText('[data-sync]',fallback);
+  setText('[data-publication-status]',navigator.onLine?'Verificação pendente':'Offline');
+  if('serviceWorker'in navigator)navigator.serviceWorker.register(BASE+'sw.js?v='+APP_SHELL_VERSION).catch(console.error);
+ }
+}
+export function setupShell(page,meta={}){
  const desktop=['home','hoje','evolucao','riscos','agenda','redacoes','auditoria'];
- const mobile=['home','hoje','evolucao','riscos','mais'];
+ const mobile=['home','hoje','redacoes','riscos','mais'];
  const active=page==='pe'?'agenda':page==='subject'?'riscos':page;
- document.querySelector('.brand small')?.replaceChildren(`SEDES/DF · v${meta.version||'25.0'}`);
+ document.querySelector('.brand small')?.replaceChildren(`SEDES/DF · v${meta.version||APP_SHELL_VERSION}`);
  document.querySelector('#desktop-nav').innerHTML='<div class="nav-label">Plataforma de estudo</div>'+desktop.map(k=>`<a href="${routes[k]}" class="${k===active?'active':''}"><span class="nav-icon">${icons[k]}</span>${labels[k]}</a>`).join('');
- const mobileActive=['agenda','redacoes','auditoria'].includes(active)?'mais':active;
+ const mobileActive=['agenda','auditoria'].includes(active)?'mais':active;
  document.querySelector('#mobile-nav').innerHTML=mobile.map(k=>`<a href="${routes[k]}" class="${k===mobileActive?'active':''}"><span>${icons[k]}</span><span>${labels[k]}</span></a>`).join('');
- document.querySelectorAll('[data-snapshot]').forEach(el=>el.textContent=fmtDate(meta.snapshotDate));
- document.querySelectorAll('[data-sync]').forEach(el=>el.textContent=meta.syncTimes.join(' · '));
+ setText('[data-snapshot]',fmtDate(meta.snapshotDate));
+ const fallback=Array.isArray(meta.syncTimes)?meta.syncTimes.join(' · '):'—';
+ setText('[data-sync]',fallback);
+ setText('[data-last-sync]',fallback);
  const stored=localStorage.getItem('tdas-theme');if(stored)document.documentElement.dataset.theme=stored;
  if(!document.documentElement.dataset.controlsReady){document.documentElement.dataset.controlsReady='1';document.addEventListener('click',e=>{const theme=e.target.closest('[data-theme-toggle]');if(theme){const next=document.documentElement.dataset.theme==='light'?'dark':'light';document.documentElement.dataset.theme=next;localStorage.setItem('tdas-theme',next);theme.setAttribute('aria-label','Alternar para tema '+(next==='light'?'escuro':'claro'));return}const install=e.target.closest('[data-install-button]');if(install)runInstall()})}
  window.addEventListener('online',updateOnline);window.addEventListener('offline',updateOnline);updateOnline();
- if('serviceWorker'in navigator)navigator.serviceWorker.register(BASE+'sw.js?v=25.0').catch(console.error);
- setupInstall();loadV20Enhancements();
+ setupInstall();loadV20Enhancements();refreshPublicationMeta(meta);
 }
-function loadV20Enhancements(){if(!document.querySelector('link[data-v20]')){const l=document.createElement('link');l.rel='stylesheet';l.href=BASE+'assets/v20.css?v=25.0';l.dataset.v20='1';document.head.appendChild(l)}import(BASE+'assets/enhance-v20.js?v=25.0').catch(console.error)}
-function updateOnline(){document.querySelector('#offline')?.classList.toggle('show',!navigator.onLine)}
+function loadV20Enhancements(){if(!document.querySelector('link[data-v20]')){const l=document.createElement('link');l.rel='stylesheet';l.href=BASE+'assets/v20.css?v='+APP_SHELL_VERSION;l.dataset.v20='1';document.head.appendChild(l)}import(BASE+'assets/enhance-v20.js?v='+APP_SHELL_VERSION).catch(console.error)}
+function updateOnline(){document.querySelector('#offline')?.classList.toggle('show',!navigator.onLine);setText('[data-publication-status]',navigator.onLine?'Atualizado':'Offline')}
 let installPrompt=null;
 function setupInstall(){window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();installPrompt=e;document.querySelectorAll('[data-install]').forEach(x=>x.classList.add('show'))},{once:true})}
 async function runInstall(){if(!installPrompt){alert('No navegador, use o menu e escolha “Adicionar à tela inicial” quando essa opção estiver disponível.');return}installPrompt.prompt();await installPrompt.userChoice;installPrompt=null;document.querySelectorAll('[data-install]').forEach(x=>x.classList.remove('show'))}

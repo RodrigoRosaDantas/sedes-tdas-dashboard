@@ -1,106 +1,64 @@
 import { BASE, loadJSON, setupShell, fmtDate, metric, escapeHTML, setLoadingError } from './common.js';
 
-const score = value => Number.isFinite(Number(value)) ? Number(value) : null;
-const fmtScore = value => score(value) == null ? '—' : Number(value).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const safeBreaks = value => escapeHTML(String(value ?? '')).replace(/&lt;br\s*\/?&gt;/gi, '<br>');
-function plainBlock(value, empty = 'Não informado no banco.') {
-  return value ? `<div class="rd-rich-text">${safeBreaks(value)}</div>` : `<div class="empty">${escapeHTML(empty)}</div>`;
+const OFFLINE_CACHE='tdas-redactions-user-v1';
+const OFFLINE_KEY='tdas-redactions-offline-index-v1';
+const score=value=>Number.isFinite(Number(value))?Number(value):null;
+const fmtScore=value=>score(value)==null?'—':Number(value).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+function paragraphBlock(value,empty='Não informado no banco.'){
+ if(!value)return`<div class="empty">${escapeHTML(empty)}</div>`;
+ const paragraphs=String(value).replace(/\r\n?/g,'\n').split(/\n{2,}/).map(part=>part.trim()).filter(Boolean);
+ return`<div class="rd-rich-text">${paragraphs.map(paragraph=>`<p>${escapeHTML(paragraph).replace(/\n/g,'<br>')}</p>`).join('')}</div>`;
 }
-function markdownBlock(value) {
-  if (!value) return '<div class="empty">Conteúdo motivador não disponível na exportação.</div>';
-  const lines = String(value).split(/\r?\n/);
-  return `<div class="rd-proposal-markdown">${lines.map(line => {
-    const escaped = escapeHTML(line);
-    if (/^###\s+/.test(line)) return `<h4>${escapeHTML(line.replace(/^###\s+/,''))}</h4>`;
-    if (/^##\s+/.test(line)) return `<h3>${escapeHTML(line.replace(/^##\s+/,''))}</h3>`;
-    if (/^#\s+/.test(line)) return `<h2>${escapeHTML(line.replace(/^#\s+/,''))}</h2>`;
-    if (/^-\s+/.test(line)) return `<p class="rd-list-item">• ${escapeHTML(line.replace(/^-\s+/,''))}</p>`;
-    if (/^\d+\.\s+/.test(line)) return `<p class="rd-list-item">${escaped}</p>`;
-    return line.trim() ? `<p>${escaped}</p>` : '<div class="rd-space"></div>';
-  }).join('')}</div>`;
+function markdownBlock(value){
+ if(!value)return'<div class="empty">Conteúdo motivador não disponível na exportação.</div>';
+ const lines=String(value).split(/\r?\n/);let listOpen=false;const out=[];
+ const closeList=()=>{if(listOpen){out.push('</ul>');listOpen=false}};
+ for(const line of lines){
+  const escaped=escapeHTML(line);
+  if(/^###\s+/.test(line)){closeList();out.push(`<h4>${escapeHTML(line.replace(/^###\s+/,''))}</h4>`)}
+  else if(/^##\s+/.test(line)){closeList();out.push(`<h3>${escapeHTML(line.replace(/^##\s+/,''))}</h3>`)}
+  else if(/^#\s+/.test(line)){closeList();out.push(`<h2>${escapeHTML(line.replace(/^#\s+/,''))}</h2>`)}
+  else if(/^-\s+/.test(line)){if(!listOpen){out.push('<ul>');listOpen=true}out.push(`<li>${escapeHTML(line.replace(/^-\s+/,''))}</li>`)}
+  else if(/^\d+\.\s+/.test(line)){closeList();out.push(`<p class="rd-list-item">${escaped}</p>`)}
+  else if(line.trim()){closeList();out.push(`<p>${escaped}</p>`)}
+  else closeList();
+ }
+ closeList();return`<div class="rd-proposal-markdown">${out.join('')}</div>`;
 }
+function criterion(label,value,detail){const width=score(value)==null?0:Math.max(0,Math.min(100,Number(value)/3*100));return`<article class="card rd-criterion"><div><small>${label}</small><strong>${fmtScore(value)}<em>/3</em></strong><span>${detail}</span></div><div class="rd-progress" aria-label="${label}: ${width.toFixed(0)}% da escala"><i style="width:${width}%"></i></div></article>`}
+function offlineIndex(){try{return JSON.parse(localStorage.getItem(OFFLINE_KEY)||'{}')}catch{return{}}}
+function updateOfflineIndex(detail,saved){const index=offlineIndex();if(saved)index[detail.rd]={savedAt:new Date().toISOString(),theme:detail.meta?.theme||''};else delete index[detail.rd];localStorage.setItem(OFFLINE_KEY,JSON.stringify(index))}
+async function saveOffline(detail){if(!('caches'in window))throw new Error('O navegador não oferece armazenamento offline por Cache API.');const cache=await caches.open(OFFLINE_CACHE);const rd=detail.rd.toLowerCase();const resources=[`${BASE}redacoes/detalhe/?rd=${encodeURIComponent(detail.rd)}`,`${BASE}data/redactions/${rd}.json`,`${BASE}data/redactions.json`,`${BASE}assets/redaction-detail.js`,`${BASE}assets/redactions-dashboard.css`,`${BASE}assets/common.js`,`${BASE}assets/styles.css`];const responses=await Promise.all(resources.map(async resource=>{const response=await fetch(resource,{cache:'reload'});if(!response.ok)throw new Error(`Falha ao armazenar ${resource} (${response.status}).`);return[resource,response]}));await Promise.all(responses.map(([resource,response])=>cache.put(resource,response.clone())));updateOfflineIndex(detail,true)}
+async function removeOffline(detail){if(!('caches'in window))return;const cache=await caches.open(OFFLINE_CACHE);const rd=detail.rd.toLowerCase();await Promise.all([`${BASE}redacoes/detalhe/?rd=${encodeURIComponent(detail.rd)}`,`${BASE}data/redactions/${rd}.json`].map(resource=>cache.delete(resource)));updateOfflineIndex(detail,false)}
+function navigation(index,rd){const rows=index.redactions||[];const current=rows.findIndex(item=>item.rd===rd);const previous=current>0?rows[current-1]:null;const next=current>=0&&current<rows.length-1?rows[current+1]:null;const options=rows.map(item=>`<option value="${escapeHTML(item.rd)}"${item.rd===rd?' selected':''}>${escapeHTML(item.rd)} — ${escapeHTML(item.theme)}</option>`).join('');return{previous,next,current,total:rows.length,options}}
+function pager(nav){return`<div class="rd-pager"><a class="btn secondary ${nav.previous?'':'disabled'}" ${nav.previous?`href="${BASE}redacoes/detalhe/?rd=${encodeURIComponent(nav.previous.rd)}"`:'aria-disabled="true"'}>← ${nav.previous?escapeHTML(nav.previous.rd):'Início'}</a><label><span>${nav.current+1} de ${nav.total}</span><select class="rd-jump" aria-label="Ir para outra redação">${nav.options}</select></label><a class="btn secondary ${nav.next?'':'disabled'}" ${nav.next?`href="${BASE}redacoes/detalhe/?rd=${encodeURIComponent(nav.next.rd)}"`:'aria-disabled="true"'}>${nav.next?escapeHTML(nav.next.rd):'Fim'} →</a></div>`}
+function sectionNav(corrected){const sections=[['proposal','Proposta'],...(corrected?[['performance','Notas'],['original','Texto original'],['feedback','Correção'],['diagnosis','Diagnóstico'],['rewrite','Reescrita']]:[])];return`<nav class="rd-section-nav" aria-label="Seções da redação">${sections.map(([id,label])=>`<a href="#${id}">${label}</a>`).join('')}</nav>`}
 
-function criterion(label, value, detail) {
-  const width = score(value) == null ? 0 : Math.max(0, Math.min(100, Number(value) / 3 * 100));
-  return `<article class="card rd-criterion"><div><small>${label}</small><strong>${fmtScore(value)}<em>/3</em></strong><span>${detail}</span></div><div class="rd-progress"><i style="width:${width}%"></i></div></article>`;
-}
-
-async function saveOffline(detail) {
-  if (!('caches' in window)) throw new Error('O navegador não oferece armazenamento offline por Cache API.');
-  const keys = await caches.keys();
-  const cacheName = keys.find(key => key.startsWith('tdas-')) || 'tdas-redactions-offline';
-  const cache = await caches.open(cacheName);
-  const rd = detail.rd.toLowerCase();
-  const resources = [
-    `${BASE}redacoes/detalhe/?rd=${encodeURIComponent(detail.rd)}`,
-    `${BASE}data/redactions/${rd}.json`,
-    `${BASE}assets/redaction-detail.js`,
-    `${BASE}assets/redactions-dashboard.css`,
-    `${BASE}assets/common.js`,
-    `${BASE}assets/styles.css`
-  ];
-  const responses = await Promise.all(resources.map(async resource => {
-    const response = await fetch(resource, { cache: 'reload' });
-    if (!response.ok) throw new Error(`Falha ao armazenar ${resource} (${response.status}).`);
-    return [resource, response];
-  }));
-  await Promise.all(responses.map(([resource, response]) => cache.put(resource, response)));
-}
-
-try {
-  const params = new URLSearchParams(location.search);
-  const rd = String(params.get('rd') || '').toUpperCase();
-  if (!/^RD\d{2,}$/.test(rd)) throw new Error('Informe uma redação válida, como RD01.');
-  const detail = await loadJSON(`data/redactions/${rd.toLowerCase()}.json`);
-  const index = await loadJSON('data/redactions.json');
-  setupShell('redacoes', index.meta);
-  if (detail.access?.locked) {
-    document.querySelector('main').innerHTML = `
-      <section class="hero rd-detail-hero"><div><span class="kicker">Aplicação cega protegida</span><h1>${escapeHTML(detail.rd)} — ${escapeHTML(detail.meta.theme)}</h1><p>A proposta completa ainda não foi liberada para preservar o treino previsto no calendário.</p></div></section>
-      <section class="section"><article class="card panel rd-lock-card"><div class="rd-lock-icon">🔒</div><div><h2>Liberação em ${fmtDate(detail.access.unlockDate)}</h2><p>${escapeHTML(detail.access.reason)}</p><p>Você pode acompanhar o tema, a data e o eixo, mas o comando e os textos motivadores permanecem ocultos até a data planejada.</p><a class="btn" href="${BASE}redacoes/">Voltar ao Dashboard Discursivo</a></div></article></section>`;
-  } else {
-    const perf = detail.performance;
-    document.querySelector('main').innerHTML = `
-      <section class="hero rd-detail-hero"><div><span class="kicker">${detail.corrected ? 'Redação corrigida' : 'Proposta disponível'}</span><h1>${escapeHTML(detail.rd)} — ${escapeHTML(detail.meta.theme)}</h1><p>${escapeHTML(detail.meta.axis || 'Eixo não classificado')} · ${escapeHTML(detail.meta.pe || 'PE não vinculado')} · Semana ${escapeHTML(detail.meta.week || '—')}</p></div><div class="rd-hero-actions"><button class="btn" id="offline-rd">Baixar para estudo offline</button><button class="btn secondary" id="print-rd">Imprimir</button></div></section>
-      <section class="grid metrics rd-metrics">
-        ${metric('Status', detail.meta.status || 'Não informado', fmtDate(detail.meta.date))}
-        ${metric('Nota estimada', fmtScore(perf?.score), perf?.classification || 'Sem nota')}
-        ${metric('Prioridade', detail.meta.priority || 'Não informada', detail.meta.discursivePriority || '')}
-        ${metric('Tipo de treino', detail.meta.type || 'Não informado', detail.meta.solutionNature || '')}
-      </section>
-      <section class="section rd-two-columns rd-detail-columns">
-        <article class="card panel"><h2>Comando</h2>${plainBlock(detail.proposal?.command)}</article>
-        <article class="card panel"><h2>Conceitos obrigatórios</h2>${plainBlock(detail.proposal?.requiredConcepts)}</article>
-      </section>
-      ${detail.proposal?.caseProblem ? `<section class="section"><article class="card panel"><h2>Caso-problema e observações</h2>${plainBlock(detail.proposal.caseProblem)}</article></section>` : ''}
-      <section class="section"><article class="card panel"><div class="section-head"><div><h2>Proposta completa</h2><p>Textos motivadores, instruções e comando liberados para esta RD.</p></div></div>${markdownBlock(detail.proposal?.markdown)}</article></section>
-      ${detail.corrected ? `
-        <section class="section"><div class="section-head"><div><h2>Desempenho por critério</h2><p>Rubrica de treino CAC, OT e DLP.</p></div></div><div class="grid rd-criteria">${criterion('CAC',perf.criteria?.cac,'Conteúdo e atendimento ao comando')}${criterion('OT',perf.criteria?.ot,'Organização textual')}${criterion('DLP',perf.criteria?.dlp,'Domínio da língua portuguesa')}</div></section>
-        <section class="section"><article class="card panel"><h2>Texto original</h2>${plainBlock(detail.original?.text,'Texto original não registrado.')}<p class="rd-note">Linhas utilizadas: <strong>${escapeHTML(detail.original?.lines ?? 'não informado')}</strong>.</p></article></section>
-        <section class="section"><article class="card panel rd-feedback"><h2>Correção estratégica</h2>${plainBlock(detail.feedback?.strategicCorrection,'Correção estratégica não registrada.')}</article></section>
-        <section class="section rd-two-columns rd-detail-columns"><article class="card panel"><h2>Diagnóstico</h2><dl class="rd-definition"><dt>Falha principal</dt><dd>${escapeHTML(detail.feedback?.mainFailure || 'Não informada')}</dd><dt>Padrão dominante</dt><dd>${escapeHTML(detail.feedback?.dominantPattern || 'Não informado')}</dd><dt>Próxima ação</dt><dd>${escapeHTML(detail.feedback?.nextAction || 'Não informada')}</dd><dt>Frase-chave</dt><dd>${escapeHTML(detail.feedback?.keyPhrase || 'Não informada')}</dd></dl></article><article class="card panel"><h2>Controles</h2><ul class="rd-checks"><li data-done="${Boolean(detail.feedback?.allCommandsAnswered)}">Respondeu todos os comandos</li><li data-done="${Boolean(detail.feedback?.organized)}">Organização textual conferida</li><li data-done="${Boolean(detail.feedback?.portugueseReviewed)}">Português revisado</li><li data-done="${Boolean(detail.feedback?.canBeModel)}">Pode virar modelo</li><li data-done="${Boolean(detail.feedback?.becomesFlashcard)}">Vira flashcard</li><li data-done="${Boolean(detail.feedback?.becomesErrorNotebook)}">Vira caderno de erros</li></ul></article></section>
-        <section class="section"><article class="card panel"><h2>Reescrita para nota máxima</h2>${plainBlock(detail.model?.maximumRewrite,'Reescrita ainda não registrada.')}</article></section>
-        <section class="section rd-two-columns rd-detail-columns"><article class="card panel"><h2>Estrutura argumentativa</h2><dl class="rd-definition"><dt>Tese</dt><dd>${escapeHTML(detail.model?.thesis || 'Não informada')}</dd><dt>Argumento 1</dt><dd>${escapeHTML(detail.model?.argument1 || 'Não informado')}</dd><dt>Argumento 2</dt><dd>${escapeHTML(detail.model?.argument2 || 'Não informado')}</dd></dl></article><article class="card panel"><h2>Repertório</h2>${plainBlock(detail.model?.repertoire)}</article></section>
-      ` : `<section class="section"><article class="card panel rd-privacy"><h2>Correção ainda indisponível</h2><p>O texto, a nota e os diagnósticos só serão publicados depois que esta redação for produzida e corrigida no banco oficial.</p></article></section>`}
-      <section class="section"><div class="rd-bottom-actions"><a class="btn secondary" href="${BASE}redacoes/">← Voltar ao dashboard</a><a class="btn secondary" href="${escapeHTML(detail.meta.sourceUrl)}" target="_blank" rel="noopener">Abrir registro no Notion</a></div></section>
-      <footer class="footer"><span>${escapeHTML(detail.rd)} · Banco Discursivo</span><span>Snapshot <span data-snapshot></span></span></footer>`;
-    const offlineButton = document.querySelector('#offline-rd');
-    offlineButton.onclick = async () => {
-      offlineButton.disabled = true;
-      const previous = offlineButton.textContent;
-      offlineButton.textContent = 'Salvando…';
-      try {
-        await saveOffline(detail);
-        offlineButton.textContent = 'Disponível offline ✓';
-      } catch (error) {
-        offlineButton.textContent = previous;
-        alert(error.message);
-      } finally {
-        offlineButton.disabled = false;
-      }
-    };
-    document.querySelector('#print-rd').onclick = () => window.print();
-  }
-} catch (error) {
-  setLoadingError(error);
-}
+try{
+ const params=new URLSearchParams(location.search);const rd=String(params.get('rd')||'').toUpperCase();if(!/^RD\d{2,}$/.test(rd))throw new Error('Informe uma redação válida, como RD01.');
+ const[detail,index]=await Promise.all([loadJSON(`data/redactions/${rd.toLowerCase()}.json`),loadJSON('data/redactions.json')]);setupShell('redacoes',index.meta);const nav=navigation(index,rd);
+ if(detail.access?.locked){document.querySelector('main').innerHTML=`${pager(nav)}<section class="hero rd-detail-hero"><div><span class="kicker">Aplicação cega protegida</span><h1>${escapeHTML(detail.rd)} — ${escapeHTML(detail.meta.theme)}</h1><p>A proposta completa ainda não foi liberada para preservar o treino previsto no calendário.</p></div></section><section class="section"><article class="card panel rd-lock-card"><div class="rd-lock-icon">🔒</div><div><h2>Liberação em ${fmtDate(detail.access.unlockDate)}</h2><p>${escapeHTML(detail.access.reason)}</p><p>Você pode acompanhar tema, data e eixo; comando e textos motivadores permanecem ocultos até a data planejada.</p><a class="btn" href="${BASE}redacoes/?tab=produce">Voltar às propostas</a></div></article></section>${pager(nav)}<footer class="footer"><span>${escapeHTML(detail.rd)} · aplicação cega</span><span>Última atualização <span data-last-sync></span></span></footer>`}
+ else{
+  const perf=detail.performance;const saved=Boolean(offlineIndex()[detail.rd]);
+  document.querySelector('main').innerHTML=`
+   ${pager(nav)}
+   <section class="hero rd-detail-hero"><div><span class="kicker">${detail.corrected?'Redação corrigida':'Proposta disponível'}</span><h1>${escapeHTML(detail.rd)} — ${escapeHTML(detail.meta.theme)}</h1><p>${escapeHTML(detail.meta.axis||'Eixo não classificado')} · ${escapeHTML(detail.meta.pe||'PE não vinculado')} · Semana ${escapeHTML(detail.meta.week||'—')}</p></div><div class="rd-hero-actions"><button class="btn" id="offline-rd">${saved?'Disponível offline ✓':'Baixar para estudo offline'}</button>${saved?'<button class="btn secondary" id="remove-offline-rd">Remover offline</button>':''}<button class="btn secondary" id="print-rd">Imprimir</button></div></section>
+   ${sectionNav(detail.corrected)}
+   <section class="grid metrics rd-metrics"><div>${metric('Status',detail.meta.status||'Não informado',fmtDate(detail.meta.date))}</div><div>${metric('Nota estimada',fmtScore(perf?.score),perf?.classification||'Sem nota')}</div><div>${metric('Prioridade',detail.meta.priority||'Não informada',detail.meta.discursivePriority||'')}</div><div>${metric('Tipo de treino',detail.meta.type||'Não informado',detail.meta.solutionNature||'')}</div></section>
+   <section class="section" id="proposal"><div class="section-head"><div><h2>Proposta</h2><p>Comando, conceitos obrigatórios e textos motivadores liberados.</p></div></div><div class="rd-two-columns rd-detail-columns"><article class="card panel"><h3>Comando</h3>${paragraphBlock(detail.proposal?.command)}</article><article class="card panel"><h3>Conceitos obrigatórios</h3>${paragraphBlock(detail.proposal?.requiredConcepts)}</article></div>${detail.proposal?.caseProblem?`<article class="card panel rd-case"><h3>Caso-problema e observações</h3>${paragraphBlock(detail.proposal.caseProblem)}</article>`:''}<article class="card panel rd-proposal-card"><h3>Proposta completa</h3>${markdownBlock(detail.proposal?.markdown)}</article></section>
+   ${detail.corrected?`
+    <section class="section" id="performance"><div class="section-head"><div><h2>Desempenho por critério</h2><p>Rubrica de treino CAC, OT e DLP.</p></div></div><div class="grid rd-criteria">${criterion('CAC',perf.criteria?.cac,'Conteúdo e atendimento ao comando')}${criterion('OT',perf.criteria?.ot,'Organização textual')}${criterion('DLP',perf.criteria?.dlp,'Domínio da língua portuguesa')}</div></section>
+    <section class="section" id="original"><article class="card panel rd-reading-card"><h2>Texto original</h2>${paragraphBlock(detail.original?.text,'Texto original não registrado.')}<p class="rd-note">Linhas utilizadas: <strong>${escapeHTML(detail.original?.lines??'não informado')}</strong>.</p></article></section>
+    <section class="section" id="feedback"><article class="card panel rd-feedback rd-reading-card"><h2>Correção estratégica</h2>${paragraphBlock(detail.feedback?.strategicCorrection,'Correção estratégica não registrada.')}</article></section>
+    <section class="section" id="diagnosis"><div class="rd-two-columns rd-detail-columns"><article class="card panel"><h2>Diagnóstico</h2><dl class="rd-definition"><dt>Falha principal</dt><dd>${escapeHTML(detail.feedback?.mainFailure||'Não informada')}</dd><dt>Padrão dominante</dt><dd>${escapeHTML(detail.feedback?.dominantPattern||'Não informado')}</dd><dt>Próxima ação</dt><dd>${escapeHTML(detail.feedback?.nextAction||'Não informada')}</dd><dt>Frase-chave</dt><dd>${escapeHTML(detail.feedback?.keyPhrase||'Não informada')}</dd></dl></article><article class="card panel"><h2>Controles</h2><ul class="rd-checks"><li data-done="${Boolean(detail.feedback?.allCommandsAnswered)}">Respondeu todos os comandos</li><li data-done="${Boolean(detail.feedback?.organized)}">Organização textual conferida</li><li data-done="${Boolean(detail.feedback?.portugueseReviewed)}">Português revisado</li><li data-done="${Boolean(detail.feedback?.canBeModel)}">Pode virar modelo</li><li data-done="${Boolean(detail.feedback?.becomesFlashcard)}">Vira flashcard</li><li data-done="${Boolean(detail.feedback?.becomesErrorNotebook)}">Vira caderno de erros</li></ul></article></div></section>
+    <section class="section" id="rewrite"><article class="card panel rd-reading-card"><h2>Reescrita para nota máxima</h2>${paragraphBlock(detail.model?.maximumRewrite,'Reescrita ainda não registrada.')}</article><div class="rd-two-columns rd-detail-columns rd-argument-grid"><article class="card panel"><h2>Estrutura argumentativa</h2><dl class="rd-definition"><dt>Tese</dt><dd>${escapeHTML(detail.model?.thesis||'Não informada')}</dd><dt>Argumento 1</dt><dd>${escapeHTML(detail.model?.argument1||'Não informado')}</dd><dt>Argumento 2</dt><dd>${escapeHTML(detail.model?.argument2||'Não informado')}</dd></dl></article><article class="card panel"><h2>Repertório</h2>${paragraphBlock(detail.model?.repertoire)}</article></div></section>
+   `:`<section class="section"><article class="card panel rd-privacy"><h2>Correção ainda indisponível</h2><p>O texto, a nota e os diagnósticos só serão publicados depois que esta redação for produzida e corrigida no banco oficial.</p></article></section>`}
+   <section class="section"><article class="card panel rd-privacy"><h3>Privacidade</h3><p>O registro editorial de origem não é exposto por link direto nesta interface. O conteúdo pessoal permanece na publicação atual até a implantação de autenticação privada.</p></article></section>
+   ${pager(nav)}
+   <footer class="footer"><span>${escapeHTML(detail.rd)} · Banco Discursivo</span><span>Última atualização <span data-last-sync></span></span></footer>`;
+  const offlineButton=document.querySelector('#offline-rd');offlineButton.onclick=async()=>{offlineButton.disabled=true;const previous=offlineButton.textContent;offlineButton.textContent='Salvando…';try{await saveOffline(detail);offlineButton.textContent='Disponível offline ✓';if(!document.querySelector('#remove-offline-rd'))location.reload()}catch(error){offlineButton.textContent=previous;alert(error.message)}finally{offlineButton.disabled=false}};
+  const removeButton=document.querySelector('#remove-offline-rd');if(removeButton)removeButton.onclick=async()=>{removeButton.disabled=true;try{await removeOffline(detail);location.reload()}catch(error){removeButton.disabled=false;alert(error.message)}};
+  document.querySelector('#print-rd').onclick=()=>window.print();
+ }
+ const jumpSelectors=document.querySelectorAll('.rd-jump');jumpSelectors.forEach(select=>select.addEventListener('change',()=>location.href=`${BASE}redacoes/detalhe/?rd=${encodeURIComponent(select.value)}`));
+}catch(error){setLoadingError(error)}
