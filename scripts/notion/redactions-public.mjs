@@ -1,6 +1,6 @@
 import { norm, round } from './config.mjs';
 
-export const RD_SCHEMA_VERSION = '1.0';
+export const RD_SCHEMA_VERSION = '1.1';
 export const SCORE_TARGET = 75;
 
 export const text = value => Array.isArray(value) ? value.join(', ') : String(value ?? '').trim();
@@ -55,9 +55,7 @@ function median(values) {
 }
 
 function movingAverage(rows, index, count = 3) {
-  return average(rows
-    .slice(Math.max(0, index - count + 1), index + 1)
-    .map(item => item.performance?.score ?? item.score));
+  return average(rows.slice(Math.max(0, index - count + 1), index + 1).map(item => item.performance?.score ?? item.score));
 }
 
 function groupCount(rows, key, fallback = 'Não informado') {
@@ -102,7 +100,7 @@ function priorityRows(details) {
       else if (detail.corrected && score != null && score < 60) { weight += 70; reasons.push('nota abaixo de 60'); }
       if (norm(detail.meta?.priority) === 'alta') { weight += 25; reasons.push('prioridade estratégica alta'); }
       if (norm(detail.meta?.discursivePriority) === 'nucleo do edital') { weight += 20; reasons.push('tema do núcleo do edital'); }
-      if (detail.corrected && detail.feedback?.rewriteRequired && !detail.feedback?.canBeModel) { weight += 18; reasons.push('reescrita necessária'); }
+      if (detail.corrected && detail.feedback?.rewriteRequired && !detail.feedback?.rewriteCompleted) { weight += 18; reasons.push('reescrita necessária'); }
       if (detail.corrected && !detail.feedback?.portugueseReviewed) { weight += 12; reasons.push('revisão linguística pendente'); }
       if (!detail.corrected && detail.meta?.date) { weight += 10; reasons.push('produção pendente'); }
       return {
@@ -120,13 +118,19 @@ function priorityRows(details) {
     .slice(0, 8);
 }
 
+function chronologicalKey(detail) {
+  return detail.meta?.correctionDate || detail.meta?.date || '9999-12-31';
+}
+
 export function buildRedactionsDashboard(details, { snapshotDate = '', examDate = '2026-09-06' } = {}) {
   const sorted = [...details].sort((a, b) => Number(a.rd.slice(2)) - Number(b.rd.slice(2)));
-  const corrected = sorted.filter(item => item.corrected && Number.isFinite(item.performance?.score));
+  const correctedByRd = sorted.filter(item => item.corrected && Number.isFinite(item.performance?.score));
+  const corrected = [...correctedByRd].sort((a, b) => chronologicalKey(a).localeCompare(chronologicalKey(b)) || a.rd.localeCompare(b.rd, undefined, { numeric: true }));
   const scores = corrected.map(item => item.performance.score);
   const evolution = corrected.map((item, index) => ({
     rd: item.rd,
     date: item.meta?.date || '',
+    correctionDate: item.meta?.correctionDate || '',
     theme: item.meta?.theme || '',
     axis: item.meta?.axis || 'Não classificado',
     score: item.performance.score,
@@ -146,6 +150,7 @@ export function buildRedactionsDashboard(details, { snapshotDate = '', examDate 
   const best = corrected.length ? [...corrected].sort((a, b) => b.performance.score - a.performance.score)[0] : null;
   const worst = corrected.length ? [...corrected].sort((a, b) => a.performance.score - b.performance.score)[0] : null;
   const last = corrected.at(-1) || null;
+  const lastSequence = correctedByRd.at(-1) || null;
   const bands = {
     strong: scores.filter(value => value >= SCORE_TARGET).length,
     approvable: scores.filter(value => value >= 50 && value < SCORE_TARGET).length,
@@ -158,15 +163,16 @@ export function buildRedactionsDashboard(details, { snapshotDate = '', examDate 
   const end = new Date(`${examDate}T12:00:00-03:00`);
   const weeksRemaining = Math.max(0, round((end - start) / 604800000, 1));
   const perWeek = weeksRemaining ? round(pending / weeksRemaining, 1) : pending;
-  const rewriteRate = correctedCount ? corrected.filter(item => !item.feedback?.rewriteRequired || item.feedback?.canBeModel).length / correctedCount * 100 : 0;
+  const rewriteRate = correctedCount ? corrected.filter(item => item.feedback?.rewriteCompleted).length / correctedCount * 100 : 0;
   const reviewedRate = correctedCount ? corrected.filter(item => item.feedback?.portugueseReviewed).length / correctedCount * 100 : 0;
+  const due = snapshotDate ? sorted.filter(item => item.meta?.date && item.meta.date <= snapshotDate && !item.access?.locked) : [];
+  const scheduleAdherence = due.length ? due.filter(item => item.corrected).length / due.length * 100 : 0;
   const avgScore = average(scores) ?? 0;
   const recentScores = scores.slice(-3);
   const recentAverage = average(recentScores) ?? avgScore;
   const trendComponent = Math.max(0, Math.min(100, 50 + (recentAverage - avgScore) * 5));
   const commandComponent = criteria.cac == null ? 0 : Math.min(100, criteria.cac / 3 * 100);
-  const regularityComponent = total ? correctedCount / total * 100 : 0;
-  const readiness = round(avgScore * 0.4 + trendComponent * 0.2 + commandComponent * 0.15 + regularityComponent * 0.1 + rewriteRate * 0.1 + reviewedRate * 0.05, 1);
+  const readiness = round(avgScore * 0.4 + trendComponent * 0.2 + commandComponent * 0.15 + scheduleAdherence * 0.1 + rewriteRate * 0.1 + reviewedRate * 0.05, 1);
   return {
     summary: {
       total,
@@ -176,11 +182,14 @@ export function buildRedactionsDashboard(details, { snapshotDate = '', examDate 
       median: median(scores),
       best: best ? { rd: best.rd, score: best.performance.score, theme: best.meta?.theme || '' } : null,
       worst: worst ? { rd: worst.rd, score: worst.performance.score, theme: worst.meta?.theme || '' } : null,
-      last: last ? { rd: last.rd, score: last.performance.score, theme: last.meta?.theme || '' } : null,
+      last: last ? { rd: last.rd, score: last.performance.score, theme: last.meta?.theme || '', date: chronologicalKey(last) } : null,
+      lastSequence: lastSequence ? { rd: lastSequence.rd, score: lastSequence.performance.score, theme: lastSequence.meta?.theme || '' } : null,
       target: SCORE_TARGET,
       distanceToTarget: scores.length ? round(SCORE_TARGET - avgScore, 2) : null,
       weeksRemaining,
       perWeek,
+      scheduleAdherence: round(scheduleAdherence, 1),
+      rewriteCompletion: round(rewriteRate, 1),
       readiness
     },
     bands,
@@ -197,11 +206,11 @@ export function buildRedactionsDashboard(details, { snapshotDate = '', examDate 
         averageScore: round(avgScore, 1),
         recentTrend: round(trendComponent, 1),
         command: round(commandComponent, 1),
-        regularity: round(regularityComponent, 1),
+        regularity: round(scheduleAdherence, 1),
         rewrites: round(rewriteRate, 1),
         languageReview: round(reviewedRate, 1)
       },
-      notice: 'Índice interno de estudo. Não substitui a nota da banca nem representa previsão oficial.'
+      notice: 'Índice interno de estudo. Regularidade representa cumprimento do calendário vencido; não substitui a nota da banca.'
     }
   };
 }
@@ -234,6 +243,7 @@ export function validatePublicRedactions(payload, details, { requireEnriched = t
       if (!Number.isFinite(detail.performance?.score)) failures.push(`${detail.rd}: corrigida sem nota`);
       if (!text(detail.original?.text)) failures.push(`${detail.rd}: corrigida sem texto original`);
       if (!text(detail.feedback?.strategicCorrection)) failures.push(`${detail.rd}: corrigida sem correção estratégica`);
+      if (detail.feedback?.rewriteCompleted && !text(detail.model?.maximumRewrite)) failures.push(`${detail.rd}: reescrita marcada como concluída sem texto`);
     }
   }
   if (failures.length) throw new Error(`Banco Discursivo inválido: ${failures.join('; ')}`);
