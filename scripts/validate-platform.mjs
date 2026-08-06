@@ -142,11 +142,13 @@ required(!duplicates(allControls.map(item => item.pe)).length, 'PE duplicado nas
 required(!duplicates(allControls.map(item => item.url)).length, 'URL duplicada no Controle processado.');
 required(allControls.every(item => /^PE[0-9]+$/.test(item.pe) && item.url), 'Há PE sem chave integral ou URL.');
 required(!duplicates(redactions.redactions.map(item => item.rd)).length, 'RD duplicada.');
-required(!duplicates(redactions.redactions.map(item => item.url)).length, 'URL duplicada nas redações.');
-required(redactions.redactions.every(item => /^RD[0-9]+$/.test(item.rd) && item.url), 'Há redação sem chave integral ou URL.');
+required(!duplicates(redactions.redactions.map(item => item.detailPath)).length, 'Arquivo individual duplicado nas redações.');
+required(redactions.redactions.every(item => /^RD[0-9]+$/.test(item.rd) && /^data\/redactions\/rd\d+\.json$/.test(item.detailPath || '')), 'Há redação sem chave integral ou arquivo individual válido.');
+if (redactions.privacy?.sourceLinksExported === false) required(!/notion\.(?:so|com)/i.test(JSON.stringify(redactions)), 'O índice público de redações expõe link direto do banco editorial.');
 
 for (const item of allControls) required(await exists(`pe/${codeNumber(item.pe)}/index.html`), `Rota ausente para ${item.pe}.`);
 for (const item of subjects.subjects) required(await exists(`materias/${item.slug}/index.html`), `Rota ausente para matéria ${item.subject}.`);
+for (const item of redactions.redactions) required(await exists(item.detailPath), `Arquivo individual ausente para ${item.rd}.`);
 
 const errorIndex = errorIndexForSw;
 required(errorIndex.total === risks.summary.total, 'Índice de questões erradas diverge do total oficial.');
