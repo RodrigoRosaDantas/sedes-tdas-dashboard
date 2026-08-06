@@ -38,6 +38,19 @@ async function stopChrome(){
 
 try{
  await waitJson(`http://127.0.0.1:${port}/json/version`);
+ const platform=await waitJson(`${base}/data/platform-version.json`);
+ const home=await newPage(1280,900);
+ await navigate(home,`${base}/`);
+ await waitFor(home,"document.body.textContent.includes('Central de execução')",'central da página inicial');
+ await waitFor(home,`document.body.textContent.includes(${JSON.stringify(platform.platformVersion)})`,'versão na página inicial');
+ const homeState=await evaluate(home,`({brand:document.querySelector('.brand small')?.textContent||'',status:document.querySelector('[data-publication-status]')?.textContent||'',lastSync:document.querySelector('[data-last-sync]')?.textContent||'',body:document.body.textContent})`);
+ const expectedSync=new Intl.DateTimeFormat('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'America/Sao_Paulo'}).format(new Date(platform.syncAt)).replace(',',' às');
+ assert.ok(homeState.brand.includes(platform.platformVersion),`Marca não apresenta ${platform.platformVersion}: ${homeState.brand}`);
+ assert.ok(homeState.body.includes(`Plataforma ${platform.platformVersion}`),`Central não apresenta Plataforma ${platform.platformVersion}.`);
+ assert.ok(homeState.body.includes(`publicação ${String(platform.sourceCommit).slice(0,7)}`),`Central não apresenta a publicação ${String(platform.sourceCommit).slice(0,7)}.`);
+ assert.ok(homeState.body.includes(expectedSync),`Sincronização esperada ${expectedSync} não apareceu. Estado: ${JSON.stringify({status:homeState.status,lastSync:homeState.lastSync})}`);
+ assert.ok(!homeState.body.includes('00h50 · 06h50 · 12h50 · 18h50'),`A página inicial ainda apresenta horários programados como última atualização.`);
+
  const mobile=await newPage(390,844);
  await navigate(mobile,`${base}/redacoes/?tab=bank&band=Risco`);
  await waitFor(mobile,"document.querySelector('#result-count')?.textContent.includes('1 de 32')",'filtro de risco');
@@ -68,7 +81,7 @@ try{
  assert.equal(await evaluate(locked,"document.querySelector('#offline-rd')===null"),true);
  assert.equal(await evaluate(locked,"document.body.textContent.includes('Proposta completa')"),false);
 
- console.log(JSON.stringify({browser:'ok',mobileCards:true,tabsAccessible:true,paragraphs:true,offlinePersistent:true,futureLocked:true}));
+ console.log(JSON.stringify({browser:'ok',homePublication:true,mobileCards:true,tabsAccessible:true,paragraphs:true,offlinePersistent:true,futureLocked:true}));
 }finally{
  await stopChrome();
  await fs.rm(profile,{recursive:true,force:true,maxRetries:8,retryDelay:200}).catch(()=>{});
