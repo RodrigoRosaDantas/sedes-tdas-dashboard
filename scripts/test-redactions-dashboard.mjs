@@ -53,6 +53,9 @@ assert.equal(dashboard.summary.average, 58.69);
 assert.equal(dashboard.bands.risk, 1);
 assert.equal(dashboard.bands.approvable, 11);
 assert.equal(dashboard.evolution.length, 12);
+assert.equal(dashboard.evolution[0].movingAverage3, 62.83, 'A primeira média móvel deve repetir a primeira nota.');
+assert.equal(dashboard.evolution[2].movingAverage3, 62.56, 'A terceira média móvel deve considerar as três primeiras notas.');
+assert.equal(dashboard.evolution[11].movingAverage3, 59.5, 'A média móvel final deve considerar somente as três últimas notas.');
 assert.ok(dashboard.priorities.length > 0);
 
 const payload = {
@@ -61,4 +64,4 @@ const payload = {
   dashboard
 };
 assert.equal(validatePublicRedactions(payload, details), true);
-console.log('Dashboard Discursivo validado: fórmula, privacidade, sequência RD01–RD32, métricas e prioridades.');
+console.log('Dashboard Discursivo validado: fórmula, média móvel, privacidade, sequência RD01–RD32, métricas e prioridades.');
