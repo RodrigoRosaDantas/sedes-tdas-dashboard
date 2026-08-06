@@ -10,13 +10,22 @@ on:
     paths:
       - '.github/workflows/tdas-redactions-watchdog.yml'
       - 'scripts/postprocess-redactions.mjs'
+      - 'scripts/postprocess-v26.mjs'
       - 'scripts/notion/redactions-public.mjs'
       - 'scripts/validate-redactions-publication.mjs'
       - 'scripts/test-redactions-dashboard.mjs'
+      - 'scripts/test-redactions-operational.mjs'
+      - 'scripts/test-redactions-browser.mjs'
+      - 'scripts/monitor-live-site.mjs'
       - 'assets/redactions.js'
       - 'assets/redaction-detail.js'
       - 'assets/redactions-dashboard.css'
       - 'redacoes/**'
+      - 'data/redactions.json'
+      - 'data/redactions/**'
+      - 'data/platform-version.json'
+      - 'sw.js'
+      - 'package.json'
   schedule:
     - cron: '20 4,10,16,22 * * *'
 
@@ -41,11 +50,12 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Testar motor discursivo no pull request
+      - name: Testar motores discursivos no pull request
         if: github.event_name == 'pull_request'
+        shell: bash
         run: |
-          node scripts/test-redactions-dashboard.mjs
-          node scripts/validate-redactions-publication.mjs
+          npm run monitor:redactions
+          MONITOR_SELF_TEST=true npm run monitor:live-site
 
       - name: Verificar publicação discursiva
         if: github.event_name != 'pull_request'
@@ -54,7 +64,7 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
-          REQUIRE_REDACTIONS_PUBLICATION=true node scripts/validate-redactions-publication.mjs 2>&1 | tee /tmp/tdas-redactions-monitor.log
+          npm run monitor:redactions 2>&1 | tee /tmp/tdas-redactions-monitor.log
 
       - name: Manter incidente discursivo único
         if: github.event_name != 'pull_request' && always()
@@ -84,7 +94,7 @@ jobs:
               .filter(issue => !issue.pull_request && issue.title === title)
               .sort((a, b) => b.number - a.number)[0];
             if (!healthy) {
-              const body = `## Publicação discursiva bloqueada ou inconsistente\n\nO monitor encontrou falha na sequência RD01–RD32, no contrato do dashboard, nos arquivos individuais, na proteção de propostas futuras ou na integração offline.\n\n### Diagnóstico técnico\n\n\`\`\`text\n${log}\n\`\`\`${source}\n\n[Consultar execução do monitor](${runUrl})`;
+              const body = `## Publicação discursiva bloqueada ou inconsistente\n\nO monitor encontrou falha na sequência das RDs, no contrato 1.1, nos indicadores, nos arquivos individuais, na aplicação cega, no versionamento ou na integração offline.\n\n### Diagnóstico técnico\n\n\`\`\`text\n${log}\n\`\`\`${source}\n\n[Consultar execução do monitor](${runUrl})`;
               if (existing) {
                 await github.rest.issues.update({ owner: context.repo.owner, repo: context.repo.repo, issue_number: existing.number, body, state: 'open' });
               } else {
@@ -98,7 +108,7 @@ jobs:
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: existing.number,
-                body: `✅ Banco Discursivo recuperado e validado. RD01 até a última, dashboard, detalhes, privacidade e offline estão íntegros.${source}\n\n[Consultar execução](${runUrl})`
+                body: `✅ Banco Discursivo recuperado e validado. Contrato, indicadores, detalhes, aplicação cega, versionamento e offline estão íntegros.${source}\n\n[Consultar execução](${runUrl})`
               });
               await github.rest.issues.update({ owner: context.repo.owner, repo: context.repo.repo, issue_number: existing.number, state: 'closed' });
             }
