@@ -55,7 +55,9 @@ function median(values) {
 }
 
 function movingAverage(rows, index, count = 3) {
-  return average(rows.slice(Math.max(0, index - count + 1), index + 1).map(item => item.score));
+  return average(rows
+    .slice(Math.max(0, index - count + 1), index + 1)
+    .map(item => item.performance?.score ?? item.score));
 }
 
 function groupCount(rows, key, fallback = 'Não informado') {
