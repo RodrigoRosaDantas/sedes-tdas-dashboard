@@ -72,7 +72,6 @@ async function buildDetail(record) {
     batch: safeText(read(record, ['Lote de aplicação'])),
     bankVersion: safeText(read(record, ['Versão do banco'])),
     versionState: safeText(read(record, ['Estado da versão'])),
-    sourceUrl: record.url,
     lastEditedAt: record.last_edited_time || ''
   };
 
@@ -205,17 +204,19 @@ const redactions = details.map(detail => ({
   classification: detail.performance?.classification || 'Sem nota',
   mainFailure: detail.feedback?.mainFailure || '',
   nextAction: detail.feedback?.nextAction || '',
-  detailPath: `data/redactions/${detail.rd.toLowerCase()}.json`,
-  url: detail.meta.sourceUrl
+  rewriteRequired: Boolean(detail.feedback?.rewriteRequired),
+  portugueseReviewed: Boolean(detail.feedback?.portugueseReviewed),
+  detailPath: `data/redactions/${detail.rd.toLowerCase()}.json`
 }));
 const payload = {
   schemaVersion: RD_SCHEMA_VERSION,
   meta: {
-    ...(previous.meta || {}),
     snapshotDate,
     examDate,
+    syncTimes: previous.meta?.syncTimes || ['00h50', '06h50', '12h50', '18h50'],
+    version: previous.meta?.version || '20.3',
     generatedAt: state.syncedAt || new Date().toISOString(),
-    source: 'BANCO — REDAÇÃO TDAS/TÉCNICO ADMINISTRATIVO'
+    source: 'Banco oficial de redações TDAS'
   },
   summary: {
     ...dashboard.summary,
@@ -228,9 +229,12 @@ const payload = {
     applicationBlind: true,
     futureProposalsLocked: true,
     futureCorrectionsExported: false,
-    notice: 'Propostas futuras permanecem bloqueadas até a data planejada. Conteúdos de correção são exportados somente após o diagnóstico do texto.'
+    sourceLinksExported: false,
+    publicRepository: true,
+    privateLayerReady: false,
+    notice: 'Propostas futuras permanecem bloqueadas até a data planejada. Links diretos do banco editorial não são exportados. Textos e correções concluídos permanecem na camada pública atual até a implantação de autenticação privada.'
   },
-  notice: 'Dados lidos diretamente do banco oficial do Notion. Status, notas e diagnósticos não são presumidos.'
+  notice: 'Dados lidos diretamente do banco oficial. Status, notas e diagnósticos não são presumidos.'
 };
 validatePublicRedactions(payload, details, { requireEnriched: true });
 
