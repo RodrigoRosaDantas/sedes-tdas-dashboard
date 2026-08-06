@@ -1,8 +1,22 @@
 {
   "schemaVersion": "1.0.0",
-  "release": "20260805.3",
-  "updatedAt": "2026-08-05T13:20:10-03:00",
+  "release": "20260806.1",
+  "updatedAt": "2026-08-06T01:18:15-03:00",
   "events": [
+    {
+      "at": "2026-08-06T01:18:15-03:00",
+      "status": "success",
+      "type": "snapshot",
+      "title": "Snapshot EDAS sincronizado para o S11",
+      "detail": "As três views oficiais foram percorridas até has_more=false. Foram confirmados 42 Sprints, 21 erros, 12 estudos de caso e ausência de nova execução objetiva. O foco diário passou para S11 e o material oficial de OS&M foi publicado."
+    },
+    {
+      "at": "2026-08-06T01:18:15-03:00",
+      "status": "warning",
+      "type": "source",
+      "title": "Questões oficiais do S11 sem acesso pelo conector",
+      "detail": "A página de questões retornou object_not_found. O link oficial foi preservado e o catálogo autorizado anterior não foi substituído, esvaziado ou misturado com conteúdo do TDAS."
+    },
     {
       "at": "2026-08-05T13:20:10-03:00",
       "status": "success",
