@@ -8,6 +8,7 @@ on:
       - '.github/workflows/notion-sync.yml'
       - '.github/tdas-sync-trigger.txt'
       - 'scripts/sync-notion.mjs'
+      - 'scripts/postprocess-v26.mjs'
       - 'scripts/postprocess-redactions.mjs'
       - 'scripts/notion/**'
       - 'scripts/prepare-calendar-refresh.mjs'
