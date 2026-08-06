@@ -10,6 +10,13 @@ on:
     paths:
       - '.github/workflows/tdas-publication-watchdog.yml'
       - 'scripts/monitor-tdas-publication.mjs'
+      - 'scripts/monitor-live-site.mjs'
+      - 'scripts/test-site-operations.mjs'
+      - 'data/platform-version.json'
+      - 'data/redactions.json'
+      - 'data/redactions/**'
+      - 'package.json'
+      - 'docs/OPERACAO_SITE_TDAS.md'
   schedule:
     - cron: '20 5,11,17,23 * * *'
 
@@ -24,7 +31,7 @@ concurrency:
 jobs:
   monitor:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - name: Baixar repositório
         uses: actions/checkout@v4
@@ -34,11 +41,13 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Validar motor do watchdog
+      - name: Validar motores do watchdog
         if: github.event_name == 'pull_request'
-        env:
-          MONITOR_SELF_TEST: 'true'
-        run: node scripts/monitor-tdas-publication.mjs
+        shell: bash
+        run: |
+          npm run check:operations
+          MONITOR_SELF_TEST=true npm run monitor:publication
+          MONITOR_SELF_TEST=true npm run monitor:live-site
 
       - name: Verificar publicação técnica vigente
         if: github.event_name != 'pull_request'
@@ -48,30 +57,55 @@ jobs:
           TZ: America/Sao_Paulo
           MAX_SYNC_AGE_MINUTES: '180'
           MONITOR_REPORT_PATH: /tmp/tdas-publication-monitor.json
-        run: node scripts/monitor-tdas-publication.mjs
+        run: npm run monitor:publication
+
+      - name: Verificar site implantado no GitHub Pages
+        if: github.event_name != 'pull_request'
+        id: live_site
+        continue-on-error: true
+        env:
+          SITE_BASE_URL: https://rodrigorosadantas.github.io/sedes-tdas-dashboard
+          LIVE_SITE_MAX_ATTEMPTS: '12'
+          LIVE_SITE_RETRY_DELAY_MS: '15000'
+          LIVE_SITE_REPORT_PATH: /tmp/tdas-live-site-monitor.json
+        run: npm run monitor:live-site
 
       - name: Manter incidente técnico único
         if: github.event_name != 'pull_request' && always()
         uses: actions/github-script@v7
         env:
+          PUBLICATION_OUTCOME: ${{ steps.publication.outcome }}
+          LIVE_SITE_OUTCOME: ${{ steps.live_site.outcome }}
           MONITOR_REPORT_PATH: /tmp/tdas-publication-monitor.json
+          LIVE_SITE_REPORT_PATH: /tmp/tdas-live-site-monitor.json
         with:
           script: |
             const fs = require('fs');
             const title = '[Monitor] Site TDAS sem publicação atual do dia';
             const legacyTitles = new Set([title, '[Monitor] Publicação diária TDAS atrasada']);
-            const reportPath = process.env.MONITOR_REPORT_PATH;
-            if (!fs.existsSync(reportPath)) {
-              core.setFailed('O watchdog não gerou o relatório esperado.');
-              return;
-            }
-            const report = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
+            const readReport = (file, fallback) => fs.existsSync(file)
+              ? JSON.parse(fs.readFileSync(file, 'utf8'))
+              : fallback;
+            const publication = readReport(process.env.MONITOR_REPORT_PATH, {
+              healthy: false,
+              summary: 'O monitor técnico não gerou relatório.',
+              markdown: '## Monitoramento da publicação técnica TDAS\n\nO relatório local não foi gerado.'
+            });
+            const liveSite = readReport(process.env.LIVE_SITE_REPORT_PATH, {
+              healthy: false,
+              summary: 'O monitor do GitHub Pages não gerou relatório.',
+              markdown: '## Monitoramento do site implantado\n\nO relatório público não foi gerado.'
+            });
+            const healthy = process.env.PUBLICATION_OUTCOME === 'success'
+              && process.env.LIVE_SITE_OUTCOME === 'success'
+              && publication.healthy === true
+              && liveSite.healthy === true;
             const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
             const sourceRun = context.eventName === 'workflow_run' ? context.payload.workflow_run : null;
             const sourceRunSection = sourceRun
               ? `\n\n- **Execução originadora:** [${sourceRun.name} #${sourceRun.run_number}](${sourceRun.html_url}) — evento ${sourceRun.event}; conclusão ${sourceRun.conclusion || sourceRun.status}; ID ${sourceRun.id}.`
               : '';
-            const body = `${report.markdown}${sourceRunSection}\n\n[Consultar execução do monitor](${runUrl})`;
+            const body = `${publication.markdown}\n\n---\n\n${liveSite.markdown}${sourceRunSection}\n\n[Consultar execução do monitor](${runUrl})`;
             const issues = await github.paginate(github.rest.issues.listForRepo, {
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -82,7 +116,7 @@ jobs:
               .filter(issue => !issue.pull_request && legacyTitles.has(issue.title))
               .sort((left, right) => right.number - left.number)[0];
 
-            if (!report.healthy) {
+            if (!healthy) {
               if (existing) {
                 await github.rest.issues.update({
                   owner: context.repo.owner,
@@ -100,7 +134,7 @@ jobs:
                   body
                 });
               }
-              core.warning(report.summary);
+              core.warning(`${publication.summary} ${liveSite.summary}`);
               return;
             }
 
@@ -109,7 +143,7 @@ jobs:
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: existing.number,
-                body: `✅ Recuperação técnica do site confirmada em ${report.checkedAtLocal}. ${report.summary}${sourceRunSection}\n\n[Consultar execução do monitor](${runUrl})`
+                body: `✅ Recuperação técnica confirmada. A main e o GitHub Pages servem a mesma publicação, incluindo o Banco Discursivo e a proteção da aplicação cega.${sourceRunSection}\n\n[Consultar execução do monitor](${runUrl})`
               });
               await github.rest.issues.update({
                 owner: context.repo.owner,
@@ -126,8 +160,8 @@ jobs:
                 title
               });
             }
-            core.info(report.summary);
+            core.info(`${publication.summary} ${liveSite.summary}`);
 
-      - name: Sinalizar publicação técnica inconsistente
-        if: github.event_name != 'pull_request' && steps.publication.outcome == 'failure'
+      - name: Sinalizar publicação técnica ou implantação inconsistente
+        if: ${{ github.event_name != 'pull_request' && (steps.publication.outcome == 'failure' || steps.live_site.outcome == 'failure') }}
         run: exit 1
