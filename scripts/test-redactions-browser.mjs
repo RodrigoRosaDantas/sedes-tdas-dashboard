@@ -11,7 +11,7 @@ const profile=await fs.mkdtemp(path.join(os.tmpdir(),'tdas-redactions-browser-')
 const chrome=spawn(chromeBin,['--headless=new','--no-sandbox','--disable-gpu','--disable-dev-shm-usage',`--remote-debugging-port=${port}`,`--user-data-dir=${profile}`,'about:blank'],{stdio:['ignore','ignore','pipe']});
 let chromeError='';chrome.stderr.on('data',chunk=>chromeError+=chunk);
 const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
-async function waitJson(url,attempts=60){let last;for(let i=0;i<attempts;i++){try{const response=await fetch(url);if(response.ok)return response.json();last=new Error(String(response.status));}catch(error){last=error;}await delay(250);}throw last||new Error(`Timeout em ${url}`);}
+async function waitJson(url,attempts=60){let last;for(let i=0;i<attempts;i++){try{const response=await fetch(url);if(response.ok)return response.json();last=new Error(String(response.status));}catch(error){last=error;}await delay(250);}throw new Error(`${last?.message||'Timeout'}${chromeError?`\n${chromeError.slice(-1200)}`:''}`);}
 function connect(wsUrl){
  const socket=new WebSocket(wsUrl);let id=0;const pending=new Map();const listeners=new Map();
  socket.onmessage=event=>{const message=JSON.parse(event.data);if(message.id){const task=pending.get(message.id);if(!task)return;pending.delete(message.id);message.error?task.reject(new Error(message.error.message)):task.resolve(message.result);return;}for(const resolve of listeners.get(message.method)||[])resolve(message.params);listeners.delete(message.method);};
@@ -27,6 +27,14 @@ async function newPage(width=1280,height=900){
 async function navigate(client,url){const loaded=client.once('Page.loadEventFired');await client.send('Page.navigate',{url});await loaded;}
 async function evaluate(client,expression){const result=await client.send('Runtime.evaluate',{expression,returnByValue:true,awaitPromise:true});if(result.exceptionDetails)throw new Error(result.exceptionDetails.text||'Erro no navegador');return result.result?.value;}
 async function waitFor(client,expression,label,attempts=80){for(let i=0;i<attempts;i++){try{if(await evaluate(client,expression))return;}catch{}await delay(250);}throw new Error(`Timeout: ${label}`);}
+async function stopChrome(){
+ if(chrome.exitCode!==null)return;
+ await new Promise(resolve=>{
+  const timer=setTimeout(()=>{if(chrome.exitCode===null)chrome.kill('SIGKILL');resolve();},3000);
+  chrome.once('exit',()=>{clearTimeout(timer);resolve();});
+  chrome.kill('SIGTERM');
+ });
+}
 
 try{
  await waitJson(`http://127.0.0.1:${port}/json/version`);
@@ -62,6 +70,6 @@ try{
 
  console.log(JSON.stringify({browser:'ok',mobileCards:true,tabsAccessible:true,paragraphs:true,offlinePersistent:true,futureLocked:true}));
 }finally{
- chrome.kill('SIGTERM');
- await fs.rm(profile,{recursive:true,force:true});
+ await stopChrome();
+ await fs.rm(profile,{recursive:true,force:true,maxRetries:8,retryDelay:200}).catch(()=>{});
 }
