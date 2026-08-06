@@ -217,7 +217,11 @@ const payload = {
     generatedAt: state.syncedAt || new Date().toISOString(),
     source: 'BANCO — REDAÇÃO TDAS/TÉCNICO ADMINISTRATIVO'
   },
-  summary: dashboard.summary,
+  summary: {
+    ...dashboard.summary,
+    valid: dashboard.summary.total,
+    notStarted: dashboard.summary.pending
+  },
   dashboard,
   redactions,
   privacy: {
