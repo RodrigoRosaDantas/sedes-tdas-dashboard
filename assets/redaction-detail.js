@@ -56,10 +56,9 @@ try{
    <section class="section"><article class="card panel rd-privacy"><h3>Privacidade</h3><p>O registro editorial de origem não é exposto por link direto nesta interface. O conteúdo pessoal permanece na publicação atual até a implantação de autenticação privada.</p></article></section>
    ${pager(nav)}
    <footer class="footer"><span>${escapeHTML(detail.rd)} · Banco Discursivo</span><span>Última atualização <span data-last-sync></span></span></footer>`;
-  const jump=document.querySelectorAll('.rd-jump');jump.forEach(select=>select.addEventListener('change',()=>location.href=`${BASE}redacoes/detalhe/?rd=${encodeURIComponent(select.value)}`));
   const offlineButton=document.querySelector('#offline-rd');offlineButton.onclick=async()=>{offlineButton.disabled=true;const previous=offlineButton.textContent;offlineButton.textContent='Salvando…';try{await saveOffline(detail);offlineButton.textContent='Disponível offline ✓';if(!document.querySelector('#remove-offline-rd'))location.reload()}catch(error){offlineButton.textContent=previous;alert(error.message)}finally{offlineButton.disabled=false}};
   const removeButton=document.querySelector('#remove-offline-rd');if(removeButton)removeButton.onclick=async()=>{removeButton.disabled=true;try{await removeOffline(detail);location.reload()}catch(error){removeButton.disabled=false;alert(error.message)}};
   document.querySelector('#print-rd').onclick=()=>window.print();
  }
- const jumpLocked=document.querySelectorAll('.rd-jump');jumpLocked.forEach(select=>select.addEventListener('change',()=>location.href=`${BASE}redacoes/detalhe/?rd=${encodeURIComponent(select.value)}`));
+ const jumpSelectors=document.querySelectorAll('.rd-jump');jumpSelectors.forEach(select=>select.addEventListener('change',()=>location.href=`${BASE}redacoes/detalhe/?rd=${encodeURIComponent(select.value)}`));
 }catch(error){setLoadingError(error)}
