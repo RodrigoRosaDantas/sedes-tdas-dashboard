@@ -1,8 +1,15 @@
 {
   "schemaVersion": "1.0.0",
   "release": "20260806.1",
-  "updatedAt": "2026-08-06T07:16:40-03:00",
+  "updatedAt": "2026-08-06T19:22:57-03:00",
   "events": [
+    {
+      "at": "2026-08-06T19:22:57-03:00",
+      "status": "no_changes",
+      "type": "snapshot",
+      "title": "Fontes oficiais revalidadas sem alterações",
+      "detail": "A página principal e os três data sources oficiais foram consultados. O Controle retornou has_more=false; permanecem confirmados 42 Sprints, S11 não iniciado, 21 erros, 12 estudos de caso, 3 Sprints executados, 115 questões e 94 acertos. Nenhum snapshot, material, catálogo, código, rota ou versão do PWA foi alterado."
+    },
     {
       "at": "2026-08-06T07:16:40-03:00",
       "status": "no_changes",
