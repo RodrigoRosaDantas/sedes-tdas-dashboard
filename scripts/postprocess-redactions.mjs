@@ -246,17 +246,16 @@ await Promise.all([
 async function patchServiceWorker() {
   const file = path.join(ROOT, 'sw.js');
   let source = await fs.readFile(file, 'utf8');
-  const match = source.match(/const PRECACHE=(\[[^;]+\]);/);
-  if (!match) throw new Error('Banco Discursivo: lista PRECACHE não localizada no service worker.');
-  const precache = JSON.parse(match[1]);
-  const base = '/sedes-tdas-dashboard/';
-  const extra = [
-    `${base}redacoes/detalhe/`,
-    `${base}assets/redactions-dashboard.css`,
-    `${base}assets/redaction-detail.js`
-  ];
-  const next = [...new Set([...precache, ...extra])];
-  source = source.replace(match[0], `const PRECACHE=${JSON.stringify(next)};`);
+  const extendArrayConstant = (name, items) => {
+    const expression = new RegExp(`const ${name}=(\\[[^;]+\\]);`);
+    const match = source.match(expression);
+    if (!match) throw new Error(`Banco Discursivo: constante ${name} não localizada no service worker.`);
+    const current = JSON.parse(match[1]);
+    const next = [...new Set([...current, ...items])];
+    source = source.replace(match[0], `const ${name}=${JSON.stringify(next)};`);
+  };
+  extendArrayConstant('CORE_ROUTES', ['redacoes/detalhe/']);
+  extendArrayConstant('ASSETS', ['assets/redactions-dashboard.css', 'assets/redaction-detail.js']);
   await fs.writeFile(file, source, 'utf8');
 }
 await patchServiceWorker();
