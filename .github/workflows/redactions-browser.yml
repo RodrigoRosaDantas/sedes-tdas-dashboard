@@ -1,7 +1,9 @@
 name: Validar Banco Discursivo no navegador
 
 on:
+  workflow_dispatch:
   pull_request:
+    branches: [main]
     paths:
       - '.github/workflows/redactions-browser.yml'
       - 'assets/common.js'
@@ -11,6 +13,9 @@ on:
       - 'redacoes/**'
       - 'data/redactions.json'
       - 'data/redactions/**'
+      - 'data/platform-version.json'
+      - 'scripts/postprocess-v26.mjs'
+      - 'scripts/postprocess-redactions.mjs'
       - 'scripts/test-redactions-browser.mjs'
       - 'scripts/test-redactions-operational.mjs'
       - 'scripts/test-redactions-dashboard.mjs'
@@ -28,12 +33,17 @@ on:
       - 'redacoes/**'
       - 'data/redactions.json'
       - 'data/redactions/**'
+      - 'data/platform-version.json'
+      - 'scripts/postprocess-v26.mjs'
+      - 'scripts/postprocess-redactions.mjs'
       - 'scripts/test-redactions-browser.mjs'
       - 'scripts/test-redactions-operational.mjs'
       - 'scripts/test-redactions-dashboard.mjs'
       - 'scripts/validate-redactions-publication.mjs'
       - 'sw.js'
       - 'package.json'
+  schedule:
+    - cron: '35 10 * * *'
 
 permissions:
   contents: read
@@ -56,10 +66,7 @@ jobs:
           node-version: '22'
 
       - name: Executar guardas do Banco Discursivo
-        run: |
-          node scripts/test-redactions-dashboard.mjs
-          node scripts/test-redactions-operational.mjs
-          node scripts/validate-redactions-publication.mjs
+        run: npm run monitor:redactions
 
       - name: Preparar site local
         shell: bash
@@ -81,7 +88,7 @@ jobs:
         env:
           TDAS_BASE_URL: http://127.0.0.1:4173/sedes-tdas-dashboard
           CHROME_BIN: google-chrome
-        run: node scripts/test-redactions-browser.mjs
+        run: npm run test:redactions-browser
 
       - name: Encerrar servidor
         if: always()
