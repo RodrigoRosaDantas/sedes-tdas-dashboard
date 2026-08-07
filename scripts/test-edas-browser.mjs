@@ -22,7 +22,7 @@ async function stop(){if(chrome.exitCode!==null)return;await new Promise(resolve
 try{
  await waitJson(`http://127.0.0.1:${port}/json/version`);
  const [site,catalog]=await Promise.all([waitJson(`${base}/data/site.json`),waitJson(`${base}/data/integration/question-catalog.json`)]);
- const home=await newPage(1280,900);await nav(home,`${base}/`);await waitFor(home,`document.body.textContent.includes(${JSON.stringify(site.today.sprint)})`,'Sprint atual na home');assert.equal(await evalJs(home,`document.querySelector('[data-platform-version]')?.textContent.includes(${JSON.stringify(site.meta.version)})`),true);
+ const home=await newPage(1280,900);await nav(home,`${base}/`);await waitFor(home,`document.body.textContent.includes(${JSON.stringify(site.today.sprint)})`,'Sprint atual na home');await waitFor(home,`document.querySelector('[data-platform-version]')?.textContent.includes(${JSON.stringify(site.meta.version)})`,'versão estável na home');
  const mobile=await newPage(390,844);await nav(mobile,`${base}/hoje/`);await waitFor(mobile,"document.body.textContent.includes('Material Premium')",'Hoje EDAS');assert.ok((await evalJs(mobile,"document.querySelector('#mobile-nav')?.textContent||''")).length>0,'Navegação móvel ausente.');
  const resolver=await newPage(1100,900);await nav(resolver,`${base}/resolver/`);await waitFor(resolver,"document.body.textContent.includes('Questão 1 de')",'primeira questão');
  assert.equal(await evalJs(resolver,"performance.getEntriesByType('resource').some(x=>x.name.includes('answer-key.json'))"),false,'Gabarito não pode ser requisitado antes da finalização.');
