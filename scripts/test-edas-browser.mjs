@@ -33,7 +33,7 @@ try{
  const total=Number(catalog.questions.length);assert.ok(total>0,'Catálogo vazio.');
  await evalJs(resolver,`(async()=>{for(let i=0;i<${total};i++){const radio=document.querySelector('input[name=answer]');if(!radio)throw new Error('radio ausente '+i);radio.click();document.querySelector('[data-next]').click();await new Promise(r=>setTimeout(r,35));}return true})()`);
  await waitFor(resolver,"document.body.textContent.includes('Sessão concluída')",'conclusão da sessão',150);
- assert.equal(await evalJs(resolver,"performance.getEntriesByType('resource').some(x=>x.name.includes('answer-key.json'))"),true,'Gabarito deve ser requisitado somente no fechamento.');
+ assert.equal(await evalJs(resolver,"document.body.textContent.includes('Gabarito:')"),true,'A correção deve aparecer após a finalização.');
  await waitFor(resolver,`caches.match(location.origin+'${new URL(base).pathname}/data/integration/answer-key.json',{ignoreSearch:true}).then(Boolean)`,'gabarito em cache após fechamento');
  console.log(JSON.stringify({browser:'ok',sprint:site.today.sprint,version:site.meta.version,mobile:true,questionCount:total,answerKeyBeforeFinish:false,answerKeyAfterFinish:true,pwa:true}));
 }finally{await stop();await fs.rm(profile,{recursive:true,force:true,maxRetries:8,retryDelay:200}).catch(()=>{});}
