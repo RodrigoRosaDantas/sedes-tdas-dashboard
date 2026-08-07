@@ -1,0 +1,40 @@
+name: Reparar extracao EDAS S12
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - repair-edas-sync-s12.ready
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+      - name: Corrigir extração sem alterar pacote
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('.github/workflows/edas-sync-s12.yml')
+          text=p.read_text(encoding='utf-8')
+          old='          tar -xzf /tmp/edas-s12.tar.gz -C /tmp\n'
+          new='          tar -xzf /tmp/edas-s12.tar.gz -C /tmp --touch --no-same-owner --no-same-permissions --no-overwrite-dir\n'
+          if old not in text:
+              raise SystemExit('Linha de extração não encontrada')
+          p.write_text(text.replace(old,new),encoding='utf-8')
+          PY
+          git config user.name "EDAS Platform Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add .github/workflows/edas-sync-s12.yml
+          git rm repair-edas-sync-s12.ready .github/workflows/repair-edas-sync-s12.yml
+          git commit -m "Corrigir extração do pacote S12"
+          git push origin HEAD:${{ github.head_ref }}
