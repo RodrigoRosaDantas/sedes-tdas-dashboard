@@ -1,8 +1,15 @@
 {
   "schemaVersion": "1.0.0",
   "release": "20260807.1",
-  "updatedAt": "2026-08-07T01:23:31-03:00",
+  "updatedAt": "2026-08-07T07:16:07-03:00",
   "events": [
+    {
+      "at": "2026-08-07T07:16:07-03:00",
+      "status": "no_changes",
+      "type": "snapshot",
+      "title": "Fontes oficiais revalidadas sem alterações",
+      "detail": "Página principal e as três views operacionais foram percorridas até has_more=false. Permanecem confirmados 42 Sprints, 21 erros, 12 estudos de caso, 3 Sprints executados, 115 questões e 94 acertos. S12 continua não iniciado e pronto — auditado; Material Premium, bateria oficial de 45 questões e ficha técnica reservada permanecem válidos. A consulta SQL estava indisponível por limite do Notion, mas a validação foi concluída pelas views e registros individuais. Nenhum snapshot, catálogo, código, rota ou versão do PWA foi alterado."
+    },
     {
       "at": "2026-08-07T01:23:31-03:00",
       "status": "success",
