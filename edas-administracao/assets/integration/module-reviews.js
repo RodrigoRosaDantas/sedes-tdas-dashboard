@@ -1,7 +1,7 @@
 import{loadData,setupShell,escapeHTML,routes,setLoadingError}from'../common.js?v=20260807.6';
 import{readModuleState}from'./module-store.js?v=20260807.6';
 import{sortReviewsByPriority,reviewPriorityScore,outcomeLabel}from'./review-engine.js?v=20260807.6';
-const DAY=86400000,format=value=>new Intl.DateTimeFormat('pt-BR',{dateStyle:'short',timeStyle:'short'}).format(new Date(value));
+const DAY=86400000,format=value=>{const date=new Date(Number(value)||value);return Number.isNaN(date.getTime())?'—':new Intl.DateTimeFormat('pt-BR',{dateStyle:'short',timeStyle:'short'}).format(date)};
 const signalKey=item=>item.sourceOutcome==='wrong_again'?'wrong_again':item.sourceOutcome==='unsure'?'unsure':item.classification==='incorrect_confirmed'?'incorrect_confirmed':item.classification==='correct_by_guess'?'correct_by_guess':item.classification==='correct_with_doubt'?'correct_with_doubt':item.marked?'marked':'scheduled';
 const labels={wrong_again:'Novo erro',unsure:'Dúvida persistente',incorrect_confirmed:'Erro confirmado',correct_by_guess:'Acerto por chute',correct_with_doubt:'Acerto com dúvida',marked:'Questão marcada',scheduled:'Revisão programada'};
 const baseScore={wrong_again:520,unsure:340,incorrect_confirmed:260,correct_by_guess:210,correct_with_doubt:190,marked:150,scheduled:100};
