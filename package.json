@@ -20,7 +20,7 @@
     "test:sync-operational-guards": "node scripts/test-sync-operational-guards.mjs",
     "test:site-operations": "node scripts/test-site-operations.mjs",
     "test:edas-operations": "node scripts/test-edas-operations.mjs",
-    "test:edas-browser": "node scripts/test-edas-browser.mjs",
+    "test:edas-browser": "node scripts/test-edas-browser.mjs && node scripts/test-edas-diagnostic-browser.mjs",
     "test:redactions-dashboard": "node scripts/test-redactions-dashboard.mjs",
     "test:redactions-operational": "node scripts/test-redactions-operational.mjs",
     "test:redactions-browser": "node scripts/test-redactions-browser.mjs",

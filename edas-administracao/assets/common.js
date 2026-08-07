@@ -1,4 +1,4 @@
-export const RELEASE='20260807.5';
+export const RELEASE='20260807.6';
 export const BASE='/sedes-tdas-dashboard/edas-administracao/';
 export const routes={home:BASE,hoje:BASE+'hoje/',evolucao:BASE+'evolucao/',riscos:BASE+'riscos/',agenda:BASE+'agenda/',casos:BASE+'estudos-caso/',caso:BASE+'estudos-caso/detalhe/',auditoria:BASE+'auditoria/',mais:BASE+'mais/',estudar:BASE+'estudar/',resolver:BASE+'resolver/',revisar:BASE+'revisar/',caderno:BASE+'caderno-erros/',desempenho:BASE+'desempenho/',fila:BASE+'fila-ia/',sprints:BASE+'sprints/',sprint:BASE+'sprint/',materias:BASE+'materias/',materia:BASE+'materia/',historico:BASE+'historico/',dados:BASE+'dados-locais/'};
 const icons={home:'⌂',hoje:'◎',evolucao:'↗',riscos:'!',agenda:'◷',casos:'✎',auditoria:'✓',mais:'•••'};
