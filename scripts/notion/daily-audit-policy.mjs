@@ -6,12 +6,15 @@ export function canUseHistoricalExecution(control,today){
  const expected=Number(control?.expectedCount);
  const attempted=Number(control?.attempted);
  const correct=Number(control?.correct);
+ const errors=Number(control?.errors);
  if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||!/^\d{4}-\d{2}-\d{2}$/.test(String(today||'')))return false;
  if(date>=today)return false;
  if(!COMPLETED_PATTERN.test(status))return false;
  if(!Number.isInteger(expected)||expected<=0)return false;
- if(!Number.isInteger(attempted)||attempted!==expected)return false;
  if(!Number.isInteger(correct)||correct<0||correct>expected)return false;
+ const attemptedCloses=Number.isInteger(attempted)&&attempted===expected;
+ const resultCloses=Number.isInteger(errors)&&errors>=0&&correct+errors===expected;
+ if(!attemptedCloses&&!resultCloses)return false;
  return true;
 }
 
