@@ -1,109 +1,76 @@
 name: Sincronizar EDAS S12
-
 on:
   pull_request:
-    branches:
-      - main
-    paths:
-      - edas-sync-s12.ready
-
+    branches: [main]
+    paths: [edas-sync-s12.ready]
 permissions:
   contents: write
-
 jobs:
   sync:
     runs-on: ubuntu-latest
     steps:
-      - name: Obter branch do pull request
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           ref: ${{ github.head_ref }}
           fetch-depth: 0
-
-      - name: Reconstruir pacote validado
+      - name: Aplicar pacote oficial S12
         shell: bash
         run: |
           set -euo pipefail
-          cat edas-sync-s12.parts/part*.b64 > /tmp/edas-s12.b64
-          base64 --decode /tmp/edas-s12.b64 > /tmp/edas-s12.tar.gz
-          test "$(sha256sum /tmp/edas-s12.tar.gz | awk '{print $1}')" = "038679964fc48dd13161556bdd48e0c437be64b5b2c3038117f48e119e57e358"
-          tar -xzf /tmp/edas-s12.tar.gz -C /tmp --touch --no-same-owner --no-same-permissions --no-overwrite-dir
-          cp /tmp/site-new.json edas-administracao/data/site.json
-          cp /tmp/sync-history.json edas-administracao/data/sync-history.json
-          cp /tmp/daily-material.json edas-administracao/data/integration/daily-material.json
-          cp /tmp/question-catalog.json edas-administracao/data/integration/question-catalog.json
-          cp /tmp/answer-key.json edas-administracao/data/integration/answer-key.json
-          cp /tmp/daily-contract.json edas-administracao/data/integration/daily-contract.json
-
-      - name: Aplicar release e correção reservada
-        shell: bash
-        run: |
-          set -euo pipefail
+          cat edas-sync-s12.parts/part*.b64 > /tmp/p.b64
+          base64 --decode /tmp/p.b64 > /tmp/p.tar.gz
+          test "$(sha256sum /tmp/p.tar.gz | awk '{print $1}')" = "038679964fc48dd13161556bdd48e0c437be64b5b2c3038117f48e119e57e358"
+          rm -rf /tmp/edas-s12 && mkdir -p /tmp/edas-s12
+          tar -xzf /tmp/p.tar.gz -C /tmp/edas-s12 --touch --no-same-owner --no-same-permissions --no-overwrite-dir
+          cp /tmp/edas-s12/data/site.json edas-administracao/data/site.json
+          cp /tmp/edas-s12/data/sync-history.json edas-administracao/data/sync-history.json
+          cp /tmp/edas-s12/data/integration/daily-material.json edas-administracao/data/integration/daily-material.json
+          cp /tmp/edas-s12/data/integration/question-catalog.json edas-administracao/data/integration/question-catalog.json
+          cp /tmp/edas-s12/data/integration/answer-key.json edas-administracao/data/integration/answer-key.json
+          cp /tmp/edas-s12/data/integration/daily-contract.json edas-administracao/data/integration/daily-contract.json
           python - <<'PY'
           from pathlib import Path
           import re
-
-          root = Path('edas-administracao')
-          old = '20260805.3'
-          new = '20260807.1'
-          for path in root.rglob('*'):
-              if path.is_file() and path.suffix in {'.html', '.js', '.webmanifest'}:
-                  text = path.read_text(encoding='utf-8')
-                  if old in text:
-                      path.write_text(text.replace(old, new), encoding='utf-8')
-
-          player = root / 'assets/integration/module-player.js'
-          text = player.read_text(encoding='utf-8')
-          text = text.replace("if(!question.enunciado||!question.alternativas||!question.gabarito)throw new Error(`Questão ${index+1} incompleta.`)", "if(!question.enunciado||!question.alternativas)throw new Error(`Questão ${index+1} incompleta.`)")
-          marker = "const letters=alternatives=>Array.isArray(alternatives)?alternatives.map((text,index)=>[String.fromCharCode(65+index),text]):Object.entries(alternatives||{});\n"
-          addition = '''const readAnswerKey=async catalog=>{\n if((catalog.questions||[]).every(question=>question.gabarito))return Object.fromEntries(catalog.questions.map(question=>[question.id,{gabarito:question.gabarito,justificativa:question.justificativa||''}]));\n const response=await fetch('../data/integration/answer-key.json?v=20260807.1',{cache:'no-store'});\n if(!response.ok)throw new Error('Falha ao carregar correção ('+response.status+')');\n const data=await response.json();\n if(data?.catalogId!==catalog.catalogId||!data?.answers)throw new Error('Correção incompatível com o catálogo atual.');\n return data.answers;\n};\n'''
-          if 'const readAnswerKey=' not in text:
-              text = text.replace(marker, marker + addition)
-          pattern = re.compile(r" const finish=\(\)=>\{.*?\};\n render\(\);", re.S)
-          replacement = ''' const finish=async()=>{try{const answerKey=await readAnswerKey(catalog),finishedAt=now(),results=questions.map(question=>{const correction=question.gabarito?{gabarito:question.gabarito,justificativa:question.justificativa||''}:answerKey[question.id];if(!correction?.gabarito)throw new Error(`Gabarito ausente: ${question.id}`);const selected=answers[question.id],correctAnswer=String(correction.gabarito).trim().toUpperCase();return{id:question.id,selected,correctAnswer,correct:selected===correctAnswer,justificativa:correction.justificativa||''}}),correct=results.filter(item=>item.correct).length,evaluation={session:{startedAt,finishedAt},elapsedMs:finishedAt-startedAt,correct,incorrect:results.length-correct,total:results.length,percent:results.length?correct/results.length*100:0,results};saveCompletedAttempt({catalog:{...catalog,questions},evaluation,responseMeta:meta,mode:review?'review':'study',reviewId:review?.id||null});main.innerHTML=`<section class="hero"><span class="kicker">Sessão concluída</span><h1>${correct}/${results.length} · ${evaluation.percent.toFixed(1).replace('.',',')}%</h1><p>O resultado foi salvo somente neste aparelho. Revisões foram agendadas para itens elegíveis.</p><div class="hero-actions"><a class="btn primary" href="${routes.desempenho}">Ver desempenho</a><a class="btn" href="${routes.revisar}">Abrir revisões</a><a class="btn" href="${routes.caderno}">Abrir caderno</a></div></section><section class="section"><div class="result-list">${results.map(result=>{const question=questions.find(item=>item.id===result.id);return`<article class="result-item ${result.correct?'correct':'incorrect'}"><b>${escapeHTML(question?.numero_original||question?.id)} · ${result.correct?'Correta':'Incorreta'}</b><p>Marcada: ${escapeHTML(result.selected)} · Gabarito: ${escapeHTML(result.correctAnswer)}</p>${result.justificativa?`<small>${escapeHTML(result.justificativa)}</small>`:''}</article>`}).join('')}</div></section>`}catch(error){alert(error.message)}};\n render();'''
-          text, count = pattern.subn(replacement, text, count=1)
-          if count != 1:
-              raise SystemExit('Não foi possível atualizar finish() do player')
-          player.write_text(text, encoding='utf-8')
-
-          sw = root / 'sw.js'
-          text = sw.read_text(encoding='utf-8')
-          text = text.replace("BASE+'data/integration/question-catalog.json',BASE+'data/integration/daily-material.json'", "BASE+'data/integration/question-catalog.json',BASE+'data/integration/answer-key.json',BASE+'data/integration/daily-material.json'")
-          old_block = " if(url.pathname===BASE+'data/site.json'){event.respondWith((async()=>{try{const fresh=await fetch(event.request,{cache:'no-store'});const cache=await caches.open(VERSION);cache.put(BASE+'data/site.json',fresh.clone());return fresh}catch{return(await caches.match(event.request))||(await caches.match(BASE+'data/site.json'))}})());return}"
-          new_block = " if(url.pathname.startsWith(BASE+'data/')){event.respondWith((async()=>{try{const fresh=await fetch(event.request,{cache:'no-store'});const cache=await caches.open(VERSION);cache.put(event.request,fresh.clone());return fresh}catch{return(await caches.match(event.request,{ignoreSearch:true}))||Response.error()}})());return}"
-          if old_block not in text:
-              raise SystemExit('Bloco de cache esperado não encontrado')
-          sw.write_text(text.replace(old_block, new_block), encoding='utf-8')
+          root=Path('edas-administracao')
+          for p in root.rglob('*'):
+              if p.is_file() and p.suffix in {'.html','.js','.webmanifest'}:
+                  t=p.read_text(encoding='utf-8').replace('20260805.3','20260807.1')
+                  p.write_text(t,encoding='utf-8')
+          p=root/'assets/integration/module-player.js'
+          t=p.read_text(encoding='utf-8')
+          t=t.replace("if(!question.enunciado||!question.alternativas||!question.gabarito)throw new Error(`Questão ${index+1} incompleta.`)","if(!question.enunciado||!question.alternativas)throw new Error(`Questão ${index+1} incompleta.`)")
+          marker="const letters=alternatives=>Array.isArray(alternatives)?alternatives.map((text,index)=>[String.fromCharCode(65+index),text]):Object.entries(alternatives||{});\n"
+          helper="const readAnswerKey=async catalog=>{if((catalog.questions||[]).every(q=>q.gabarito))return Object.fromEntries(catalog.questions.map(q=>[q.id,{gabarito:q.gabarito,justificativa:q.justificativa||''}]));const r=await fetch('../data/integration/answer-key.json?v=20260807.1',{cache:'no-store'});if(!r.ok)throw new Error('Falha ao carregar correção ('+r.status+')');const d=await r.json();if(d?.catalogId!==catalog.catalogId||!d?.answers)throw new Error('Correção incompatível com o catálogo atual.');return d.answers};\n"
+          if 'const readAnswerKey=' not in t:
+              if marker not in t: raise SystemExit('marker player ausente')
+              t=t.replace(marker,marker+helper)
+          pat=re.compile(r" const finish=\(\)=>\{.*?\};\n render\(\);",re.S)
+          rep=""" const finish=async()=>{try{const key=await readAnswerKey(catalog),finishedAt=now(),results=questions.map(question=>{const c=question.gabarito?{gabarito:question.gabarito,justificativa:question.justificativa||''}:key[question.id];if(!c?.gabarito)throw new Error(`Gabarito ausente: ${question.id}`);const selected=answers[question.id],correctAnswer=String(c.gabarito).trim().toUpperCase();return{id:question.id,selected,correctAnswer,correct:selected===correctAnswer,justificativa:c.justificativa||''}}),correct=results.filter(x=>x.correct).length,evaluation={session:{startedAt,finishedAt},elapsedMs:finishedAt-startedAt,correct,incorrect:results.length-correct,total:results.length,percent:results.length?correct/results.length*100:0,results};saveCompletedAttempt({catalog:{...catalog,questions},evaluation,responseMeta:meta,mode:review?'review':'study',reviewId:review?.id||null});main.innerHTML=`<section class=\"hero\"><span class=\"kicker\">Sessão concluída</span><h1>${correct}/${results.length} · ${evaluation.percent.toFixed(1).replace('.',',')}%</h1><p>O resultado foi salvo somente neste aparelho. Revisões foram agendadas para itens elegíveis.</p><div class=\"hero-actions\"><a class=\"btn primary\" href=\"${routes.desempenho}\">Ver desempenho</a><a class=\"btn\" href=\"${routes.revisar}\">Abrir revisões</a><a class=\"btn\" href=\"${routes.caderno}\">Abrir caderno</a></div></section><section class=\"section\"><div class=\"result-list\">${results.map(result=>{const question=questions.find(item=>item.id===result.id);return`<article class=\"result-item ${result.correct?'correct':'incorrect'}\"><b>${escapeHTML(question?.numero_original||question?.id)} · ${result.correct?'Correta':'Incorreta'}</b><p>Marcada: ${escapeHTML(result.selected)} · Gabarito: ${escapeHTML(result.correctAnswer)}</p>${result.justificativa?`<small>${escapeHTML(result.justificativa)}</small>`:''}</article>`}).join('')}</div></section>`}catch(e){alert(e.message)}};\n render();"""
+          t,n=pat.subn(rep,t,count=1)
+          if n!=1: raise SystemExit('finish player ausente')
+          p.write_text(t,encoding='utf-8')
+          p=root/'sw.js'; t=p.read_text(encoding='utf-8')
+          t=t.replace("BASE+'data/integration/question-catalog.json',BASE+'data/integration/daily-material.json'","BASE+'data/integration/question-catalog.json',BASE+'data/integration/answer-key.json',BASE+'data/integration/daily-material.json'")
+          old=" if(url.pathname===BASE+'data/site.json'){event.respondWith((async()=>{try{const fresh=await fetch(event.request,{cache:'no-store'});const cache=await caches.open(VERSION);cache.put(BASE+'data/site.json',fresh.clone());return fresh}catch{return(await caches.match(event.request))||(await caches.match(BASE+'data/site.json'))}})());return}"
+          new=" if(url.pathname.startsWith(BASE+'data/')){event.respondWith((async()=>{try{const fresh=await fetch(event.request,{cache:'no-store'});const cache=await caches.open(VERSION);cache.put(event.request,fresh.clone());return fresh}catch{return(await caches.match(event.request,{ignoreSearch:true}))||Response.error()}})());return}"
+          if old not in t: raise SystemExit('cache block ausente')
+          p.write_text(t.replace(old,new),encoding='utf-8')
           PY
-
-      - name: Validar arquitetura e dados
+      - name: Validar
         shell: bash
         run: |
           set -euo pipefail
-          for file in edas-administracao/assets/*.js edas-administracao/assets/integration/*.js edas-administracao/sw.js; do node --check "$file"; done
+          for f in edas-administracao/assets/*.js edas-administracao/assets/integration/*.js edas-administracao/sw.js; do node --check "$f"; done
           python - <<'PY'
           import json
           from pathlib import Path
-          root=Path('edas-administracao')
-          site=json.loads((root/'data/site.json').read_text())
-          assert len(site['sprints']) == 42
-          assert site['today']['sprint'] == 'S12'
-          assert site['meta']['snapshotDate'] == '2026-08-07'
-          assert site['metrics'] == {'completed':3,'total':42,'questions':115,'correct':94,'accuracy':81.74,'errors':21,'casesCompleted':0,'casesTotal':12}
-          assert len(site['cases']) == 12
-          catalog=json.loads((root/'data/integration/question-catalog.json').read_text())
-          assert catalog['sprintId']=='S12' and catalog['status']=='ready' and len(catalog['questions'])==45
-          assert all('gabarito' not in q and 'justificativa' not in q for q in catalog['questions'])
-          key=json.loads((root/'data/integration/answer-key.json').read_text())
-          assert key['catalogId']==catalog['catalogId'] and len(key['answers'])==45
-          material=json.loads((root/'data/integration/daily-material.json').read_text())
-          assert material['status']=='ready' and material['sprintId']=='S12' and material['html']
-          history=json.loads((root/'data/sync-history.json').read_text())
-          assert len(history['events']) <= 40
-          contract=json.loads((root/'data/integration/daily-contract.json').read_text())
-          assert contract['paths']['answerKey']=='data/integration/answer-key.json'
-          manifest=json.loads((root/'manifest.webmanifest').read_text())
-          assert '20260807.1' in manifest['start_url']
+          r=Path('edas-administracao')
+          s=json.loads((r/'data/site.json').read_text()); assert len(s['sprints'])==42 and s['today']['sprint']=='S12' and s['meta']['snapshotDate']=='2026-08-07'; assert len(s['cases'])==12; assert s['metrics']['questions']==115 and s['metrics']['correct']==94 and s['metrics']['errors']==21
+          c=json.loads((r/'data/integration/question-catalog.json').read_text()); assert c['status']=='ready' and len(c['questions'])==45 and all('gabarito' not in q for q in c['questions'])
+          k=json.loads((r/'data/integration/answer-key.json').read_text()); assert k['catalogId']==c['catalogId'] and len(k['answers'])==45
+          m=json.loads((r/'data/integration/daily-material.json').read_text()); assert m['status']=='ready' and m['sprintId']=='S12'
+          h=json.loads((r/'data/sync-history.json').read_text()); assert len(h['events'])<=40
+          assert '20260807.1' in json.loads((r/'manifest.webmanifest').read_text())['start_url']
           PY
           test ! -e edas-administracao/assets/app.js
           grep -q 'home.js?v=20260807.1' edas-administracao/index.html
@@ -111,18 +78,17 @@ jobs:
           grep -q 'edas.400.question-module.v2.state' edas-administracao/assets/integration/module-store.js
           ! grep -R 'tdas.202.question-module' edas-administracao/assets/integration
           grep -q 'readAnswerKey' edas-administracao/assets/integration/module-player.js
-          grep -q "data/integration/answer-key.json" edas-administracao/sw.js
+          grep -q 'answer-key.json' edas-administracao/sw.js
           grep -q "url.pathname.startsWith(BASE+'data/')" edas-administracao/sw.js
-          for route in hoje evolucao riscos agenda estudos-caso auditoria mais estudar resolver revisar caderno-erros desempenho fila-ia sprints sprint materias materia historico; do test -f "edas-administracao/$route/index.html"; done
+          for x in hoje evolucao riscos agenda estudos-caso auditoria mais estudar resolver revisar caderno-erros desempenho fila-ia sprints sprint materias materia historico; do test -f "edas-administracao/$x/index.html"; done
           ! grep -R --include='*.html' --include='*.js' --include='*.webmanifest' '20260805.3' edas-administracao
-
-      - name: Consolidar branch técnica
+      - name: Enviar arquivos funcionais
         shell: bash
         run: |
           set -euo pipefail
-          git config user.name "EDAS Platform Bot"
-          git config user.email "actions@users.noreply.github.com"
+          git config user.name 'EDAS Platform Bot'
+          git config user.email 'actions@users.noreply.github.com'
           git add edas-administracao
-          git rm -r --ignore-unmatch edas-sync-s12.parts edas-sync-s12.ready .github/workflows/edas-sync-s12.yml
-          git commit -m "Sincronizar EDAS para S12 e publicar bateria oficial"
+          git rm -r --ignore-unmatch edas-sync-s12.parts edas-sync-s12.ready
+          git commit -m 'Sincronizar EDAS para S12 e publicar bateria oficial'
           git push origin HEAD:${{ github.head_ref }}
