@@ -7,8 +7,10 @@ on:
     paths:
       - '.github/workflows/daily-cycle-audit.yml'
       - 'scripts/audit-daily-cycle.mjs'
+      - 'scripts/notion/daily-audit-policy.mjs'
       - 'scripts/notion/daily-content.mjs'
       - 'scripts/notion/api.mjs'
+      - 'scripts/test-daily-audit-policy.mjs'
       - 'assets/integration/module-player.js'
       - 'data/export/actual-*.json'
       - 'data/export/future-*.json'
@@ -18,8 +20,10 @@ on:
     paths:
       - '.github/workflows/daily-cycle-audit.yml'
       - 'scripts/audit-daily-cycle.mjs'
+      - 'scripts/notion/daily-audit-policy.mjs'
       - 'scripts/notion/daily-content.mjs'
       - 'scripts/notion/api.mjs'
+      - 'scripts/test-daily-audit-policy.mjs'
       - 'assets/integration/module-player.js'
       - 'data/export/actual-*.json'
       - 'data/export/future-*.json'
@@ -69,4 +73,9 @@ jobs:
           TZ: America/Sao_Paulo
           AUDIT_FROM_PE: '79'
           AUDIT_TO_PE: '112'
-        run: npm run audit:daily-cycle
+        shell: bash
+        run: |
+          set -euo pipefail
+          export AUDIT_TODAY="$(TZ=America/Sao_Paulo date +%F)"
+          echo "Data operacional da auditoria: ${AUDIT_TODAY}"
+          npm run audit:daily-cycle
