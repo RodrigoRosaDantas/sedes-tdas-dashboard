@@ -42,6 +42,16 @@ for (const dependency of [
 }
 
 assert.match(publicationWatchdog, /workflow_run:/, 'O watchdog de publicação deve executar após a sincronização.');
+assert.match(publicationWatchdog, /\n  push:\n/, 'O watchdog deve se autoverificar após mudanças no próprio monitor integradas à main.');
+for (const dependency of [
+  '.github/workflows/tdas-publication-watchdog.yml',
+  'scripts/monitor-tdas-publication.mjs',
+  'scripts/monitor-live-site.mjs',
+  'scripts/test-site-operations.mjs'
+]) {
+  const occurrences = publicationWatchdog.split(`- '${dependency}'`).length - 1;
+  assert.ok(occurrences >= 2, `O watchdog deve cobrir ${dependency} em PR e push.`);
+}
 assert.match(publicationWatchdog, /monitor:publication/, 'O watchdog deve usar o comando oficial de publicação.');
 assert.match(publicationWatchdog, /monitor:live-site/, 'O watchdog deve conferir o GitHub Pages implantado.');
 assert.match(publicationWatchdog, /LIVE_SITE_REPORT_PATH/, 'O relatório do site implantado deve ser persistido no workflow.');
@@ -64,6 +74,9 @@ assert.match(redactionsBrowser, /cron: '35 10 \* \* \*'/, 'O teste discursivo di
 
 assert.match(liveMonitor, /data\/platform-version\.json/, 'O monitor implantado deve comparar o manifesto público.');
 assert.match(liveMonitor, /data\/redactions\.json/, 'O monitor implantado deve comparar o contrato discursivo.');
+assert.match(liveMonitor, /assets\/common\.js/, 'O monitor implantado deve validar o motor runtime da home.');
+assert.match(liveMonitor, /HOME_RUNTIME_VERSION_MISMATCH/, 'O monitor deve detectar divergência da versão runtime da home.');
+assert.match(liveMonitor, /HOME_SYNC_HOOK_MISSING/, 'O monitor deve exigir o hook estático de sincronização da home.');
 assert.match(liveMonitor, /BLIND_APPLICATION_LEAK/, 'O monitor implantado deve proteger a aplicação cega.');
 assert.match(liveMonitor, /LIVE_SITE_MAX_ATTEMPTS/, 'O monitor implantado deve tolerar o tempo de propagação do deploy.');
 
@@ -76,4 +89,4 @@ assert.match(documentation, /EDAS/, 'O manual deve cobrir o Cargo 400.');
 assert.match(readme, /OPERACAO_SITE_TDAS\.md/, 'O README deve apontar para o manual operacional.');
 assert.match(readme, /monitor:edas/, 'O README deve expor o monitor operacional do EDAS.');
 
-console.log('Rotinas operacionais validadas: TDAS, Banco Discursivo, EDAS, watchdogs, navegadores e GitHub Pages alinhados.');
+console.log('Rotinas operacionais validadas: TDAS, Banco Discursivo, EDAS, autoverificação de watchdogs, navegadores e GitHub Pages alinhados.');
