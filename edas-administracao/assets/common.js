@@ -1,110 +1,31 @@
-export const RELEASE='20260807.1';
+export const RELEASE='20260807.2';
 export const BASE='/sedes-tdas-dashboard/edas-administracao/';
-export const routes={
- home:BASE,hoje:BASE+'hoje/',evolucao:BASE+'evolucao/',riscos:BASE+'riscos/',agenda:BASE+'agenda/',casos:BASE+'estudos-caso/',auditoria:BASE+'auditoria/',mais:BASE+'mais/',
- estudar:BASE+'estudar/',resolver:BASE+'resolver/',revisar:BASE+'revisar/',caderno:BASE+'caderno-erros/',desempenho:BASE+'desempenho/',fila:BASE+'fila-ia/',
- sprints:BASE+'sprints/',sprint:BASE+'sprint/',materias:BASE+'materias/',materia:BASE+'materia/',historico:BASE+'historico/'
-};
+export const routes={home:BASE,hoje:BASE+'hoje/',evolucao:BASE+'evolucao/',riscos:BASE+'riscos/',agenda:BASE+'agenda/',casos:BASE+'estudos-caso/',caso:BASE+'estudos-caso/detalhe/',auditoria:BASE+'auditoria/',mais:BASE+'mais/',estudar:BASE+'estudar/',resolver:BASE+'resolver/',revisar:BASE+'revisar/',caderno:BASE+'caderno-erros/',desempenho:BASE+'desempenho/',fila:BASE+'fila-ia/',sprints:BASE+'sprints/',sprint:BASE+'sprint/',materias:BASE+'materias/',materia:BASE+'materia/',historico:BASE+'historico/'};
 const icons={home:'⌂',hoje:'◎',evolucao:'↗',riscos:'!',agenda:'◷',casos:'✎',auditoria:'✓',mais:'•••'};
 const labels={home:'Início',hoje:'Hoje',evolucao:'Evolução',riscos:'Riscos',agenda:'Agenda',casos:'Estudos de caso',auditoria:'Auditoria',mais:'Mais'};
-let installPrompt=null;
-let dataPromise=null;
-
-export async function loadData(){
- if(!dataPromise){
-  dataPromise=fetch(BASE+'data/site.json?v='+RELEASE,{cache:'no-store'}).then(async response=>{
-   if(!response.ok)throw new Error('Falha ao carregar dados ('+response.status+')');
-   const data=await response.json();
-   if(!data?.meta||!data?.metrics||!Array.isArray(data?.sprints))throw new Error('Snapshot EDAS inválido.');
-   return data;
-  }).catch(error=>{dataPromise=null;throw error});
- }
- return dataPromise;
-}
-export async function loadJSON(path,{optional=false}={}){
- try{
-  const response=await fetch(BASE+path+'?v='+RELEASE,{cache:'no-store'});
-  if(!response.ok)throw new Error('Falha ao carregar recurso ('+response.status+')');
-  return await response.json();
- }catch(error){if(optional)return null;throw error}
-}
+const LAST_PUBLICATION_KEY='edas.400.last-publication.v1';
+let installPrompt=null,dataPromise=null,publicationPromise=null;
+export async function loadData(){if(!dataPromise)dataPromise=fetch(BASE+'data/site.json?v='+RELEASE,{cache:'no-store'}).then(async response=>{if(!response.ok)throw new Error('Falha ao carregar dados ('+response.status+')');const data=await response.json();if(!data?.meta||!data?.metrics||!Array.isArray(data?.sprints))throw new Error('Snapshot EDAS inválido.');return data}).catch(error=>{dataPromise=null;throw error});return dataPromise;}
+export async function loadJSON(path,{optional=false}={}){try{const response=await fetch(BASE+path+'?v='+RELEASE,{cache:'no-store'});if(!response.ok)throw new Error('Falha ao carregar recurso ('+response.status+')');return await response.json()}catch(error){if(optional)return null;throw error}}
+export async function loadPublicationMeta(){if(!publicationPromise)publicationPromise=fetch(BASE+'data/platform-version.json?v='+Date.now(),{cache:'no-store',headers:{'cache-control':'no-cache'}}).then(async response=>{if(!response.ok)throw new Error('Manifesto técnico indisponível ('+response.status+')');const value=await response.json();if(!value?.platformVersion||!value?.syncAt)throw new Error('Manifesto técnico inválido.');try{localStorage.setItem(LAST_PUBLICATION_KEY,JSON.stringify(value))}catch{}return value}).catch(error=>{publicationPromise=null;try{const cached=JSON.parse(localStorage.getItem(LAST_PUBLICATION_KEY)||'null');if(cached?.platformVersion&&cached?.syncAt)return{...cached,offlineFallback:true}}catch{}throw error});return publicationPromise;}
 export function fmtNumber(value){return new Intl.NumberFormat('pt-BR').format(Number(value||0))}
 export function fmtPct(value,digits=2){return new Intl.NumberFormat('pt-BR',{minimumFractionDigits:digits,maximumFractionDigits:digits}).format(Number(value||0))+'%'}
 export function fmtDate(iso){if(!iso)return'—';const[y,m,d]=String(iso).slice(0,10).split('-').map(Number);return new Intl.DateTimeFormat('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric'}).format(new Date(y,m-1,d))}
-export function fmtDateTime(value){if(!value)return'—';return new Intl.DateTimeFormat('pt-BR',{dateStyle:'short',timeStyle:'short'}).format(new Date(value))}
+export function fmtDateTime(value){if(!value)return'—';const date=new Date(value);if(Number.isNaN(date.getTime()))return'—';return new Intl.DateTimeFormat('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'America/Sao_Paulo'}).format(date).replace(',',' às')}
 export function escapeHTML(value){return String(value??'').replace(/[&<>'"]/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]))}
 export function slug(value){return String(value??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')}
 export function countdown(iso){const[y,m,d]=iso.split('-').map(Number),now=new Date();return Math.max(0,Math.ceil((Date.UTC(y,m-1,d)-Date.UTC(now.getFullYear(),now.getMonth(),now.getDate()))/86400000))}
 export function metric(label,value,detail){return`<article class="card metric"><small>${escapeHTML(label)}</small><strong>${escapeHTML(value)}</strong><span>${escapeHTML(detail)}</span></article>`}
 export function alertCard(item){return`<article class="card alert" data-level="${escapeHTML(item.level)}"><span class="alert-icon">${item.level==='critical'?'!':item.level==='warning'?'△':'i'}</span><div><b>${escapeHTML(item.title)}</b><p>${escapeHTML(item.detail)}</p></div>${item.href?`<a href="${item.href}">${escapeHTML(item.action||'Abrir')} →</a>`:''}</article>`}
-export function renderLineChart(element,rows,{x='sprint',y='accuracy',label='Aproveitamento'}={}){
- if(!rows?.length){element.innerHTML='<div class="empty">Sem dados para o filtro selecionado.</div>';return}
- const W=900,H=300,p=42,values=rows.map(row=>Number(row[y]||0));
- const min=Math.max(0,Math.floor(Math.min(...values)-5)),max=Math.min(100,Math.ceil(Math.max(...values)+5));
- const sx=index=>p+index*(W-2*p)/Math.max(1,rows.length-1),sy=value=>H-p-(value-min)*(H-2*p)/Math.max(1,max-min);
- const points=rows.map((row,index)=>`${sx(index)},${sy(Number(row[y]||0))}`).join(' ');
- const grids=[min,(min+max)/2,max].map(value=>`<line x1="${p}" y1="${sy(value)}" x2="${W-p}" y2="${sy(value)}" stroke="var(--line)"/><text x="8" y="${sy(value)+4}" fill="var(--muted)" font-size="12">${value.toFixed(0)}%</text>`).join('');
- const dots=rows.map((row,index)=>`<circle cx="${sx(index)}" cy="${sy(Number(row[y]||0))}" r="4" fill="var(--green)"><title>${escapeHTML(row[x])}: ${Number(row[y]||0).toFixed(2)}%</title></circle>`).join('');
- element.innerHTML=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${escapeHTML(label)}"><title>${escapeHTML(label)}</title>${grids}<polyline fill="none" stroke="var(--accent)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" points="${points}"/>${dots}</svg><div class="chart-summary">${rows.length} resultados exibidos. Mínimo ${Math.min(...values).toFixed(2)}%, máximo ${Math.max(...values).toFixed(2)}%.</div>`;
-}
-export function renderBars(element,rows,{labelKey='label',valueKey='value',suffix='',maxValue=null}={}){
- if(!rows?.length){element.innerHTML='<div class="empty">Sem dados.</div>';return}
- const max=maxValue||Math.max(1,...rows.map(row=>Number(row[valueKey]||0)));
- element.innerHTML='<div class="bars">'+rows.map(row=>`<div class="bar-row"><span>${escapeHTML(row[labelKey])}</span><div class="bar-track" aria-hidden="true"><div class="bar-fill" style="width:${Math.max(2,Number(row[valueKey]||0)/max*100)}%"></div></div><strong class="bar-value">${escapeHTML(row[valueKey])}${suffix}</strong></div>`).join('')+'</div>';
-}
+export function renderLineChart(element,rows,{x='sprint',y='accuracy',label='Aproveitamento'}={}){if(!rows?.length){element.innerHTML='<div class="empty">Sem dados para o filtro selecionado.</div>';return}const W=900,H=300,p=42,values=rows.map(row=>Number(row[y]||0)),min=Math.max(0,Math.floor(Math.min(...values)-5)),max=Math.min(100,Math.ceil(Math.max(...values)+5)),sx=index=>p+index*(W-2*p)/Math.max(1,rows.length-1),sy=value=>H-p-(value-min)*(H-2*p)/Math.max(1,max-min),points=rows.map((row,index)=>`${sx(index)},${sy(Number(row[y]||0))}`).join(' '),grids=[min,(min+max)/2,max].map(value=>`<line x1="${p}" y1="${sy(value)}" x2="${W-p}" y2="${sy(value)}" stroke="var(--line)"/><text x="8" y="${sy(value)+4}" fill="var(--muted)" font-size="12">${value.toFixed(0)}%</text>`).join(''),dots=rows.map((row,index)=>`<circle cx="${sx(index)}" cy="${sy(Number(row[y]||0))}" r="4" fill="var(--green)"><title>${escapeHTML(row[x])}: ${Number(row[y]||0).toFixed(2)}%</title></circle>`).join('');element.innerHTML=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${escapeHTML(label)}"><title>${escapeHTML(label)}</title>${grids}<polyline fill="none" stroke="var(--accent)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" points="${points}"/>${dots}</svg><div class="chart-summary">${rows.length} resultados exibidos. Mínimo ${Math.min(...values).toFixed(2)}%, máximo ${Math.max(...values).toFixed(2)}%.</div>`}
+export function renderBars(element,rows,{labelKey='label',valueKey='value',suffix='',maxValue=null}={}){if(!rows?.length){element.innerHTML='<div class="empty">Sem dados.</div>';return}const max=maxValue||Math.max(1,...rows.map(row=>Number(row[valueKey]||0)));element.innerHTML='<div class="bars">'+rows.map(row=>`<div class="bar-row"><span>${escapeHTML(row[labelKey])}</span><div class="bar-track" aria-hidden="true"><div class="bar-fill" style="width:${Math.max(2,Number(row[valueKey]||0)/max*100)}%"></div></div><strong class="bar-value">${escapeHTML(row[valueKey])}${suffix}</strong></div>`).join('')+'</div>'}
+function setText(selector,value){document.querySelectorAll(selector).forEach(node=>node.textContent=value)}
 function isStandalone(){return matchMedia('(display-mode: standalone)').matches||navigator.standalone===true}
-function updateOnline(){document.querySelector('#offline')?.classList.toggle('show',!navigator.onLine)}
-function updateInstall(){
- const installed=isStandalone();
- document.querySelectorAll('[data-install-button]').forEach(button=>{button.hidden=installed;button.textContent=installPrompt?'Instalar aplicativo':'Instalar'});
- document.querySelectorAll('[data-install]').forEach(node=>node.classList.toggle('show',!installed&&Boolean(installPrompt)));
-}
-async function runInstall(){
- if(isStandalone())return;
- if(installPrompt){const prompt=installPrompt;installPrompt=null;prompt.prompt();await prompt.userChoice;updateInstall();return}
- const ios=/iphone|ipad|ipod/i.test(navigator.userAgent);
- alert(ios?'No Safari, toque em Compartilhar e depois em “Adicionar à Tela de Início”.':'No Chrome, abra o menu ⋮ e toque em “Instalar app” ou “Adicionar à tela inicial”.');
-}
-function watchServiceWorker(){
- if(!('serviceWorker'in navigator))return;
- navigator.serviceWorker.register(BASE+'sw.js?v='+RELEASE,{scope:BASE}).then(registration=>{
-  registration.update();
-  registration.addEventListener('updatefound',()=>{
-   const worker=registration.installing;if(!worker)return;
-   worker.addEventListener('statechange',()=>{if(worker.state==='installed'&&navigator.serviceWorker.controller)showUpdate(registration)});
-  });
-  if(registration.waiting)showUpdate(registration);
- }).catch(console.error);
- navigator.serviceWorker.addEventListener('controllerchange',()=>location.reload());
-}
-function showUpdate(registration){
- if(document.querySelector('[data-update-app]'))return;
- const banner=document.createElement('div');banner.className='app-update show';banner.innerHTML='<span><b>Nova versão do EDAS disponível</b><small>Atualize para usar os recursos mais recentes.</small></span><button class="btn primary" type="button" data-update-app>Atualizar</button>';
- document.body.appendChild(banner);
- banner.querySelector('[data-update-app]').onclick=()=>{registration.waiting?.postMessage({type:'SKIP_WAITING'})};
-}
-export function setupShell(page,meta){
- const desktop=['home','hoje','evolucao','riscos','agenda','casos','auditoria'];
- const mobile=['home','hoje','evolucao','riscos','mais'];
- const active=['estudar','resolver','revisar','caderno','desempenho','fila','sprints','sprint','materias','materia','historico'].includes(page)?'mais':page;
- document.querySelector('.brand small')?.replaceChildren(`SEDES/DF · v${RELEASE}`);
- const desktopNav=document.querySelector('#desktop-nav');if(desktopNav)desktopNav.innerHTML='<div class="nav-label">Plataforma de estudo</div>'+desktop.map(key=>`<a href="${routes[key]}" class="${key===active?'active':''}"><span class="nav-icon">${icons[key]}</span>${labels[key]}</a>`).join('');
- const mobileActive=['agenda','casos','auditoria'].includes(active)?'mais':active;
- const mobileNav=document.querySelector('#mobile-nav');if(mobileNav)mobileNav.innerHTML=mobile.map(key=>`<a href="${routes[key]}" class="${key===mobileActive?'active':''}"><span>${icons[key]}</span><span>${labels[key]}</span></a>`).join('');
- document.querySelectorAll('[data-snapshot]').forEach(node=>node.textContent=fmtDate(meta?.snapshotDate));
- document.querySelectorAll('[data-sync]').forEach(node=>node.textContent=(meta?.syncTimes||[]).join(' · '));
- document.querySelectorAll('[data-platform-version]').forEach(node=>node.textContent=`v${RELEASE}`);
- const stored=localStorage.getItem('edas-theme');if(stored)document.documentElement.dataset.theme=stored;
- if(!document.documentElement.dataset.edasControlsReady){
-  document.documentElement.dataset.edasControlsReady='1';
-  document.addEventListener('click',event=>{
-   if(event.target.closest('[data-theme-toggle]')){const next=document.documentElement.dataset.theme==='light'?'dark':'light';document.documentElement.dataset.theme=next;localStorage.setItem('edas-theme',next);return}
-   if(event.target.closest('[data-install-button]'))runInstall();
-  });
-  window.addEventListener('online',updateOnline);window.addEventListener('offline',updateOnline);
-  window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();installPrompt=event;updateInstall()});
-  window.addEventListener('appinstalled',()=>{installPrompt=null;updateInstall()});
- }
- updateOnline();updateInstall();watchServiceWorker();
-}
+function updateOnline(){document.querySelector('#offline')?.classList.toggle('show',!navigator.onLine);document.querySelectorAll('[data-publication-status]').forEach(node=>node.textContent=navigator.onLine?'Verificando publicação':'Offline')}
+function updateInstall(){const installed=isStandalone();document.querySelectorAll('[data-install-button]').forEach(button=>{button.hidden=installed;button.textContent=installPrompt?'Instalar aplicativo':'Instalar'});document.querySelectorAll('[data-install]').forEach(node=>node.classList.toggle('show',!installed&&Boolean(installPrompt)))}
+async function runInstall(){if(isStandalone())return;if(installPrompt){const prompt=installPrompt;installPrompt=null;prompt.prompt();await prompt.userChoice;updateInstall();return}const ios=/iphone|ipad|ipod/i.test(navigator.userAgent);alert(ios?'No Safari, toque em Compartilhar e depois em “Adicionar à Tela de Início”.':'No Chrome, abra o menu ⋮ e toque em “Instalar app” ou “Adicionar à tela inicial”.')}
+function showUpdate(registration){if(document.querySelector('[data-update-app]'))return;const banner=document.createElement('div');banner.className='app-update show';banner.innerHTML='<span><b>Nova versão do EDAS disponível</b><small>Atualize para usar os recursos mais recentes.</small></span><button class="btn primary" type="button" data-update-app>Atualizar</button>';document.body.appendChild(banner);banner.querySelector('[data-update-app]').onclick=()=>registration.waiting?.postMessage({type:'SKIP_WAITING'})}
+function watchServiceWorker(version=RELEASE){if(!('serviceWorker'in navigator))return;navigator.serviceWorker.register(BASE+'sw.js?v='+encodeURIComponent(version),{scope:BASE}).then(registration=>{registration.update();registration.addEventListener('updatefound',()=>{const worker=registration.installing;if(!worker)return;worker.addEventListener('statechange',()=>{if(worker.state==='installed'&&navigator.serviceWorker.controller)showUpdate(registration)})});if(registration.waiting)showUpdate(registration)}).catch(console.error);navigator.serviceWorker.addEventListener('controllerchange',()=>location.reload(),{once:true})}
+async function refreshPublication(meta={}){try{const publication=await loadPublicationMeta(),sync=fmtDateTime(publication.syncAt);setText('[data-platform-version]',`v${publication.platformVersion}`);setText('[data-sync]',sync);setText('[data-last-sync]',sync);setText('[data-publication-status]',publication.offlineFallback?'Snapshot técnico offline':'Atualizado');document.querySelectorAll('[data-sync]').forEach(node=>node.title=`Última sincronização efetiva: ${sync}. Janelas automáticas: ${(meta.syncTimes||[]).join(' · ')||'não informadas'}.`);watchServiceWorker(publication.serviceWorkerVersion||publication.platformVersion)}catch{const fallback=fmtDateTime(meta.generatedAt)||'—';setText('[data-sync]',fallback);setText('[data-last-sync]',fallback);setText('[data-publication-status]',navigator.onLine?'Verificação pendente':'Offline');watchServiceWorker(RELEASE)}}
+export function setupShell(page,meta={}){const desktop=['home','hoje','evolucao','riscos','agenda','casos','auditoria'],mobile=['home','hoje','evolucao','riscos','mais'],active=['estudar','resolver','revisar','caderno','desempenho','fila','sprints','sprint','materias','materia','historico','caso'].includes(page)?'mais':page;setText('[data-platform-version]',`v${RELEASE}`);const desktopNav=document.querySelector('#desktop-nav');if(desktopNav)desktopNav.innerHTML='<div class="nav-label">Plataforma de estudo</div>'+desktop.map(key=>`<a href="${routes[key]}" class="${key===active?'active':''}"><span class="nav-icon">${icons[key]}</span>${labels[key]}</a>`).join('');const mobileActive=['agenda','casos','auditoria'].includes(active)?'mais':active,mobileNav=document.querySelector('#mobile-nav');if(mobileNav)mobileNav.innerHTML=mobile.map(key=>`<a href="${routes[key]}" class="${key===mobileActive?'active':''}"><span>${icons[key]}</span><span>${labels[key]}</span></a>`).join('');setText('[data-snapshot]',fmtDate(meta.snapshotDate));setText('[data-sync]',fmtDateTime(meta.generatedAt));const stored=localStorage.getItem('edas-theme');if(stored)document.documentElement.dataset.theme=stored;if(!document.documentElement.dataset.edasControlsReady){document.documentElement.dataset.edasControlsReady='1';document.addEventListener('click',event=>{if(event.target.closest('[data-theme-toggle]')){const next=document.documentElement.dataset.theme==='light'?'dark':'light';document.documentElement.dataset.theme=next;localStorage.setItem('edas-theme',next);return}if(event.target.closest('[data-install-button]'))runInstall()});window.addEventListener('online',updateOnline);window.addEventListener('offline',updateOnline);window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();installPrompt=event;updateInstall()});window.addEventListener('appinstalled',()=>{installPrompt=null;updateInstall()})}updateOnline();updateInstall();refreshPublication(meta)}
 export function setLoadingError(error){const main=document.querySelector('main');if(main)main.innerHTML=`<section class="card panel"><h1>Não foi possível carregar esta página.</h1><p>${escapeHTML(error?.message||'Erro desconhecido.')}</p><a class="btn" href="${routes.home}">Voltar ao início</a></section>`}
