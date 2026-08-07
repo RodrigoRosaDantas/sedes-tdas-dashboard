@@ -9,7 +9,10 @@ const pkg=JSON.parse(pkgText),site=JSON.parse(siteText),catalog=JSON.parse(catal
 const coreStart=sw.indexOf('const CORE=['),coreEnd=sw.indexOf('];',coreStart),core=coreStart>=0&&coreEnd>coreStart?sw.slice(coreStart,coreEnd):'';
 for(const command of ['check:edas','test:edas-operations','test:edas-browser','monitor:edas','monitor:edas-live'])assert.ok(pkg.scripts?.[command],`Comando ausente: ${command}`);
 assert.match(pkg.scripts.check,/test-edas-operations\.mjs/,'Gate integral deve validar rotinas EDAS.');
-assert.match(pkg.scripts['ops:check'],/check:edas/,'ops:check deve incluir o EDAS.');
+assert.match(pkg.scripts['check:operations'],/test-edas-operations\.mjs/,'check:operations deve incluir as guardas EDAS.');
+assert.match(pkg.scripts['check:site'],/monitor-edas-publication\.mjs/,'check:site deve incluir o contrato EDAS.');
+assert.match(pkg.scripts['ops:check'],/check:operations/,'ops:check deve executar as guardas operacionais.');
+assert.match(pkg.scripts['ops:check'],/check:site/,'ops:check deve executar os contratos do site.');
 assert.match(pkg.scripts['ops:full'],/monitor:edas-live/,'ops:full deve validar o EDAS implantado.');
 for(const token of ["'edas-administracao/**'","scripts/monitor-edas-publication.mjs","scripts/monitor-edas-live-site.mjs","scripts/test-edas-operations.mjs"])assert.ok(watchdog.includes(token),`Watchdog EDAS não cobre ${token}`);
 assert.match(watchdog,/cron: '45 4,10,16,22 \* \* \*'/,'Watchdog EDAS deve rodar após as quatro janelas oficiais.');
