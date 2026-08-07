@@ -61,7 +61,8 @@ async function loadControls() {
       expectedCount,
       status: String(record.status || ''),
       attempted: Number(record.attempted ?? 0),
-      correct: Number(record.acertos ?? 0)
+      correct: Number(record.acertos ?? 0),
+      errors: Number(record.errors ?? 0)
     });
   }
   const dates = selected.map(item => item.date);
@@ -144,7 +145,7 @@ for (const control of controls) {
       if (policy.mode === 'answer-key') {
         required(parsed.key.material_id === parsed.catalog.catalogId, `${control.pe}: correção separada não corresponde ao catálogo.`);
       } else if (policy.mode === 'historical-execution') {
-        console.warn(`${control.pe}: chave integral não preservada na página pós-execução; histórico validado pelo controle oficial (${control.correct}/${control.attempted}, status ${control.status}).`);
+        console.warn(`${control.pe}: chave integral não preservada na página pós-execução; histórico validado pelo controle oficial (${control.correct} acertos + ${control.errors} erros; tentadas=${control.attempted}; status ${control.status}).`);
       }
     }
     ready.push({pe: control.pe, date: control.date, questions: effectiveExpectedCount, materialHtml: html.length, correctionMode});
