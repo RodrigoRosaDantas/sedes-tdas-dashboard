@@ -1,13 +1,13 @@
-import{escapeHTML,fmtDateTime,loadData,loadPublicationMeta,routes}from'../common.js?v=20260807.3';
-import{readModuleState}from'./module-store.js?v=20260807.3';
-import{matchingSessionDraft}from'./session-draft.js?v=20260807.3';
-import{sortReviewsByPriority}from'./review-engine.js?v=20260807.3';
+import{escapeHTML,fmtDateTime,loadData,loadPublicationMeta,routes}from'../common.js?v=20260807.5';
+import{readModuleState}from'./module-store.js?v=20260807.5';
+import{matchingSessionDraft}from'./session-draft.js?v=20260807.5';
+import{sortReviewsByPriority}from'./review-engine.js?v=20260807.5';
 const waitForHome=()=>new Promise((resolve,reject)=>{let attempts=0;const tick=()=>{const hero=document.querySelector('main .hero');if(hero&&!/Carregando/.test(document.querySelector('main')?.textContent||''))return resolve(hero);if(attempts++>150)return reject(new Error('Página inicial não ficou pronta.'));setTimeout(tick,40)};tick()});
 const completedStatus=value=>/conclu|finaliz|feito|realiz/i.test(String(value||''));
 const step=(number,title,done,active,official=false)=>`<div class="command-step ${done?'done':''} ${active?'active':''}"><span>${done?'✓':number}</span><div><b>${escapeHTML(title)}</b><small>${done?(official?'Concluído no registro oficial':'Concluído neste dispositivo'):active?'Próxima ação recomendada':'Pendente'}</small></div></div>`;
 const fmtTime=value=>{if(!value)return'nenhuma atividade local';const date=new Date(Number(value)||value);return Number.isNaN(date.getTime())?'atividade local registrada':new Intl.DateTimeFormat('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit',timeZone:'America/Sao_Paulo'}).format(date)};
 try{
- const[hero,d,publication,catalog]=await Promise.all([waitForHome(),loadData(),loadPublicationMeta().catch(()=>null),fetch('../data/integration/question-catalog.json?v=20260807.3',{cache:'no-store'}).then(r=>r.ok?r.json():null).catch(()=>null)]);
+ const[hero,d,publication,catalog]=await Promise.all([waitForHome(),loadData(),loadPublicationMeta().catch(()=>null),fetch('../data/integration/question-catalog.json?v=20260807.5',{cache:'no-store'}).then(r=>r.ok?r.json():null).catch(()=>null)]);
  if(document.querySelector('[data-command-center]'))throw new Error('Central de execução duplicada.');
  const sprint=d.today.sprint,key=`edas.400.today.${sprint}.v1`,todayLocal=JSON.parse(localStorage.getItem(key)||'{}'),steps=todayLocal.steps||{},officialSprint=(d.sprints||[]).find(item=>item.id===sprint),officialCompleted=completedStatus(officialSprint?.status),total=(d.today.steps||[]).length,doneCount=(d.today.steps||[]).filter(item=>steps[item.id]).length,allStepsDone=total>0&&doneCount===total,localClosed=Boolean(todayLocal.closedAt);
  let local;try{local=readModuleState()}catch{local={attempts:[],reviews:[],updatedAt:null}}
