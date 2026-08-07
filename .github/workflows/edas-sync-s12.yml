@@ -70,8 +70,7 @@ jobs:
           h=json.loads((r/'data/sync-history.json').read_text()); assert len(h['events'])<=40
           d=json.loads((r/'data/integration/daily-contract.json').read_text()); assert d['paths']['answerKey']=='data/integration/answer-key.json'
           manifest=json.loads((r/'manifest.webmanifest').read_text()); assert '20260807.1' in manifest['start_url']
-          assert not (r/'assets/app.js').exists()
-          idx=(r/'index.html').read_text(); assert 'home.js?v=20260807.1' in idx and 'home-command-center.js?v=20260807.1' in idx
+          idx=(r/'index.html').read_text(); assert 'home.js?v=20260807.1' in idx and 'home-command-center.js?v=20260807.1' in idx and 'assets/app.js' not in idx
           store=(r/'assets/integration/module-store.js').read_text(); assert 'edas.400.question-module.v2.state' in store and 'tdas.202.question-module' not in store
           player=(r/'assets/integration/module-player.js').read_text(); assert 'readAnswerKey' in player
           sw=(r/'sw.js').read_text(); assert 'answer-key.json' in sw and "url.pathname.startsWith(BASE+'data/')" in sw
