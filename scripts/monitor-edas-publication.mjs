@@ -17,18 +17,11 @@ function formatLocal(value){
  const date=new Date(value);if(Number.isNaN(date.getTime()))return'não informada';
  return new Intl.DateTimeFormat('pt-BR',{timeZone:TIME_ZONE,day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false}).format(date).replace(',',' às');
 }
-function localDate(value){
- return new Intl.DateTimeFormat('en-CA',{timeZone:TIME_ZONE,year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(value));
-}
-function latestValidEvent(history){
- return (history?.events||[]).filter(item=>['success','no_changes'].includes(item?.status)&&validIso(item?.at)).sort((a,b)=>Date.parse(b.at)-Date.parse(a.at))[0]||null;
-}
-function latestPreservationWarning(history){
- return (history?.events||[]).filter(item=>item?.status==='warning'&&/quest(ões|oes).*(sem acesso|indispon)|cat[aá]logo.*preserv/i.test(`${item?.title||''} ${item?.detail||''}`)).sort((a,b)=>Date.parse(b.at||0)-Date.parse(a.at||0))[0]||null;
-}
-function catalogLeaksAnswers(catalog){
- return (catalog?.questions||[]).some(q=>Object.prototype.hasOwnProperty.call(q,'gabarito')||Object.prototype.hasOwnProperty.call(q,'justificativa'));
-}
+function localDate(value){return new Intl.DateTimeFormat('en-CA',{timeZone:TIME_ZONE,year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(value));}
+function latestValidEvent(history){return (history?.events||[]).filter(item=>['success','no_changes'].includes(item?.status)&&validIso(item?.at)).sort((a,b)=>Date.parse(b.at)-Date.parse(a.at))[0]||null;}
+function latestPreservationWarning(history){return (history?.events||[]).filter(item=>item?.status==='warning'&&/quest(ões|oes).*(sem acesso|indispon)|cat[aá]logo.*preserv/i.test(`${item?.title||''} ${item?.detail||''}`)).sort((a,b)=>Date.parse(b.at||0)-Date.parse(a.at||0))[0]||null;}
+function catalogLeaksAnswers(catalog){return (catalog?.questions||[]).some(q=>Object.prototype.hasOwnProperty.call(q,'gabarito')||Object.prototype.hasOwnProperty.call(q,'justificativa'));}
+function answerKeyInPrecache(sw){const start=sw.indexOf('const CORE=['),end=sw.indexOf('];',start);return start>=0&&end>start&&sw.slice(start,end).includes('answer-key.json');}
 
 export function evaluateEdas({site,history,catalog,answerKey,commonJs,sw,player,now=new Date(),requireFreshness=false,maxAgeMinutes=DEFAULT_MAX_AGE_MINUTES}){
  const issues=[];const warnings=[];
@@ -63,8 +56,9 @@ export function evaluateEdas({site,history,catalog,answerKey,commonJs,sw,player,
  const ids=new Set(questions.map(q=>q.id));
  if(Object.keys(answers).some(id=>!ids.has(id)))issues.push(issue('ANSWER_KEY_EXTRA_ID','A ficha de correção contém ID inexistente no catálogo.'));
  if(questions.some(q=>!answers[q.id]?.gabarito))issues.push(issue('ANSWER_KEY_MISSING_ID','Há questão sem gabarito correspondente na ficha reservada.'));
- if(sw.includes("BASE+'data/integration/answer-key.json'"))issues.push(issue('ANSWER_KEY_PRECACHE','O gabarito reservado está no precache do service worker.'));
+ if(answerKeyInPrecache(sw))issues.push(issue('ANSWER_KEY_PRECACHE','O gabarito reservado está no bloco CORE do precache.'));
  if(!sw.includes("url.pathname.startsWith(BASE+'data/')"))issues.push(issue('DATA_NETWORK_FIRST_MISSING','O service worker não mantém a estratégia network-first para dados EDAS.'));
+ if(!sw.includes('RESERVED_DATA'))issues.push(issue('RESERVED_DATA_GUARD_MISSING','O service worker não remove cópias antigas do gabarito durante atualização.'));
  if(!player.includes("fetch('../data/integration/answer-key.json"))issues.push(issue('PLAYER_KEY_FETCH_MISSING','O player não contém a carga explícita da ficha de correção.'));
  const finishIndex=player.indexOf('const finish=async');const keyCallIndex=player.indexOf('readAnswerKey(catalog)');
  if(finishIndex<0||keyCallIndex<finishIndex)issues.push(issue('PLAYER_KEY_GATE_INVALID','A ficha de correção não está claramente condicionada à finalização da sessão.'));
@@ -97,7 +91,7 @@ async function loadCurrent(){
 }
 
 if(process.env.MONITOR_SELF_TEST==='true'){
- const fixture={site:{meta:{version:'20260807.1',snapshotDate:'2026-08-07'},plan:{totalSprints:42},today:{sprint:'S12',planned:2}},history:{release:'20260807.1',events:[{at:'2026-08-07T16:00:00-03:00',status:'no_changes'}]},catalog:{catalogId:'c1',sprintId:'S12',questions:[{id:'q1'},{id:'q2'}]},answerKey:{catalogId:'c1',answers:{q1:{gabarito:'A'},q2:{gabarito:'B'}}},commonJs:"export const RELEASE='20260807.1';",sw:"const VERSION='edas-20260807.1'; if(url.pathname.startsWith(BASE+'data/')){}",player:"const finish=async()=>{const key=await readAnswerKey(catalog)}; fetch('../data/integration/answer-key.json')"};
+ const fixture={site:{meta:{version:'20260807.1',snapshotDate:'2026-08-07'},plan:{totalSprints:42},today:{sprint:'S12',planned:2}},history:{release:'20260807.1',events:[{at:'2026-08-07T16:00:00-03:00',status:'no_changes'}]},catalog:{catalogId:'c1',sprintId:'S12',questions:[{id:'q1'},{id:'q2'}]},answerKey:{catalogId:'c1',answers:{q1:{gabarito:'A'},q2:{gabarito:'B'}}},commonJs:"export const RELEASE='20260807.1';",sw:"const VERSION='edas-20260807.1'; const RESERVED_DATA=[]; const CORE=[]; if(url.pathname.startsWith(BASE+'data/')){}",player:"const finish=async()=>{const key=await readAnswerKey(catalog)}; fetch('../data/integration/answer-key.json')"};
  const ok=evaluateEdas({...fixture,now:new Date('2026-08-07T16:30:00-03:00'),requireFreshness:true});assert.equal(ok.healthy,true);
  const leak=evaluateEdas({...fixture,catalog:{...fixture.catalog,questions:[{id:'q1',gabarito:'A'},{id:'q2'}]}});assert.equal(leak.healthy,false);assert.ok(leak.issues.some(x=>x.code==='CATALOG_ANSWER_LEAK'));
  console.log('Monitor EDAS auditado: versão, Sprint, catálogo, gabarito, PWA e frescor cobertos.');
