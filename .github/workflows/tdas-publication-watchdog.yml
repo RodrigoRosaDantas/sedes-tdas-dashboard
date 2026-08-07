@@ -17,6 +17,13 @@ on:
       - 'data/redactions/**'
       - 'package.json'
       - 'docs/OPERACAO_SITE_TDAS.md'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/tdas-publication-watchdog.yml'
+      - 'scripts/monitor-tdas-publication.mjs'
+      - 'scripts/monitor-live-site.mjs'
+      - 'scripts/test-site-operations.mjs'
   schedule:
     - cron: '20 5,11,17,23 * * *'
 
