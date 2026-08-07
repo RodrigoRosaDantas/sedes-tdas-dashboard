@@ -26,6 +26,5 @@ export function correctionPolicy({control,answerCount,today}){
  if(expected===0)return{mode:'not-applicable',accepted:true};
  if(Number(answerCount)===expected)return{mode:'answer-key',accepted:true};
  if(canUseHistoricalExecution(control,today))return{mode:'historical-execution',accepted:true};
- console.warn('DAILY_AUDIT_POLICY_BLOCKED',JSON.stringify({today,date:control?.date,status:control?.status,expected,answerCount,attempted:control?.attempted,correct:control?.correct,errors:control?.errors,accuracy:control?.accuracy}));
  return{mode:'blocked',accepted:false};
 }
