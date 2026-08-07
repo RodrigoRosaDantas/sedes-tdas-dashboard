@@ -1,4 +1,4 @@
-import{loadData,setupShell,fmtNumber,fmtPct,fmtDate,metric,alertCard,routes,countdown,setLoadingError,escapeHTML}from'./common.js?v=20260807.2';
+import{loadData,setupShell,fmtNumber,fmtPct,fmtDate,metric,alertCard,routes,countdown,setLoadingError,escapeHTML}from'./common.js?v=20260807.5';
 try{
  const d=await loadData();setupShell('home',d.meta);const m=d.metrics,days=countdown(d.meta.examDate),remaining=Math.max(0,m.total-m.completed),progress=m.total?m.completed/m.total*100:0;
  document.querySelector('main').innerHTML=`
