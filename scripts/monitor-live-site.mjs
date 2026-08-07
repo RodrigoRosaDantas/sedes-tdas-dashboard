@@ -31,6 +31,7 @@ export function evaluateLiveSite({
   livePlatform,
   liveRedactions,
   homeHtml,
+  commonJs,
   redactionsHtml,
   lockedRd = '',
   lockedDetail = null
@@ -63,12 +64,22 @@ export function evaluateLiveSite({
     issues.push(issue('REDACTIONS_SUMMARY_MISMATCH', 'Os indicadores discursivos do site divergem da main.', JSON.stringify({ main: comparableSummary(expectedRedactions?.summary), site: comparableSummary(liveRedactions?.summary) })));
   }
 
-  if (!String(homeHtml || '').includes(`v${expectedPlatform?.platformVersion}`)) {
-    issues.push(issue('HOME_VERSION_MISSING', 'A página inicial implantada não exibe a versão técnica atual.', String(expectedPlatform?.platformVersion || 'ausente')));
+  // A home pública é um shell estático: versão e sincronização são preenchidas em runtime por assets/common.js.
+  // O monitor HTTP deve validar os hooks e a versão do motor; a renderização final é coberta pelo browser smoke em Chrome real.
+  if (!String(homeHtml || '').includes('data-platform-version')) {
+    issues.push(issue('HOME_VERSION_HOOK_MISSING', 'A página inicial implantada não contém o hook de versão técnica.'));
   }
-  if (!String(homeHtml || '').includes('Última sincronização')) {
-    issues.push(issue('HOME_SYNC_MISSING', 'A página inicial implantada não contém o indicador de última sincronização.'));
+  if (!String(homeHtml || '').includes('data-sync') && !String(homeHtml || '').includes('data-last-sync')) {
+    issues.push(issue('HOME_SYNC_HOOK_MISSING', 'A página inicial implantada não contém hook para a última sincronização.'));
   }
+  const expectedShellVersion = `const APP_SHELL_VERSION='${expectedPlatform?.platformVersion}'`;
+  if (!String(commonJs || '').includes(expectedShellVersion)) {
+    issues.push(issue('HOME_RUNTIME_VERSION_MISMATCH', 'O motor público da home não usa a versão técnica registrada no manifesto.', String(expectedPlatform?.platformVersion || 'ausente')));
+  }
+  if (!String(commonJs || '').includes("setText('[data-sync]'")) {
+    issues.push(issue('HOME_RUNTIME_SYNC_MISSING', 'O motor público da home não contém a atualização runtime do indicador de sincronização.'));
+  }
+
   if (!String(redactionsHtml || '').includes('Dashboard Discursivo')) {
     issues.push(issue('REDACTIONS_PAGE_MISSING', 'A rota pública do Dashboard Discursivo não foi confirmada.'));
   }
@@ -119,10 +130,11 @@ async function inspectLiveSite(baseUrl, expectedPlatform, expectedRedactions) {
   const lockedRd = String(locked?.rd || '');
   const detailPath = lockedRd ? `data/redactions/${lockedRd.toLowerCase()}.json` : '';
 
-  const [livePlatform, liveRedactions, homeHtml, redactionsHtml, lockedDetail] = await Promise.all([
+  const [livePlatform, liveRedactions, homeHtml, commonJs, redactionsHtml, lockedDetail] = await Promise.all([
     request(`${baseUrl}/data/platform-version.json`),
     request(`${baseUrl}/data/redactions.json`),
     request(`${baseUrl}/`, 'text'),
+    request(`${baseUrl}/assets/common.js`, 'text'),
     request(`${baseUrl}/redacoes/`, 'text'),
     detailPath ? request(`${baseUrl}/${detailPath}`) : Promise.resolve(null)
   ]);
@@ -133,6 +145,7 @@ async function inspectLiveSite(baseUrl, expectedPlatform, expectedRedactions) {
     livePlatform,
     liveRedactions,
     homeHtml,
+    commonJs,
     redactionsHtml,
     lockedRd,
     lockedDetail
@@ -175,12 +188,14 @@ async function runSelfTest() {
     meta: { generatedAt: '2026-08-06T04:17:27.726Z' },
     summary: { total: 32, corrected: 12, pending: 20, average: 58.69, readiness: 48.7, scheduleAdherence: 52.2, rewriteCompletion: 0 }
   };
+  const commonJs = "const APP_SHELL_VERSION='26.14.0'; setText('[data-sync]',syncAt);";
   const valid = evaluateLiveSite({
     expectedPlatform,
     expectedRedactions,
     livePlatform: structuredClone(expectedPlatform),
     liveRedactions: structuredClone(expectedRedactions),
-    homeHtml: '<span>SEDES/DF · v26.14.0</span><span>Última sincronização</span>',
+    homeHtml: '<small data-platform-version></small><span data-sync></span>',
+    commonJs,
     redactionsHtml: '<title>Dashboard Discursivo</title><script src="app.js?v=26.14.0"></script>',
     lockedRd: 'RD24',
     lockedDetail: { rd: 'RD24', access: { locked: true }, proposal: null, original: null, performance: null, feedback: null, model: null }
@@ -192,7 +207,8 @@ async function runSelfTest() {
     expectedRedactions,
     livePlatform: { ...expectedPlatform, publicationId: 'old' },
     liveRedactions: structuredClone(expectedRedactions),
-    homeHtml: '<span>SEDES/DF · v26.14.0</span><span>Última sincronização</span>',
+    homeHtml: '<small data-platform-version></small><span data-sync></span>',
+    commonJs,
     redactionsHtml: '<title>Dashboard Discursivo</title><script src="app.js?v=26.14.0"></script>',
     lockedRd: 'RD24',
     lockedDetail: { rd: 'RD24', access: { locked: false }, proposal: { command: 'vazamento' }, original: null, performance: null, feedback: null, model: null }
@@ -200,7 +216,20 @@ async function runSelfTest() {
   assert.equal(stale.healthy, false);
   assert.ok(stale.issues.some(item => item.code === 'DEPLOY_PUBLICATION_MISMATCH'));
   assert.ok(stale.issues.some(item => item.code === 'BLIND_APPLICATION_UNLOCKED'));
-  console.log('Monitor do GitHub Pages testado: publicação, versão, redações e aplicação cega cobertas.');
+
+  const missingRuntime = evaluateLiveSite({
+    expectedPlatform,
+    expectedRedactions,
+    livePlatform: structuredClone(expectedPlatform),
+    liveRedactions: structuredClone(expectedRedactions),
+    homeHtml: '<main></main>',
+    commonJs: '',
+    redactionsHtml: '<title>Dashboard Discursivo</title><script src="app.js?v=26.14.0"></script>'
+  });
+  assert.equal(missingRuntime.healthy, false);
+  assert.ok(missingRuntime.issues.some(item => item.code === 'HOME_VERSION_HOOK_MISSING'));
+  assert.ok(missingRuntime.issues.some(item => item.code === 'HOME_RUNTIME_VERSION_MISMATCH'));
+  console.log('Monitor do GitHub Pages testado: manifesto, runtime da home, redações e aplicação cega cobertos.');
 }
 
 if (process.env.MONITOR_SELF_TEST === 'true') {
