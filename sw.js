@@ -1,4 +1,4 @@
-const VERSION="tdas-26.14.0-redactions-p01-20260806-pe81-400f9efeeace";
+const VERSION="tdas-26.14.0-redactions-p01-20260807-pe82-1a8407fc9418";
 const BASE='/sedes-tdas-dashboard/';
 const USER_CACHE_PREFIXES=['tdas-redactions-user-'];
 const CORE_ROUTES=["","hoje/","evolucao/","riscos/","agenda/","redacoes/","auditoria/","mais/","dados-locais/","questoes-erros/","pe/","materias/","estudar/","resolver/","revisar/","caderno-erros/","desempenho/","fila-ia/","offline.html","manifest.webmanifest","redacoes/detalhe/"];
@@ -6,7 +6,7 @@ const ASSETS=["assets/styles.css","assets/v20.css","assets/common.js","assets/ho
 const DATA=["data/home.json","data/today.json","data/evolution.json","data/risks.json","data/agenda.json","data/redactions.json","data/audit.json","data/more.json","data/subjects.json","data/sync-history.json","data/live.json","data/live-v23.json","data/live-v24.json","data/error-questions/index.json","data/integration/navigation.json","data/integration/question-catalog.json","data/integration/daily-execution.json","data/integration/daily-material.json","data/platform-version.json"];
 const ICONS=['icons/icon.svg','icons/maskable.svg','icons/icon-192.png','icons/icon-512.png'];
 const SUBJECTS=["portugues","assistencia-social","lc-840-2011","arquivologia","direito-administrativo","materiais-e-patrimonio","redacao","lei-7-484-2024","primeiros-socorros","lei-maria-da-penha","atualidades-df-ride-pdpm","compras-publicas-lei-14-133","direito-constitucional"];
-const PRECACHE=[...CORE_ROUTES.map(path=>BASE+path),...ASSETS.map(path=>BASE+path),...DATA.map(path=>BASE+path),...ICONS.map(path=>BASE+path),...Array.from({length:112},(_,index)=>BASE+`pe/${index+1}/`),...SUBJECTS.map(slug=>BASE+`materias/${slug}/`),...Array.from({length:9},(_,index)=>BASE+`data/error-questions/part-${String(index+1).padStart(2,'0')}.json`)];
+const PRECACHE=[...CORE_ROUTES.map(path=>BASE+path),...ASSETS.map(path=>BASE+path),...DATA.map(path=>BASE+path),...ICONS.map(path=>BASE+path),...Array.from({length:112},(_,index)=>BASE+`pe/${index+1}/`),...SUBJECTS.map(slug=>BASE+`materias/${slug}/`),...Array.from({length:10},(_,index)=>BASE+`data/error-questions/part-${String(index+1).padStart(2,'0')}.json`)];
 const shouldPreserveCache=key=>key===VERSION||USER_CACHE_PREFIXES.some(prefix=>key.startsWith(prefix));
 self.addEventListener('install',event=>event.waitUntil(caches.open(VERSION).then(cache=>cache.addAll(PRECACHE)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>!shouldPreserveCache(key)).map(key=>caches.delete(key)))).then(()=>self.clients.claim())));
