@@ -1,5 +1,5 @@
-import{loadData,setupShell,routes,setLoadingError}from'../common.js?v=20260805.3';
-import{readModuleState}from'./module-store.js?v=20260805.3';
+import{loadData,setupShell,routes,setLoadingError}from'../common.js?v=20260807.1';
+import{readModuleState}from'./module-store.js?v=20260807.1';
 const pct=value=>`${Number(value||0).toFixed(1).replace('.',',')}%`,duration=ms=>`${Math.floor(Number(ms||0)/60000)}min ${Math.floor(Number(ms||0)%60000/1000)}s`;
 try{
  const d=await loadData();setupShell('desempenho',d.meta);const state=readModuleState(),attempts=state.attempts,questions=attempts.reduce((sum,x)=>sum+x.total,0),correct=attempts.reduce((sum,x)=>sum+x.correct,0),elapsed=attempts.reduce((sum,x)=>sum+x.elapsedMs,0),accuracy=questions?correct/questions*100:0;

@@ -1,4 +1,4 @@
-import{loadData,setupShell,fmtDate,metric,escapeHTML,setLoadingError}from'./common.js?v=20260805.3';
+import{loadData,setupShell,fmtDate,metric,escapeHTML,setLoadingError}from'./common.js?v=20260807.1';
 try{
  const d=await loadData();setupShell('casos',d.meta);const cases=d.cases||[],params=new URLSearchParams(location.search),selected=params.get('case'),completed=cases.filter(x=>/Conclu|Corrig/i.test(x.status)).length,ready=cases.filter(x=>/Pronto/i.test(x.readiness)).length;
  const detail=selected?cases.find(x=>x.id===selected):null;

@@ -1,4 +1,4 @@
-import{loadData,setupShell,fmtNumber,fmtPct,metric,renderBars,alertCard,escapeHTML,setLoadingError}from'./common.js?v=20260805.3';
+import{loadData,setupShell,fmtNumber,fmtPct,metric,renderBars,alertCard,escapeHTML,setLoadingError}from'./common.js?v=20260807.1';
 try{
  const d=await loadData();setupShell('riscos',d.meta);const errors=d.errors||[],total=Number(d.metrics.errors||errors.length),high=errors.filter(x=>['Alta','Crítica'].includes(x.severity)).length,discursive=errors.filter(x=>x.discursive).length;
  const subjects=[...new Set(errors.map(x=>x.subject))].map(subject=>{const rows=errors.filter(x=>x.subject===subject);return{subject,errors:rows.length,high_critical:rows.filter(x=>['Alta','Crítica'].includes(x.severity)).length,discursive:rows.filter(x=>x.discursive).length}}).sort((a,b)=>b.errors-a.errors);

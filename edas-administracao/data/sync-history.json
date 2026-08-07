@@ -1,8 +1,29 @@
 {
   "schemaVersion": "1.0.0",
-  "release": "20260806.1",
-  "updatedAt": "2026-08-06T19:22:57-03:00",
+  "release": "20260807.1",
+  "updatedAt": "2026-08-07T01:23:31-03:00",
   "events": [
+    {
+      "at": "2026-08-07T01:23:31-03:00",
+      "status": "success",
+      "type": "snapshot",
+      "title": "Snapshot EDAS sincronizado para o S12",
+      "detail": "Página principal e as três views operacionais foram lidas integralmente até has_more=false. Confirmados 42 Sprints, 21 erros, 12 estudos de caso, 3 Sprints executados, 115 questões e 94 acertos. O foco diário passou para S12."
+    },
+    {
+      "at": "2026-08-07T01:23:31-03:00",
+      "status": "success",
+      "type": "content",
+      "title": "Material e questões oficiais do S12 validados",
+      "detail": "Material Premium S12, bateria oficial de 45 questões e ficha técnica reservada foram lidos na árvore oficial. O catálogo do Cargo 400 foi publicado sem reutilizar conteúdo do TDAS."
+    },
+    {
+      "at": "2026-08-07T01:23:31-03:00",
+      "status": "success",
+      "type": "release",
+      "title": "Cache de dados do PWA corrigido",
+      "detail": "A release 20260807.1 passou a tratar todos os JSON de dados do EDAS com estratégia network-first e fallback em cache, evitando persistência de material ou catálogo diário obsoleto."
+    },
     {
       "at": "2026-08-06T19:22:57-03:00",
       "status": "no_changes",
