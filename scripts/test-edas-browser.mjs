@@ -27,7 +27,7 @@ try{
  const resolver=await newPage(1100,900);await nav(resolver,`${base}/resolver/`);await waitFor(resolver,"document.body.textContent.includes('Questão 1 de')",'primeira questão');
  assert.equal(await evalJs(resolver,"performance.getEntriesByType('resource').some(x=>x.name.includes('answer-key.json'))"),false,'Gabarito não pode ser requisitado antes da finalização.');
  assert.equal(await evalJs(resolver,"document.body.textContent.includes('Gabarito:')"),false,'Gabarito não pode aparecer antes da finalização.');
- await evalJs(resolver,`navigator.serviceWorker.register('${base}/sw.js?audit='+Date.now()).then(reg=>new Promise(resolve=>{const w=reg.installing||reg.waiting||reg.active;if(w?.state==='activated')return resolve(true);const done=()=>w?.state==='activated'&&resolve(true);w?.addEventListener('statechange',done);setTimeout(()=>resolve(true),12000);}));`);
+ await waitFor(resolver,"navigator.serviceWorker.ready.then(()=>true)",'service worker EDAS ativo',120);
  await waitFor(resolver,"caches.keys().then(keys=>keys.some(k=>k.startsWith('edas-')))",'cache EDAS');
  assert.equal(await evalJs(resolver,`caches.match(location.origin+'${new URL(base).pathname}/data/integration/answer-key.json',{ignoreSearch:true}).then(Boolean)`),false,'Gabarito não pode estar no precache.');
  const total=Number(catalog.questions.length);assert.ok(total>0,'Catálogo vazio.');
