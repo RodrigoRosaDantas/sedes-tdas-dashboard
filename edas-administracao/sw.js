@@ -1,4 +1,4 @@
-const VERSION='edas-20260807.3';
+const VERSION='edas-20260807.4';
 const BASE='/sedes-tdas-dashboard/edas-administracao/';
 const USER_CACHE_PREFIX='edas-sec-user-';
 const MATERIAL_USER_CACHE_PREFIX='edas-material-user-';

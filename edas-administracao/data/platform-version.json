@@ -1,14 +1,14 @@
 {
   "schemaVersion": "1.0.0",
-  "platformVersion": "20260807.3",
+  "platformVersion": "20260807.4",
   "dataVersion": "20260807.2",
   "catalogVersion": "edas-400-s12-20260807",
-  "serviceWorkerVersion": "edas-20260807.3",
+  "serviceWorkerVersion": "edas-20260807.4",
   "sourceCommit": "ac723904f60fe010f93d111f9955f8f6c1fe2d7e",
   "syncDate": "2026-08-07",
   "syncAt": "2026-08-07T19:16:37-03:00",
-  "releaseAt": "2026-08-07T19:15:00-03:00",
+  "releaseAt": "2026-08-07T19:58:00-03:00",
   "sprintId": "S12",
-  "publicationId": "20260807.3|20260807.2|edas-400-s12-20260807|2026-08-07T19:16:37-03:00|ac723904f60f",
-  "note": "Sincronização semântica sobre a release técnica 20260807.3: o snapshot incorporou a execução real do S04 e dois novos erros oficiais; PWA, backup local, material e catálogo do S12 foram preservados."
+  "publicationId": "20260807.4|20260807.2|edas-400-s12-20260807|2026-08-07T19:16:37-03:00|ac723904f60f",
+  "note": "Release técnica 20260807.4 sobre os dados oficiais 20260807.2: filtros persistentes e prioridade no Dashboard SEC, navegação e abas acessíveis, verificação real do cache offline e domínio local por última resposta. Não representa nova sincronização do Notion."
 }
