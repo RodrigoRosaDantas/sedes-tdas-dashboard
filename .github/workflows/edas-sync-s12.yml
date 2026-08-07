@@ -34,10 +34,8 @@ jobs:
           root=Path('edas-administracao')
           for p in root.rglob('*'):
               if p.is_file() and p.suffix in {'.html','.js','.webmanifest'}:
-                  t=p.read_text(encoding='utf-8').replace('20260805.3','20260807.1')
-                  p.write_text(t,encoding='utf-8')
-          p=root/'assets/integration/module-player.js'
-          t=p.read_text(encoding='utf-8')
+                  p.write_text(p.read_text(encoding='utf-8').replace('20260805.3','20260807.1'),encoding='utf-8')
+          p=root/'assets/integration/module-player.js'; t=p.read_text(encoding='utf-8')
           t=t.replace("if(!question.enunciado||!question.alternativas||!question.gabarito)throw new Error(`Questão ${index+1} incompleta.`)","if(!question.enunciado||!question.alternativas)throw new Error(`Questão ${index+1} incompleta.`)")
           marker="const letters=alternatives=>Array.isArray(alternatives)?alternatives.map((text,index)=>[String.fromCharCode(65+index),text]):Object.entries(alternatives||{});\n"
           helper="const readAnswerKey=async catalog=>{if((catalog.questions||[]).every(q=>q.gabarito))return Object.fromEntries(catalog.questions.map(q=>[q.id,{gabarito:q.gabarito,justificativa:q.justificativa||''}]));const r=await fetch('../data/integration/answer-key.json?v=20260807.1',{cache:'no-store'});if(!r.ok)throw new Error('Falha ao carregar correção ('+r.status+')');const d=await r.json();if(d?.catalogId!==catalog.catalogId||!d?.answers)throw new Error('Correção incompatível com o catálogo atual.');return d.answers};\n"
@@ -56,7 +54,7 @@ jobs:
           if old not in t: raise SystemExit('cache block ausente')
           p.write_text(t.replace(old,new),encoding='utf-8')
           PY
-      - name: Validar
+      - name: Validar integralmente
         shell: bash
         run: |
           set -euo pipefail
@@ -65,23 +63,26 @@ jobs:
           import json
           from pathlib import Path
           r=Path('edas-administracao')
-          s=json.loads((r/'data/site.json').read_text()); assert len(s['sprints'])==42 and s['today']['sprint']=='S12' and s['meta']['snapshotDate']=='2026-08-07'; assert len(s['cases'])==12; assert s['metrics']['questions']==115 and s['metrics']['correct']==94 and s['metrics']['errors']==21
-          c=json.loads((r/'data/integration/question-catalog.json').read_text()); assert c['status']=='ready' and len(c['questions'])==45 and all('gabarito' not in q for q in c['questions'])
+          s=json.loads((r/'data/site.json').read_text()); assert len(s['sprints'])==42; assert s['today']['sprint']=='S12'; assert s['meta']['snapshotDate']=='2026-08-07'; assert len(s['cases'])==12; assert s['metrics']=={'completed':3,'total':42,'questions':115,'correct':94,'accuracy':81.74,'errors':21,'casesCompleted':0,'casesTotal':12}
+          c=json.loads((r/'data/integration/question-catalog.json').read_text()); assert c['status']=='ready' and c['sprintId']=='S12' and len(c['questions'])==45; assert all('gabarito' not in q and 'justificativa' not in q for q in c['questions'])
           k=json.loads((r/'data/integration/answer-key.json').read_text()); assert k['catalogId']==c['catalogId'] and len(k['answers'])==45
-          m=json.loads((r/'data/integration/daily-material.json').read_text()); assert m['status']=='ready' and m['sprintId']=='S12'
+          m=json.loads((r/'data/integration/daily-material.json').read_text()); assert m['status']=='ready' and m['sprintId']=='S12' and m['html']
           h=json.loads((r/'data/sync-history.json').read_text()); assert len(h['events'])<=40
-          assert '20260807.1' in json.loads((r/'manifest.webmanifest').read_text())['start_url']
+          d=json.loads((r/'data/integration/daily-contract.json').read_text()); assert d['paths']['answerKey']=='data/integration/answer-key.json'
+          manifest=json.loads((r/'manifest.webmanifest').read_text()); assert '20260807.1' in manifest['start_url']
+          assert not (r/'assets/app.js').exists()
+          idx=(r/'index.html').read_text(); assert 'home.js?v=20260807.1' in idx and 'home-command-center.js?v=20260807.1' in idx
+          store=(r/'assets/integration/module-store.js').read_text(); assert 'edas.400.question-module.v2.state' in store and 'tdas.202.question-module' not in store
+          player=(r/'assets/integration/module-player.js').read_text(); assert 'readAnswerKey' in player
+          sw=(r/'sw.js').read_text(); assert 'answer-key.json' in sw and "url.pathname.startsWith(BASE+'data/')" in sw
+          for x in ['hoje','evolucao','riscos','agenda','estudos-caso','auditoria','mais','estudar','resolver','revisar','caderno-erros','desempenho','fila-ia','sprints','sprint','materias','materia','historico']:
+              assert (r/x/'index.html').is_file(), x
+          stale=[]
+          for p in r.rglob('*'):
+              if p.is_file() and p.suffix in {'.html','.js','.webmanifest'} and '20260805.3' in p.read_text(encoding='utf-8'):
+                  stale.append(str(p))
+          assert not stale, stale
           PY
-          test ! -e edas-administracao/assets/app.js
-          grep -q 'home.js?v=20260807.1' edas-administracao/index.html
-          grep -q 'home-command-center.js?v=20260807.1' edas-administracao/index.html
-          grep -q 'edas.400.question-module.v2.state' edas-administracao/assets/integration/module-store.js
-          ! grep -R 'tdas.202.question-module' edas-administracao/assets/integration
-          grep -q 'readAnswerKey' edas-administracao/assets/integration/module-player.js
-          grep -q 'answer-key.json' edas-administracao/sw.js
-          grep -q "url.pathname.startsWith(BASE+'data/')" edas-administracao/sw.js
-          for x in hoje evolucao riscos agenda estudos-caso auditoria mais estudar resolver revisar caderno-erros desempenho fila-ia sprints sprint materias materia historico; do test -f "edas-administracao/$x/index.html"; done
-          ! grep -R --include='*.html' --include='*.js' --include='*.webmanifest' '20260805.3' edas-administracao
       - name: Enviar arquivos funcionais
         shell: bash
         run: |
