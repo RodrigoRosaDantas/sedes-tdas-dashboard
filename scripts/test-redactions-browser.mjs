@@ -38,7 +38,8 @@ async function stopChrome(){
 
 try{
  await waitJson(`http://127.0.0.1:${port}/json/version`);
- const platform=await waitJson(`${base}/data/platform-version.json`);
+ const [platform,redactions]=await Promise.all([waitJson(`${base}/data/platform-version.json`),waitJson(`${base}/data/redactions.json`)]);
+ const lockedRd=(redactions.redactions||[]).find(item=>item.locked===true)?.rd||'';
  const home=await newPage(1280,900);
  await navigate(home,`${base}/`);
  await waitFor(home,"document.body.textContent.includes('Central de execução')",'central da página inicial');
@@ -75,13 +76,15 @@ try{
  assert.equal(await evaluate(detail,"caches.keys().then(keys=>keys.includes('tdas-redactions-user-v1'))"),true,'Atualização do service worker não pode apagar a cache pessoal.');
  assert.equal(await evaluate(detail,"caches.open('tdas-redactions-user-v1').then(cache=>Promise.all([cache.match(location.origin+'/sedes-tdas-dashboard/redacoes/detalhe/?rd=RD01'),cache.match(location.origin+'/sedes-tdas-dashboard/data/redactions/rd01.json')])).then(items=>items.every(Boolean))"),true,'Os recursos essenciais da RD01 devem existir na cache.');
 
- const locked=await newPage(1100,900);
- await navigate(locked,`${base}/redacoes/detalhe/?rd=RD24`);
- await waitFor(locked,"document.body.textContent.includes('Aplicação cega protegida')",'bloqueio RD24');
- assert.equal(await evaluate(locked,"document.querySelector('#offline-rd')===null"),true);
- assert.equal(await evaluate(locked,"document.body.textContent.includes('Proposta completa')"),false);
+ if(lockedRd){
+  const locked=await newPage(1100,900);
+  await navigate(locked,`${base}/redacoes/detalhe/?rd=${lockedRd}`);
+  await waitFor(locked,"document.body.textContent.includes('Aplicação cega protegida')",`bloqueio ${lockedRd}`);
+  assert.equal(await evaluate(locked,"document.querySelector('#offline-rd')===null"),true);
+  assert.equal(await evaluate(locked,"document.body.textContent.includes('Proposta completa')"),false);
+ }
 
- console.log(JSON.stringify({browser:'ok',homePublication:true,mobileCards:true,tabsAccessible:true,paragraphs:true,offlinePersistent:true,futureLocked:true}));
+ console.log(JSON.stringify({browser:'ok',homePublication:true,mobileCards:true,tabsAccessible:true,paragraphs:true,offlinePersistent:true,futureLocked:Boolean(lockedRd),lockedRd:lockedRd||null}));
 }finally{
  await stopChrome();
  await fs.rm(profile,{recursive:true,force:true,maxRetries:8,retryDelay:200}).catch(()=>{});

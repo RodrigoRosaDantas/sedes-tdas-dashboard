@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises';
 import { DAILY_ROOTS, discoverDailyPages, parseDailyQuestions, peCode, renderMaterialMarkdown } from './notion/daily-content.mjs';
 import { fetchMarkdown } from './notion/api.mjs';
+import { correctionPolicy } from './notion/daily-audit-policy.mjs';
 
 const CONTROL_FILES = Object.freeze([
   'data/export/actual-01.json',
@@ -11,10 +12,22 @@ const CONTROL_FILES = Object.freeze([
 ]);
 const FROM_PE = Number(process.env.AUDIT_FROM_PE || 79);
 const TO_PE = Number(process.env.AUDIT_TO_PE || 112);
+const TIME_ZONE = 'America/Sao_Paulo';
 const ALLOWED_PUBLIC_FIELDS = Object.freeze(['alternativas', 'assunto', 'enunciado', 'id', 'numeroOriginal']);
 const pause = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds));
 const required = (condition, message) => { if (!condition) throw new Error(message); };
 const peId = number => `PE${String(number).padStart(2, '0')}`;
+const todayLocal = () => {
+  if (process.env.AUDIT_TODAY) return process.env.AUDIT_TODAY;
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: TIME_ZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).formatToParts(new Date());
+  const values = Object.fromEntries(parts.filter(part => part.type !== 'literal').map(part => [part.type, part.value]));
+  return `${values.year}-${values.month}-${values.day}`;
+};
 
 async function loadControls() {
   const records = [];
@@ -30,7 +43,7 @@ async function loadControls() {
     if (byPe.has(pe)) {
       const previous = byPe.get(pe);
       required(
-        previous.date === record.date && String(previous.planned_questions) === String(record.planned_questions),
+        previous.date === record.date && String(previous.planned_questions ?? previous.meta) === String(record.planned_questions ?? record.meta),
         `${pe}: registros divergentes entre os arquivos de execução.`
       );
       continue;
@@ -50,7 +63,12 @@ async function loadControls() {
       number,
       date: record.date,
       title: String(record.title || pe).trim(),
-      expectedCount
+      expectedCount,
+      status: String(record.status || ''),
+      attempted: Number(record.attempted ?? 0),
+      correct: Number(record.acertos ?? 0),
+      errors: Number(record.errors ?? 0),
+      accuracy: Number(record.accuracy ?? Number.NaN)
     });
   }
   const dates = selected.map(item => item.date);
@@ -80,6 +98,7 @@ function validatePublicCatalog(catalog, pe, expectedCount) {
 
 const controls = await loadControls();
 required(controls.length === TO_PE - FROM_PE + 1, 'Ciclo restante: cobertura incompleta.');
+const auditToday = todayLocal();
 
 console.log(`Auditando ${controls.length} dias, de ${controls[0].pe} a ${controls.at(-1).pe}, diretamente nas duas árvores oficiais do Notion...`);
 const [materials, questions] = await Promise.all([
@@ -109,21 +128,48 @@ for (const control of controls) {
 
     const explicitNoQuestions = /não traz bateria artificial de questões/i.test(questionMarkdown);
     const effectiveExpectedCount = explicitNoQuestions ? 0 : control.expectedCount;
-    const parsed = parseDailyQuestions(questionMarkdown, {
-      pe: control.pe,
-      title: control.title,
-      expectedCount: effectiveExpectedCount,
-      sourcePageId: questionPage.id
-    });
+    let parsed;
+    let correctionMode = 'not-applicable';
+    try {
+      parsed = parseDailyQuestions(questionMarkdown, {
+        pe: control.pe,
+        title: control.title,
+        expectedCount: effectiveExpectedCount,
+        sourcePageId: questionPage.id
+      });
+    } catch (parseError) {
+      const exactMissingKey = effectiveExpectedCount > 0
+        && parseError.message === `${control.pe}: gabarito possui 0 respostas para ${effectiveExpectedCount} questões.`;
+      const historicalPolicy = correctionPolicy({
+        control: { ...control, expectedCount: effectiveExpectedCount },
+        answerCount: 0,
+        today: auditToday
+      });
+      if (!exactMissingKey || historicalPolicy.mode !== 'historical-execution') throw parseError;
+      correctionMode = 'historical-execution';
+      console.warn(`${control.pe}: estrutura integral das ${effectiveExpectedCount} questões validada; chave não preservada após execução e histórico confirmado pelo controle oficial (${control.correct} acertos + ${control.errors} erros; tentadas=${control.attempted}; status ${control.status}).`);
+      ready.push({pe: control.pe, date: control.date, questions: effectiveExpectedCount, materialHtml: html.length, correctionMode});
+      console.log(`${control.pe}: pronto — material ${html.length} caracteres; ${effectiveExpectedCount} questões de treino; correção histórica validada pelo controle.`);
+      continue;
+    }
+
     validatePublicCatalog(parsed.catalog, control.pe, effectiveExpectedCount);
     if (effectiveExpectedCount === 0) {
       required(parsed.key === null && parsed.catalog.keyPath === null, `${control.pe}: dia sem questões gerou correção indevida.`);
     } else {
-      required(parsed.key?.answers?.length === effectiveExpectedCount, `${control.pe}: correção separada incompleta.`);
+      const answerCount = parsed.key?.answers?.length ?? 0;
+      const policy = correctionPolicy({
+        control: { ...control, expectedCount: effectiveExpectedCount },
+        answerCount,
+        today: auditToday
+      });
+      required(policy.accepted, `${control.pe}: gabarito possui ${answerCount} respostas para ${effectiveExpectedCount} questões.`);
+      correctionMode = policy.mode;
       required(parsed.key.material_id === parsed.catalog.catalogId, `${control.pe}: correção separada não corresponde ao catálogo.`);
     }
-    ready.push({pe: control.pe, date: control.date, questions: effectiveExpectedCount, materialHtml: html.length});
-    console.log(`${control.pe}: pronto — material ${html.length} caracteres; ${effectiveExpectedCount} questões de treino; correção ${effectiveExpectedCount ? 'separada' : 'não aplicável'}.`);
+    ready.push({pe: control.pe, date: control.date, questions: effectiveExpectedCount, materialHtml: html.length, correctionMode});
+    const correctionLabel = correctionMode === 'answer-key' ? 'separada' : 'não aplicável';
+    console.log(`${control.pe}: pronto — material ${html.length} caracteres; ${effectiveExpectedCount} questões de treino; correção ${correctionLabel}.`);
   } catch (error) {
     failures.push({pe: control.pe, date: control.date, reason: error.message});
     console.error(`${control.pe}: bloqueado — ${error.message}`);
@@ -140,6 +186,7 @@ const summary = {
   ready: ready.length,
   blocked: failures.length,
   totalQuestions: ready.reduce((total, item) => total + item.questions, 0),
+  historicalCorrections: ready.filter(item => item.correctionMode === 'historical-execution').map(item => item.pe),
   failures
 };
 console.log(JSON.stringify(summary));

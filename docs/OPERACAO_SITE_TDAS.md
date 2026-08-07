@@ -1,6 +1,6 @@
-# Operação do Site TDAS
+# Operação do Site TDAS + EDAS
 
-Este documento consolida as rotinas técnicas, os comandos oficiais e os monitoramentos da plataforma `sedes-tdas-dashboard`.
+Este documento consolida as rotinas técnicas, os comandos oficiais e os monitoramentos da plataforma `sedes-tdas-dashboard`, incluindo TDAS/Cargo 202, Banco Discursivo e EDAS/Administração/Cargo 400.
 
 ## 1. Hierarquia operacional
 
@@ -10,18 +10,21 @@ Este documento consolida as rotinas técnicas, os comandos oficiais e os monitor
 
 O site não deve reconstruir nem corrigir informações do Notion. Toda publicação precisa passar pelos validadores antes de chegar à `main`.
 
-## 2. Rotina automática — horário de Brasília
+## 2. Rotinas automáticas — horário de Brasília
 
 | Rotina | Horários | Função |
 |---|---|---|
-| Sincronização Notion → GitHub | 00h50, 06h50, 12h50 e 18h50 | Consulta as fontes oficiais, gera os snapshots, executa os gates e promove atomicamente a publicação válida. |
-| Monitor do Banco Discursivo | 01h20, 07h20, 13h20 e 19h20 | Confere sequência, contrato 1.1, arquivos individuais, aplicação cega e integração offline. |
-| Monitor da publicação e GitHub Pages | 02h20, 08h20, 14h20 e 20h20, além da execução imediata após a sincronização | Compara calendário, manifesto, material, questões, histórico e a publicação realmente implantada. |
-| Auditoria preventiva PE79–PE112 | 02h20 | Audita as páginas futuras oficiais do Notion sem escrever nelas. |
-| Navegador geral | 06h15 | Testa página inicial, retomada, revisão, auditoria, questões, versão e proteção do gabarito. |
+| Sincronização TDAS Notion → GitHub | 00h50, 06h50, 12h50 e 18h50 | Consulta as fontes oficiais, gera snapshots, executa gates e promove atomicamente a publicação válida. |
+| Monitor do Banco Discursivo | 01h20, 07h20, 13h20 e 19h20 | Confere sequência, contrato, arquivos individuais, aplicação cega e integração offline. |
+| Monitor da publicação TDAS e GitHub Pages | 02h20, 08h20, 14h20 e 20h20 | Compara calendário, manifesto, material, questões, histórico e a publicação implantada. |
+| Auditoria preventiva PE79–PE112 | 02h20 | Audita as páginas futuras oficiais do TDAS sem escrever nelas. |
+| Navegador geral TDAS | 06h15 | Testa central, retomada, revisão, auditoria, questões, versão e proteção do gabarito. |
 | Navegador do Banco Discursivo | 07h35 | Testa mobile, filtros, abas, parágrafos, bloqueio futuro e persistência offline. |
+| Revalidação editorial EDAS | 01h20, 07h20, 13h20 e 19h20 | Horários oficiais registrados no snapshot EDAS para releitura das fontes e atualização controlada do Cargo 400. |
+| Watchdog EDAS + GitHub Pages | 01h45, 07h45, 13h45 e 19h45 | Confere versão, Sprint, catálogo, quantidade, histórico, PWA, correção reservada e publicação implantada. |
+| Navegador EDAS | 07h50 | Testa home, mobile, player, ausência do gabarito antes do fechamento, carga da correção após finalizar e service worker. |
 
-As rotinas agendadas do ciclo PE79–PE112 são dispensadas após 6 de setembro de 2026 quando essa regra estiver prevista no próprio workflow. O último snapshot válido deve ser preservado.
+As rotinas agendadas ligadas ao ciclo até a prova podem ser dispensadas após 6 de setembro de 2026 quando essa regra estiver prevista no workflow. O último snapshot válido deve ser preservado.
 
 ## 3. Comandos oficiais
 
@@ -31,7 +34,7 @@ As rotinas agendadas do ciclo PE79–PE112 são dispensadas após 6 de setembro 
 npm run check
 ```
 
-Executa todos os testes estruturais, pedagógicos, de dados, PWA, redações, versão e guardas operacionais.
+Executa os testes estruturais, pedagógicos, de dados, PWA, redações, EDAS, versão e guardas operacionais.
 
 ### Site e contratos principais
 
@@ -39,7 +42,7 @@ Executa todos os testes estruturais, pedagógicos, de dados, PWA, redações, ve
 npm run check:site
 ```
 
-Valida manifesto consolidado, PWA e publicação do Banco Discursivo.
+Valida os contratos principais do TDAS, Banco Discursivo e EDAS.
 
 ### Rotinas e workflows
 
@@ -47,41 +50,32 @@ Valida manifesto consolidado, PWA e publicação do Banco Discursivo.
 npm run check:operations
 ```
 
-Confere os comandos, gatilhos, cronogramas, watchdogs, dependências do gerador e documentação operacional.
+Confere comandos, gatilhos, cronogramas, watchdogs e documentação operacional dos dois cargos.
 
-### Monitor da publicação local
+### TDAS
 
 ```bash
 npm run monitor:publication
-```
-
-Compara calendário, snapshot, PE, material, questões, contrato diário, histórico e idade da sincronização na cópia atual do repositório.
-
-### Monitor do Banco Discursivo
-
-```bash
 npm run monitor:redactions
-```
-
-Executa as guardas de cache, versionamento, cronologia, reescritas, aplicação cega e contrato discursivo.
-
-### Monitor do GitHub Pages
-
-```bash
 npm run monitor:live-site
 ```
 
-Consulta o GitHub Pages com invalidação de cache e compara:
+O primeiro confere a publicação técnica TDAS, o segundo o Banco Discursivo e o terceiro compara a `main` com o GitHub Pages.
 
-- `data/platform-version.json` da `main` e do site;
-- identidade da publicação;
-- versão do service worker;
-- PE e horário de sincronização;
-- contrato e indicadores do Banco Discursivo;
-- página inicial e rota de redações;
-- primeira proposta futura bloqueada e ausência de conteúdo reservado.
+### EDAS
 
-O monitor repete a consulta durante a janela de propagação do deploy antes de abrir ou atualizar um incidente.
+```bash
+npm run check:edas
+npm run monitor:edas
+npm run monitor:edas-live
+npm run test:edas-operations
+npm run test:edas-browser
+```
+
+- `check:edas` / `monitor:edas`: validam versão, Sprint, 42 Sprints planejados, catálogo, quantidade, `answer-key`, histórico, PWA e separação da correção.
+- `monitor:edas-live`: compara a `main` com o GitHub Pages do EDAS e exige a mesma versão, snapshot, Sprint, catálogo e service worker.
+- `test:edas-operations`: impede regressões nos workflows, horários, comandos e precache.
+- `test:edas-browser`: executa Chrome real; o `answer-key` não pode ser requisitado nem estar em cache antes da finalização da sessão.
 
 ### Diagnóstico local resumido
 
@@ -89,7 +83,7 @@ O monitor repete a consulta durante a janela de propagação do deploy antes de 
 npm run ops:check
 ```
 
-Executa as guardas operacionais e os contratos principais sem consultar a internet.
+Executa as guardas operacionais e contratos principais de TDAS e EDAS sem consultar o GitHub Pages.
 
 ### Validação completa com site implantado
 
@@ -97,9 +91,9 @@ Executa as guardas operacionais e os contratos principais sem consultar a intern
 npm run ops:full
 ```
 
-Executa o gate integral e, em seguida, compara o GitHub Pages com a publicação da `main`.
+Executa o gate integral e compara tanto TDAS quanto EDAS com as publicações no GitHub Pages.
 
-### Auditoria do ciclo diário
+### Auditoria do ciclo TDAS
 
 ```bash
 npm run audit:daily-cycle
@@ -113,15 +107,15 @@ Audita PE79–PE112 diretamente no Notion. Requer `NOTION_TOKEN` e não realiza 
 npm run sync:redactions
 ```
 
-Regenera os arquivos discursivos a partir dos dados já preparados. A publicação oficial continua dependente do workflow completo de sincronização.
+Regenera os arquivos discursivos a partir dos dados preparados. A publicação oficial continua dependente do workflow completo.
 
 ## 4. Rotina antes de alterar o site
 
 1. Consultar a governança vigente no Notion.
 2. Confirmar a `main` atual e a inexistência de PR cumulativo concorrente.
-3. Conferir issues técnicas abertas e branches `sync-errors/run-*` recentes.
+3. Conferir issues técnicas e branches de diagnóstico recentes.
 4. Criar branch própria a partir da `main` confirmada.
-5. Aplicar intervenção mínima.
+5. Aplicar intervenção mínima e preservar o isolamento entre Cargo 202 e Cargo 400.
 6. Executar `npm run check`.
 7. Executar o navegador pertinente ao módulo alterado.
 8. Abrir PR com causa, correção, testes e risco residual.
@@ -130,43 +124,46 @@ Regenera os arquivos discursivos a partir dos dados já preparados. A publicaç�
 ## 5. Rotina após o merge
 
 1. Confirmar o commit na `main`.
-2. Verificar a sincronização oficial quando arquivos de geração ou dados forem alterados.
-3. Confirmar o novo `publicationId` no manifesto.
-4. Conferir o monitor do GitHub Pages.
-5. Confirmar que o site implantado serve a mesma publicação da `main`.
-6. Verificar o Banco Discursivo, o service worker e a aplicação cega.
-7. Fechar o incidente técnico somente após uma execução saudável posterior.
+2. Verificar a sincronização oficial quando dados ou geradores TDAS forem alterados.
+3. No EDAS, confirmar a versão `meta.version`, `snapshotDate`, Sprint e `sync-history.json` após cada atualização de dados.
+4. Conferir o watchdog correspondente e o GitHub Pages.
+5. Confirmar que a publicação implantada serve os mesmos contratos da `main`.
+6. Verificar service worker, catálogo, aplicação cega e correções reservadas.
+7. Fechar incidente somente após execução saudável posterior.
 
 ## 6. Tratamento de falhas
 
-### Falha de sincronização
+### Falha TDAS
 
 - a `main` deve permanecer intacta;
 - o último snapshot válido continua publicado;
 - o diagnóstico é registrado em `data/sync-history.json`;
-- uma branch `sync-errors/run-<id>-<tentativa>` é criada;
-- não repetir automaticamente erros determinísticos de validação.
+- branches `sync-errors/run-*` são usadas quando aplicável.
+
+### Falha EDAS
+
+- não substituir snapshot, catálogo ou material por dados parciais;
+- preservar a última bateria autorizada quando a fonte de questões estiver indisponível;
+- registrar a indisponibilidade em `edas-administracao/data/sync-history.json`;
+- o watchdog aceita catálogo anterior somente quando a preservação estiver documentada por evento de warning;
+- divergência não documentada entre Sprint e catálogo é falha.
 
 ### Site implantado divergente
 
-O watchdog mantém um único incidente com o título operacional do monitor. O incidente deve conter:
-
-- publicação esperada e encontrada;
-- versão, PE e horário;
-- divergências do manifesto;
-- estado do Banco Discursivo;
-- verificação da proposta futura bloqueada;
-- link da execução do GitHub Actions.
+Os watchdogs mantêm incidentes únicos por módulo e registram publicação esperada/encontrada, versão, data, Sprint/PE, catálogo, PWA e link da execução.
 
 ### Recuperação
 
-Uma verificação posterior saudável adiciona o registro de recuperação e fecha o incidente. O fechamento nunca deve ocorrer apenas porque a internet voltou ou porque uma execução foi reiniciada.
+Uma verificação posterior saudável registra a recuperação e fecha o incidente. O fechamento nunca ocorre apenas porque a conexão voltou ou a execução foi reiniciada.
 
 ## 7. Proteções permanentes
 
-- O gabarito continua fora do precache inicial.
-- Propostas futuras permanecem sem comando, texto, nota, feedback ou modelo até a data de liberação.
+- O gabarito TDAS continua fora do precache inicial.
+- O `edas-administracao/data/integration/answer-key.json` também deve permanecer fora do precache; o player só o solicita na finalização.
+- Atualizações do service worker EDAS removem cópias antigas do `answer-key` que tenham sido pré-carregadas por versões anteriores.
+- O catálogo público EDAS não pode conter campos `gabarito` ou `justificativa`.
+- Propostas futuras do Banco Discursivo permanecem sem comando, texto, nota, feedback ou modelo até a liberação.
 - Caches pessoais `tdas-redactions-user-*` não podem ser apagadas por atualização técnica.
 - O Notion não recebe writeback do site.
-- A versão exibida deve vir de `data/platform-version.json`.
-- A camada privada completa das redações depende de backend autenticado e permanece acompanhada pela issue #86.
+- A camada privada completa das redações permanece acompanhada pela issue #86.
+- Como o repositório é público, o arquivo de correção EDAS ainda é tecnicamente acessível por URL direta; a retirada total desse risco exige backend/autorização e deve ser tratada como melhoria arquitetural separada.
