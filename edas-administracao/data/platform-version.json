@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "1.0.0",
+  "platformVersion": "20260807.2",
+  "dataVersion": "20260807.1",
+  "catalogVersion": "edas-400-s12-20260807",
+  "serviceWorkerVersion": "edas-20260807.2",
+  "sourceCommit": "f60734209a240f65cb0ad3c7bcd2cf26b5033214",
+  "syncDate": "2026-08-07",
+  "syncAt": "2026-08-07T13:23:51-03:00",
+  "releaseAt": "2026-08-07T18:16:00-03:00",
+  "sprintId": "S12",
+  "publicationId": "20260807.2|20260807.1|edas-400-s12-20260807|2026-08-07T13:23:51-03:00|f60734209a24",
+  "note": "A release técnica 20260807.2 preserva o último snapshot oficial validado; releaseAt não representa nova sincronização do Notion."
+}
