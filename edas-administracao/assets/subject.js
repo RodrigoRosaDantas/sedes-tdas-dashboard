@@ -1,4 +1,4 @@
-import{loadData,setupShell,fmtDate,fmtNumber,metric,escapeHTML,routes,setLoadingError}from'./common.js?v=20260805.3';
+import{loadData,setupShell,fmtDate,fmtNumber,metric,escapeHTML,routes,setLoadingError}from'./common.js?v=20260807.1';
 try{
  const d=await loadData();setupShell('materia',d.meta);
  const subject=new URLSearchParams(location.search).get('id');

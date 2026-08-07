@@ -1,4 +1,4 @@
-import{loadData,setupShell,fmtDate,fmtNumber,fmtPct,metric,escapeHTML,routes,setLoadingError}from'./common.js?v=20260805.3';
+import{loadData,setupShell,fmtDate,fmtNumber,fmtPct,metric,escapeHTML,routes,setLoadingError}from'./common.js?v=20260807.1';
 try{
  const d=await loadData();setupShell('sprint',d.meta);
  const raw=new URLSearchParams(location.search).get('id')||location.hash.slice(1)||d.today?.sprint;

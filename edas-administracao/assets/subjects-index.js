@@ -1,4 +1,4 @@
-import{loadData,setupShell,fmtNumber,fmtDate,escapeHTML,routes,slug,setLoadingError}from'./common.js?v=20260805.3';
+import{loadData,setupShell,fmtNumber,fmtDate,escapeHTML,routes,slug,setLoadingError}from'./common.js?v=20260807.1';
 try{
  const d=await loadData();setupShell('materias',d.meta);
  const map=new Map();

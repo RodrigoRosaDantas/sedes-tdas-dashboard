@@ -1,4 +1,4 @@
-export const RELEASE='20260805.3';
+export const RELEASE='20260807.1';
 export const BASE='/sedes-tdas-dashboard/edas-administracao/';
 export const routes={
  home:BASE,hoje:BASE+'hoje/',evolucao:BASE+'evolucao/',riscos:BASE+'riscos/',agenda:BASE+'agenda/',casos:BASE+'estudos-caso/',auditoria:BASE+'auditoria/',mais:BASE+'mais/',

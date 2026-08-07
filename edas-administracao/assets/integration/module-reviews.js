@@ -1,5 +1,5 @@
-import{loadData,setupShell,escapeHTML,routes,setLoadingError}from'../common.js?v=20260805.3';
-import{readModuleState}from'./module-store.js?v=20260805.3';
+import{loadData,setupShell,escapeHTML,routes,setLoadingError}from'../common.js?v=20260807.1';
+import{readModuleState}from'./module-store.js?v=20260807.1';
 const format=value=>new Intl.DateTimeFormat('pt-BR',{dateStyle:'short',timeStyle:'short'}).format(new Date(value));
 try{
  const d=await loadData();setupShell('revisar',d.meta);const now=Date.now(),reviews=[...readModuleState().reviews].sort((a,b)=>a.dueAt-b.dueAt),due=reviews.filter(x=>x.status==='pending'&&x.dueAt<=now),upcoming=reviews.filter(x=>x.status==='pending'&&x.dueAt>now),completed=reviews.filter(x=>x.status==='completed');
