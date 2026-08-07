@@ -1,14 +1,14 @@
 {
   "schemaVersion": "1.0.0",
-  "platformVersion": "20260807.5",
+  "platformVersion": "20260807.6",
   "dataVersion": "20260807.2",
   "catalogVersion": "edas-400-s12-20260807",
-  "serviceWorkerVersion": "edas-20260807.5",
+  "serviceWorkerVersion": "edas-20260807.6",
   "sourceCommit": "ac723904f60fe010f93d111f9955f8f6c1fe2d7e",
   "syncDate": "2026-08-07",
   "syncAt": "2026-08-07T19:16:37-03:00",
-  "releaseAt": "2026-08-07T20:20:00-03:00",
+  "releaseAt": "2026-08-07T20:40:00-03:00",
   "sprintId": "S12",
-  "publicationId": "20260807.5|20260807.2|edas-400-s12-20260807|2026-08-07T19:16:37-03:00|ac723904f60f",
-  "note": "Release técnica 20260807.5 sobre os dados oficiais 20260807.2: recuperação local para Sprints fora do foco atual, navegação rápida no ciclo, filtros persistentes em Agenda/Riscos/Sprints, links profundos e revalidação real ao reconectar. Não representa nova sincronização do Notion."
+  "publicationId": "20260807.6|20260807.2|edas-400-s12-20260807|2026-08-07T19:16:37-03:00|ac723904f60f",
+  "note": "Release técnica 20260807.6 sobre os dados oficiais 20260807.2: revisão adaptativa com prioridade explicada e filtros por sinal, além de triagem integrada no Caderno entre registros oficiais, erros locais e marcações. Não representa nova sincronização do Notion."
 }
