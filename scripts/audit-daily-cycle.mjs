@@ -17,12 +17,17 @@ const ALLOWED_PUBLIC_FIELDS = Object.freeze(['alternativas', 'assunto', 'enuncia
 const pause = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds));
 const required = (condition, message) => { if (!condition) throw new Error(message); };
 const peId = number => `PE${String(number).padStart(2, '0')}`;
-const todayLocal = () => process.env.AUDIT_TODAY || new Intl.DateTimeFormat('en-CA', {
-  timeZone: TIME_ZONE,
-  year: 'numeric',
-  month: '2-digit',
-  day: '2-digit'
-}).format(new Date());
+const todayLocal = () => {
+  if (process.env.AUDIT_TODAY) return process.env.AUDIT_TODAY;
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: TIME_ZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).formatToParts(new Date());
+  const values = Object.fromEntries(parts.filter(part => part.type !== 'literal').map(part => [part.type, part.value]));
+  return `${values.year}-${values.month}-${values.day}`;
+};
 
 async function loadControls() {
   const records = [];
@@ -62,7 +67,8 @@ async function loadControls() {
       status: String(record.status || ''),
       attempted: Number(record.attempted ?? 0),
       correct: Number(record.acertos ?? 0),
-      errors: Number(record.errors ?? 0)
+      errors: Number(record.errors ?? 0),
+      accuracy: Number(record.accuracy ?? Number.NaN)
     });
   }
   const dates = selected.map(item => item.date);
