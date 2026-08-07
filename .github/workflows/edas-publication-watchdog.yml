@@ -9,6 +9,7 @@ on:
       - 'scripts/monitor-edas-publication.mjs'
       - 'scripts/monitor-edas-live-site.mjs'
       - 'scripts/test-edas-operations.mjs'
+      - 'scripts/test-edas-local-backup.mjs'
       - '.github/workflows/edas-publication-watchdog.yml'
       - '.github/workflows/edas-browser-smoke.yml'
       - 'package.json'
@@ -20,6 +21,7 @@ on:
       - 'scripts/monitor-edas-publication.mjs'
       - 'scripts/monitor-edas-live-site.mjs'
       - 'scripts/test-edas-operations.mjs'
+      - 'scripts/test-edas-local-backup.mjs'
       - '.github/workflows/edas-publication-watchdog.yml'
       - '.github/workflows/edas-browser-smoke.yml'
       - 'package.json'
@@ -52,6 +54,7 @@ jobs:
         if: github.event_name == 'pull_request'
         shell: bash
         run: |
+          node scripts/test-edas-local-backup.mjs
           npm run test:edas-operations
           npm run check:edas
           MONITOR_SELF_TEST=true npm run monitor:edas-live
