@@ -6,6 +6,7 @@ const [pkgText,watchdog,browser,sw,player,docs,siteText,catalogText,keyText]=awa
  read('package.json'),read('.github/workflows/edas-publication-watchdog.yml'),read('.github/workflows/edas-browser-smoke.yml'),read('edas-administracao/sw.js'),read('edas-administracao/assets/integration/module-player.js'),read('docs/OPERACAO_SITE_TDAS.md'),read('edas-administracao/data/site.json'),read('edas-administracao/data/integration/question-catalog.json'),read('edas-administracao/data/integration/answer-key.json')
 ]);
 const pkg=JSON.parse(pkgText),site=JSON.parse(siteText),catalog=JSON.parse(catalogText),key=JSON.parse(keyText);
+const coreStart=sw.indexOf('const CORE=['),coreEnd=sw.indexOf('];',coreStart),core=coreStart>=0&&coreEnd>coreStart?sw.slice(coreStart,coreEnd):'';
 for(const command of ['check:edas','test:edas-operations','test:edas-browser','monitor:edas','monitor:edas-live'])assert.ok(pkg.scripts?.[command],`Comando ausente: ${command}`);
 assert.match(pkg.scripts.check,/test-edas-operations\.mjs/,'Gate integral deve validar rotinas EDAS.');
 assert.match(pkg.scripts['ops:check'],/check:edas/,'ops:check deve incluir o EDAS.');
@@ -14,7 +15,7 @@ for(const token of ["'edas-administracao/**'","scripts/monitor-edas-publication.
 assert.match(watchdog,/cron: '45 4,10,16,22 \* \* \*'/,'Watchdog EDAS deve rodar após as quatro janelas oficiais.');
 assert.ok(browser.includes("'edas-administracao/**'"),'Browser dedicado deve reagir a qualquer alteração do EDAS.');
 assert.match(browser,/cron: '50 10 \* \* \*'/,'Browser EDAS deve executar diariamente às 07h50 de Brasília.');
-assert.ok(!sw.includes("BASE+'data/integration/answer-key.json'"),'Gabarito EDAS não pode permanecer no precache.');
+assert.ok(core&&!core.includes('answer-key.json'),'Gabarito EDAS não pode permanecer no bloco CORE do precache.');
 assert.ok(sw.includes("url.pathname.startsWith(BASE+'data/')"),'Dados EDAS devem permanecer network-first.');
 assert.ok(sw.includes('RESERVED_DATA'),'Service worker deve remover cópias antigas do gabarito durante atualização.');
 assert.ok(player.includes("fetch('../data/integration/answer-key.json"),'Player deve carregar a correção somente por recurso separado.');
