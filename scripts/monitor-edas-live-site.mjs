@@ -15,6 +15,7 @@ const bust=url=>`${url}${url.includes('?')?'&':'?'}monitor=${Date.now()}-${Math.
 async function fetchText(url){const response=await fetch(bust(url),{cache:'no-store',headers:{'cache-control':'no-cache'}});if(!response.ok)throw new Error(`${response.status} ${url}`);return response.text();}
 async function fetchJson(url){return JSON.parse(await fetchText(url));}
 const leaksAnswers=catalog=>(catalog?.questions||[]).some(q=>Object.prototype.hasOwnProperty.call(q,'gabarito')||Object.prototype.hasOwnProperty.call(q,'justificativa'));
+const precachesAnswerKey=sw=>{const start=sw.indexOf('const CORE=['),end=sw.indexOf('];',start);return start>=0&&end>start&&sw.slice(start,end).includes('answer-key.json');};
 
 export function compareLive(expected,live){
  const issues=[];const add=(code,detail)=>issues.push({code,detail});
@@ -27,8 +28,9 @@ export function compareLive(expected,live){
  if(leaksAnswers(live.catalog))add('LIVE_CATALOG_ANSWER_LEAK','O catálogo servido pelo Pages contém gabarito ou justificativa.');
  const version=expected.site?.meta?.version||'';
  if(!live.sw.includes(`const VERSION='edas-${version}'`))add('SW_VERSION_DIVERGENCE',`Service worker publicado não usa edas-${version}.`);
- if(live.sw.includes("BASE+'data/integration/answer-key.json'"))add('ANSWER_KEY_PRECACHE','O GitHub Pages ainda pré-carrega o gabarito EDAS.');
+ if(precachesAnswerKey(live.sw))add('ANSWER_KEY_PRECACHE','O GitHub Pages ainda pré-carrega o gabarito EDAS no bloco CORE.');
  if(!live.sw.includes("url.pathname.startsWith(BASE+'data/')"))add('NETWORK_FIRST_MISSING','A estratégia network-first dos dados não está publicada.');
+ if(!live.sw.includes('RESERVED_DATA'))add('RESERVED_DATA_GUARD_MISSING','O service worker publicado não remove cópias antigas da correção reservada.');
  if(!live.home.ok)add('HOME_UNAVAILABLE',`status=${live.home.status}`);
  if(!live.resolver.ok)add('RESOLVER_UNAVAILABLE',`status=${live.resolver.status}`);
  return{healthy:issues.length===0,issues,summary:issues.length?`GitHub Pages EDAS divergente: ${issues.map(x=>x.code).join(', ')}.`:`GitHub Pages EDAS alinhado à main: ${expected.site?.today?.sprint||'Sprint'} · ${version}.`};
@@ -44,7 +46,7 @@ function markdown(report){const lines=['## Monitoramento do GitHub Pages — EDA
 
 if(process.env.MONITOR_SELF_TEST==='true'){
  const expected={site:{meta:{version:'v1',snapshotDate:'2026-08-07'},today:{sprint:'S12'}},history:{updatedAt:'x'},catalog:{catalogId:'c',questions:[{id:'q'}]}};
- const live={site:structuredClone(expected.site),history:{updatedAt:'x'},catalog:structuredClone(expected.catalog),sw:"const VERSION='edas-v1'; if(url.pathname.startsWith(BASE+'data/')){}",home:{ok:true,status:200},resolver:{ok:true,status:200}};
+ const live={site:structuredClone(expected.site),history:{updatedAt:'x'},catalog:structuredClone(expected.catalog),sw:"const VERSION='edas-v1'; const RESERVED_DATA=[]; const CORE=[]; if(url.pathname.startsWith(BASE+'data/')){}",home:{ok:true,status:200},resolver:{ok:true,status:200}};
  assert.equal(compareLive(expected,live).healthy,true);live.catalog.questions[0].gabarito='A';assert.equal(compareLive(expected,live).healthy,false);console.log('Monitor do GitHub Pages EDAS auditado.');
 }else{
  const expected=await expectedState();let last=null;let live=null;
