@@ -1,14 +1,14 @@
 {
   "schemaVersion": "1.0.0",
   "platformVersion": "20260807.3",
-  "dataVersion": "20260807.1",
+  "dataVersion": "20260807.2",
   "catalogVersion": "edas-400-s12-20260807",
   "serviceWorkerVersion": "edas-20260807.3",
-  "sourceCommit": "75bceae859fa8c883ba1d62a04616458891a183f",
+  "sourceCommit": "ac723904f60fe010f93d111f9955f8f6c1fe2d7e",
   "syncDate": "2026-08-07",
-  "syncAt": "2026-08-07T13:23:51-03:00",
+  "syncAt": "2026-08-07T19:16:37-03:00",
   "releaseAt": "2026-08-07T19:15:00-03:00",
   "sprintId": "S12",
-  "publicationId": "20260807.3|20260807.1|edas-400-s12-20260807|2026-08-07T13:23:51-03:00|75bceae859fa",
-  "note": "Release técnica 20260807.3: backup/restauração local, catálogo oficial corrigido em Estudar, material offline persistente e cobertura explícita dos erros oficiais. O snapshot do Notion permanece 20260807.1."
+  "publicationId": "20260807.3|20260807.2|edas-400-s12-20260807|2026-08-07T19:16:37-03:00|ac723904f60f",
+  "note": "Sincronização semântica sobre a release técnica 20260807.3: o snapshot incorporou a execução real do S04 e dois novos erros oficiais; PWA, backup local, material e catálogo do S12 foram preservados."
 }
