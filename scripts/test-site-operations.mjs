@@ -13,19 +13,22 @@ const readme = read('README.md');
 
 const scripts = packageData.scripts || {};
 const expectedCommands = {
-  'check:site': 'node scripts/validate-platform-version.mjs && node scripts/validate-pwa-integration.mjs && node scripts/validate-redactions-publication.mjs',
-  'check:operations': 'node scripts/test-site-operations.mjs',
+  'check:site': 'node scripts/validate-platform-version.mjs && node scripts/validate-pwa-integration.mjs && node scripts/validate-redactions-publication.mjs && node scripts/monitor-edas-publication.mjs',
+  'check:operations': 'node scripts/test-site-operations.mjs && node scripts/test-edas-operations.mjs',
   'monitor:publication': 'node scripts/monitor-tdas-publication.mjs',
   'monitor:redactions': 'node scripts/test-redactions-operational.mjs && node scripts/validate-redactions-publication.mjs',
   'monitor:live-site': 'node scripts/monitor-live-site.mjs',
+  'monitor:edas': 'node scripts/monitor-edas-publication.mjs',
+  'monitor:edas-live': 'node scripts/monitor-edas-live-site.mjs',
   'ops:check': 'npm run check:operations && npm run check:site',
-  'ops:full': 'npm run check && npm run monitor:live-site'
+  'ops:full': 'npm run check && npm run monitor:live-site && npm run monitor:edas-live'
 };
 
 for (const [name, command] of Object.entries(expectedCommands)) {
   assert.equal(scripts[name], command, `O comando ${name} deve permanecer padronizado.`);
 }
 assert.match(scripts.check, /test-site-operations\.mjs/, 'A auditoria operacional deve fazer parte do gate integral.');
+assert.match(scripts.check, /test-edas-operations\.mjs/, 'A auditoria operacional EDAS deve fazer parte do gate integral.');
 
 for (const dependency of [
   'scripts/postprocess-v23.mjs',
@@ -69,6 +72,8 @@ for (const command of Object.keys(expectedCommands)) {
 }
 assert.match(documentation, /00h50/, 'O manual deve registrar os horários de sincronização.');
 assert.match(documentation, /GitHub Pages/, 'O manual deve explicar a validação do site implantado.');
+assert.match(documentation, /EDAS/, 'O manual deve cobrir o Cargo 400.');
 assert.match(readme, /OPERACAO_SITE_TDAS\.md/, 'O README deve apontar para o manual operacional.');
+assert.match(readme, /monitor:edas/, 'O README deve expor o monitor operacional do EDAS.');
 
-console.log('Rotinas operacionais validadas: comandos, gatilhos, watchdogs, navegador e GitHub Pages alinhados.');
+console.log('Rotinas operacionais validadas: TDAS, Banco Discursivo, EDAS, watchdogs, navegadores e GitHub Pages alinhados.');
