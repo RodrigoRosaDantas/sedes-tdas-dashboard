@@ -1,7 +1,7 @@
 export const BASE='/sedes-tdas-dashboard/';
-export const routes={home:BASE,hoje:BASE+'hoje/',evolucao:BASE+'evolucao/',riscos:BASE+'riscos/',agenda:BASE+'agenda/',redacoes:BASE+'redacoes/',auditoria:BASE+'auditoria/',mais:BASE+'mais/',pe:BASE+'pe/',materias:BASE+'materias/',questoesErros:BASE+'questoes-erros/'};
-const icons={home:'⌂',hoje:'◎',evolucao:'↗',riscos:'!',agenda:'◷',redacoes:'✎',auditoria:'✓',mais:'•••'};
-const labels={home:'Início',hoje:'Hoje',evolucao:'Evolução',riscos:'Riscos',agenda:'Agenda',redacoes:'Redações',auditoria:'Auditoria',mais:'Mais'};
+export const routes={home:BASE,hoje:BASE+'hoje/',estudar:BASE+'estudar/',resolver:BASE+'resolver/',desempenho:BASE+'desempenho/',evolucao:BASE+'evolucao/',riscos:BASE+'riscos/',agenda:BASE+'agenda/',redacoes:BASE+'redacoes/',auditoria:BASE+'auditoria/',mais:BASE+'mais/',pe:BASE+'pe/',materias:BASE+'materias/',questoesErros:BASE+'questoes-erros/'};
+const icons={home:'⌂',hoje:'◎',estudar:'▤',resolver:'?',desempenho:'▥',evolucao:'↗',riscos:'!',agenda:'◷',redacoes:'✎',auditoria:'✓',mais:'☰'};
+const labels={home:'Início',hoje:'Hoje',estudar:'Estudar',resolver:'Questões',desempenho:'Desempenho',evolucao:'Evolução',riscos:'Riscos',agenda:'Agenda',redacoes:'Redações',auditoria:'Auditoria',mais:'Mais'};
 const APP_SHELL_VERSION='26.15.0';
 const LAST_PUBLICATION_KEY='tdas-last-publication-meta-v1';
 const MAX_PUBLICATION_AGE_MS=8*60*60*1000;
@@ -113,11 +113,11 @@ function setupTabAccessibility(){
 }
 export function setupShell(page,meta={}){
  const desktop=['home','hoje','evolucao','riscos','agenda','redacoes','auditoria'];
- const mobile=['home','hoje','redacoes','riscos','mais'];
+ const mobile=['home','estudar','resolver','desempenho','mais'];
  const active=page==='pe'?'agenda':page==='subject'?'riscos':page;
  document.querySelector('.brand small')?.replaceChildren(`SEDES/DF · v${APP_SHELL_VERSION}`);
  document.querySelector('#desktop-nav').innerHTML='<div class="nav-label">Plataforma de estudo</div>'+desktop.map(k=>`<a href="${routes[k]}" class="${k===active?'active':''}"><span class="nav-icon">${icons[k]}</span>${labels[k]}</a>`).join('');
- const mobileActive=['agenda','auditoria'].includes(active)?'mais':active;
+ const mobileActive=['hoje','agenda','pe','subject'].includes(active)?'estudar':['redacoes'].includes(active)?'resolver':['evolucao','riscos'].includes(active)?'desempenho':['auditoria'].includes(active)?'mais':active;
  document.querySelector('#mobile-nav').innerHTML=mobile.map(k=>`<a href="${routes[k]}" class="${k===mobileActive?'active':''}"><span>${icons[k]}</span><span>${labels[k]}</span></a>`).join('');
  setText('[data-snapshot]',fmtDate(meta.snapshotDate));
  const stored=readStoredPublication();
