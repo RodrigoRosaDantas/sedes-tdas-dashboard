@@ -1,14 +1,14 @@
 {
   "schemaVersion": "1.0.0",
-  "platformVersion": "20260807.7",
+  "platformVersion": "20260807.8",
   "dataVersion": "20260807.2",
   "catalogVersion": "edas-400-s12-20260807",
-  "serviceWorkerVersion": "edas-20260807.7",
+  "serviceWorkerVersion": "edas-20260807.8",
   "sourceCommit": "ac723904f60fe010f93d111f9955f8f6c1fe2d7e",
   "syncDate": "2026-08-07",
   "syncAt": "2026-08-07T19:16:37-03:00",
-  "releaseAt": "2026-08-07T21:17:00-03:00",
+  "releaseAt": "2026-08-07T21:38:00-03:00",
   "sprintId": "S12",
-  "publicationId": "20260807.7|20260807.2|edas-400-s12-20260807|2026-08-07T19:16:37-03:00|ac723904f60f",
-  "note": "Release técnica 20260807.7 sobre os dados oficiais 20260807.2: Home mobile mais compacta, drawer de navegação, barra inferior orientada ao uso diário e nova central Configurações para sincronização, aplicativo, privacidade, fontes e backup. Não representa nova sincronização do Notion."
+  "publicationId": "20260807.8|20260807.2|edas-400-s12-20260807|2026-08-07T19:16:37-03:00|ac723904f60f",
+  "note": "Release técnica 20260807.8 sobre os dados oficiais 20260807.2: header mobile compacto, menu lateral refinado, barra inferior mais leve, hero focado no Sprint atual e preferências locais de conforto visual. Não representa nova sincronização do Notion."
 }
