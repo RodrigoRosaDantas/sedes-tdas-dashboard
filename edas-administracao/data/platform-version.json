@@ -4,11 +4,11 @@
   "dataVersion": "20260808.1",
   "catalogVersion": "edas-400-s12-20260807",
   "serviceWorkerVersion": "edas-20260807.8",
-  "sourceCommit": "9a999febf10324406b7e16f7400ccc266a6235af",
+  "sourceCommit": "636ea084bf6bac04b1ff6f043b4c246a8a6c4d4b",
   "syncDate": "2026-08-08",
-  "syncAt": "2026-08-08T01:22:28-03:00",
+  "syncAt": "2026-08-08T13:23:48-03:00",
   "releaseAt": "2026-08-07T21:38:00-03:00",
   "sprintId": "S13",
-  "publicationId": "20260807.8|20260808.1|edas-400-s12-20260807|2026-08-08T01:22:28-03:00|9a999febf103",
-  "note": "Sincronização semântica 20260808.1 sobre a plataforma técnica 20260807.8: S05 incorporado ao desempenho oficial, Caderno de Erros em 30 registros e foco diário movido para S13. O S13 é revisão adaptativa; seu material está disponível, mas a camada de questões permanece bloqueada até existirem resultados reais de S08–S12."
+  "publicationId": "20260807.8|20260808.1|edas-400-s12-20260807|2026-08-08T13:23:48-03:00|636ea084bf6b",
+  "note": "Revalidação oficial em 08/08/2026: Controle confirmou S01–S42 sem nova execução objetiva; 30 erros e 12 estudos de caso permanecem válidos. O planejamento oficial completo dos 42 Sprints foi sincronizado para índice e detalhe, preenchendo títulos, composição, revisões, entregáveis, prontidão, tipo e tempo sem alterar métricas nem abrir artificialmente o portão adaptativo do S13."
 }
