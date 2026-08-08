@@ -10,7 +10,9 @@ on:
       - 'assets/v20.css'
       - 'scripts/test-edas-browser.mjs'
       - 'scripts/test-edas-diagnostic-browser.mjs'
+      - 'scripts/test-edas-traceability-browser.mjs'
       - 'scripts/test-edas-operations.mjs'
+      - 'scripts/test-edas-traceability.mjs'
       - 'scripts/monitor-edas-publication.mjs'
       - '.github/workflows/edas-browser-smoke.yml'
       - 'package.json'
@@ -22,7 +24,9 @@ on:
       - 'assets/v20.css'
       - 'scripts/test-edas-browser.mjs'
       - 'scripts/test-edas-diagnostic-browser.mjs'
+      - 'scripts/test-edas-traceability-browser.mjs'
       - 'scripts/test-edas-operations.mjs'
+      - 'scripts/test-edas-traceability.mjs'
       - 'scripts/monitor-edas-publication.mjs'
       - '.github/workflows/edas-browser-smoke.yml'
       - 'package.json'
@@ -70,7 +74,7 @@ jobs:
           cat /tmp/edas-server.log >&2
           exit 1
 
-      - name: Validar navegação, diagnóstico, questões, correção e PWA
+      - name: Validar navegação, diagnóstico, rastreabilidade, questões, correção e PWA
         env:
           EDAS_BASE_URL: http://127.0.0.1:4173/sedes-tdas-dashboard/edas-administracao
           CHROME_BIN: google-chrome
