@@ -17,6 +17,7 @@
     "test:daily-priorities": "node scripts/test-daily-priorities.mjs",
     "test:command-center": "node scripts/test-command-center.mjs",
     "test:tdas-mobile-ux": "node scripts/test-tdas-mobile-ux.mjs",
+    "test:tdas-mobile-browser": "node scripts/test-tdas-mobile-browser.mjs",
     "test:sync-decision": "node scripts/test-sync-decision.mjs",
     "test:sync-operational-guards": "node scripts/test-sync-operational-guards.mjs",
     "test:site-operations": "node scripts/test-site-operations.mjs",
