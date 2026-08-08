@@ -1,8 +1,22 @@
 {
   "schemaVersion": "1.0.0",
   "release": "20260808.1",
-  "updatedAt": "2026-08-08T01:22:28-03:00",
+  "updatedAt": "2026-08-08T13:23:48-03:00",
   "events": [
+    {
+      "at": "2026-08-08T13:23:48-03:00",
+      "status": "success",
+      "type": "content",
+      "title": "Planejamento oficial S01–S42 sincronizado",
+      "detail": "O Controle oficial foi revalidado integralmente com 42 Sprints válidos. Títulos, composição, blocos comuns e de Português, revisões, entregáveis, prontidão, tipo, nível e tempo foram sincronizados para o índice e detalhe dos Sprints. Não houve nova execução objetiva: permanecem 5 Sprints com bloco concluído, 185 questões, 155 acertos (83,78%), 30 erros e 12 estudos de caso. O S13 continua adaptativo com o portão de questões fechado enquanto S08–S12 não tiverem resultados reais."
+    },
+    {
+      "at": "2026-08-08T13:23:48-03:00",
+      "status": "warning",
+      "type": "source",
+      "title": "Detalhamento do Caderno preservado após limite do conector",
+      "detail": "A contagem independente confirmou 30 de 30 registros válidos no Caderno de Erros e 12 de 12 estudos de caso. Uma consulta posterior de detalhamento completo dos erros atingiu o limite de uso do conector; nenhum registro parcial foi publicado e o último detalhamento individual validado foi preservado."
+    },
     {
       "at": "2026-08-08T01:22:28-03:00",
       "status": "success",
