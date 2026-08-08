@@ -1,0 +1,68 @@
+name: Validar UX mobile TDAS no navegador
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'index.html'
+      - 'mais/**'
+      - 'configuracoes/**'
+      - 'assets/home-mobile.js'
+      - 'assets/tdas-mobile-ux.js'
+      - 'assets/tdas-mobile-ux.css'
+      - 'assets/settings.js'
+      - 'assets/more.js'
+      - 'assets/enhance-v20.js'
+      - 'assets/integration/home-command-center.js'
+      - 'scripts/test-tdas-mobile-browser.mjs'
+      - 'scripts/test-tdas-mobile-ux.mjs'
+      - 'sw.js'
+      - 'package.json'
+  push:
+    branches: [main]
+    paths:
+      - 'index.html'
+      - 'mais/**'
+      - 'configuracoes/**'
+      - 'assets/home-mobile.js'
+      - 'assets/tdas-mobile-ux.js'
+      - 'assets/tdas-mobile-ux.css'
+      - 'assets/settings.js'
+      - 'assets/more.js'
+      - 'assets/enhance-v20.js'
+      - 'assets/integration/home-command-center.js'
+      - 'scripts/test-tdas-mobile-browser.mjs'
+      - 'scripts/test-tdas-mobile-ux.mjs'
+      - 'sw.js'
+      - 'package.json'
+  schedule:
+    - cron: '5 10 * * *'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tdas-mobile-browser-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Baixar repositório
+        uses: actions/checkout@v4
+
+      - name: Preparar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Validar contrato da UX mobile
+        run: npm run test:tdas-mobile-ux
+
+      - name: Validar TDAS mobile no Chrome real
+        env:
+          CHROME_BIN: google-chrome
+        run: npm run test:tdas-mobile-browser
