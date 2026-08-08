@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 const read=file=>fs.readFile(file,'utf8');
-const [shell,css,home,settings,index,configHtml,more,sw,postprocess,platform]=await Promise.all([
- read('assets/tdas-mobile-ux.js'),read('assets/tdas-mobile-ux.css'),read('assets/home-mobile.js'),read('assets/settings.js'),read('index.html'),read('configuracoes/index.html'),read('assets/more.js'),read('sw.js'),read('scripts/postprocess-v26.mjs'),fs.readFile('data/platform-version.json','utf8').then(JSON.parse)
+const readJson=file=>fs.readFile(file,'utf8').then(JSON.parse);
+const [shell,css,homeModule,settings,index,configHtml,more,sw,postprocess,platform,homeData,history]=await Promise.all([
+ read('assets/tdas-mobile-ux.js'),read('assets/tdas-mobile-ux.css'),read('assets/home-mobile.js'),read('assets/settings.js'),read('index.html'),read('configuracoes/index.html'),read('assets/more.js'),read('sw.js'),read('scripts/postprocess-v26.mjs'),readJson('data/platform-version.json'),readJson('data/home.json'),readJson('data/sync-history.json')
 ]);
 for(const text of ['Início','Estudar','Questões','Desempenho','Mais'])assert.ok(shell.includes(`'${text}'`),`Barra mobile deve conter ${text}.`);
 const navDefinition=shell.match(/const items=\[([\s\S]*?)\];nav\.innerHTML/)?.[1]||'';
@@ -19,13 +20,13 @@ assert.match(shell,/tdas\.202\.font-scale\.v1/,'Texto ampliado deve usar chave l
 assert.match(css,/prefers-reduced-motion:reduce/,'CSS deve respeitar movimento reduzido.');
 assert.match(css,/\.tdas-view-comfort/,'CSS deve implementar modo confortável.');
 assert.match(css,/\.tdas-view-large-text/,'CSS deve implementar texto ampliado.');
-assert.match(home,/Próximo passo/,'Home deve começar pelo próximo passo.');
-assert.match(home,/d\.today\.pe/,'Home deve usar o PE oficial do snapshot.');
-assert.match(home,/revisar\/\?pe=/,'PE concluído deve direcionar para revisão.');
-assert.match(home,/resolver\/\?pe=/,'Home deve oferecer CTA de Questões.');
-assert.ok(!home.includes('Cada ciclo concluído aproxima você'),'Hero institucional antigo não deve permanecer na Home nova.');
-assert.ok(!home.includes('Projeções transparentes'),'Projeções técnicas não devem poluir a Home nova.');
-assert.ok(!home.includes('Alertas prioritários'),'Alertas extensos não devem poluir a Home nova.');
+assert.match(homeModule,/Próximo passo/,'Home deve começar pelo próximo passo.');
+assert.match(homeModule,/d\.today\.pe/,'Home deve usar o PE oficial do snapshot.');
+assert.match(homeModule,/revisar\/\?pe=/,'PE concluído deve direcionar para revisão.');
+assert.match(homeModule,/resolver\/\?pe=/,'Home deve oferecer CTA de Questões.');
+assert.ok(!homeModule.includes('Cada ciclo concluído aproxima você'),'Hero institucional antigo não deve permanecer na Home nova.');
+assert.ok(!homeModule.includes('Projeções transparentes'),'Projeções técnicas não devem poluir a Home nova.');
+assert.ok(!homeModule.includes('Alertas prioritários'),'Alertas extensos não devem poluir a Home nova.');
 for(const label of ['Release técnica','Versão dos dados','Última execução real','Próxima janela','Service worker','Dados locais','Modo confortável','Texto ampliado','Fontes oficiais'])assert.ok(settings.includes(label),`Configurações deve conter ${label}.`);
 assert.match(settings,/platformVersion/,'Configurações deve ler platformVersion.');
 assert.match(settings,/dataVersion/,'Configurações deve ler dataVersion.');
@@ -38,6 +39,8 @@ assert.match(more,/configuracoes\//,'Tela Mais deve encaminhar para Configuraç�
 assert.ok(!more.includes('data-theme-toggle>Alternar tema'),'Tela Mais não deve duplicar controle técnico de tema fora de Configurações.');
 for(const item of ['configuracoes/','assets/home-mobile.js','assets/tdas-mobile-ux.js','assets/tdas-mobile-ux.css','assets/settings.js']){assert.ok(sw.includes(item),`PWA deve incluir ${item}.`);assert.ok(postprocess.includes(item),`Gerador do PWA deve preservar ${item}.`)}
 assert.ok(!sw.includes('question-keys/'),'Gabarito não pode entrar no precache do TDAS.');
-assert.equal(platform.dataVersion,'20.3','A release de UX não deve alterar a versão dos dados oficiais nesta branch.');
-assert.equal(platform.syncAt,'2026-08-07T20:46:16-03:00','A release de UX não deve fingir nova sincronização nesta branch.');
-console.log('UX mobile TDAS validada: Home por PE, navegação 5 áreas, drawer, Configurações, conforto visual e PWA preservados.');
+const lastValidSync=(history.entries||[]).find(item=>['success','no_changes'].includes(item?.status)&&item?.at)?.at;
+assert.equal(platform.dataVersion,homeData.meta?.version,'dataVersion deve continuar derivada do snapshot oficial.');
+assert.equal(platform.syncAt,lastValidSync,'syncAt deve continuar derivada da última sincronização real, não da release visual.');
+assert.equal(platform.peId,homeData.today?.pe,'PE do manifesto deve continuar alinhado ao snapshot oficial.');
+console.log('UX mobile TDAS validada: Home por PE, navegação 5 áreas, drawer, Configurações, conforto visual, PWA e separação plataforma/dados preservados.');
