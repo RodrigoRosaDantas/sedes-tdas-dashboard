@@ -1,0 +1,9 @@
+body[data-page="auditoria"] .metrics>.metric{min-width:0;overflow:hidden}
+body[data-page="auditoria"] .metrics>.metric strong{display:block;max-width:100%;font-size:clamp(24px,2.7vw,40px);line-height:1.06;letter-spacing:-.04em;overflow-wrap:anywhere;word-break:normal;font-variant-numeric:tabular-nums}
+body[data-page="auditoria"] .download{min-width:0}
+body[data-page="auditoria"] .download>span:nth-child(2){min-width:0}
+body[data-page="auditoria"] .download b,body[data-page="auditoria"] .download small{max-width:100%;overflow-wrap:anywhere}
+@media(max-width:1450px) and (min-width:1051px){body[data-page="auditoria"] .metrics{grid-template-columns:repeat(2,minmax(0,1fr))}body[data-page="auditoria"] .grid.two{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:1180px) and (min-width:781px){body[data-page="auditoria"] .metrics{grid-template-columns:repeat(2,minmax(0,1fr))}body[data-page="auditoria"] .three{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:780px){body[data-page="auditoria"] .metrics>.metric strong{font-size:clamp(23px,8vw,31px);line-height:1.08}body[data-page="auditoria"] .download{grid-template-columns:42px minmax(0,1fr) auto;gap:10px}}
+@media(max-width:460px){body[data-page="auditoria"] .metrics{grid-template-columns:1fr}body[data-page="auditoria"] .download{grid-template-columns:40px minmax(0,1fr) auto;padding:14px}body[data-page="auditoria"] .metrics>.metric strong{overflow-wrap:normal;word-break:normal}}
