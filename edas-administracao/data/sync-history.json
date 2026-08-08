@@ -1,8 +1,29 @@
 {
   "schemaVersion": "1.0.0",
-  "release": "20260807.2",
-  "updatedAt": "2026-08-07T19:16:37-03:00",
+  "release": "20260808.1",
+  "updatedAt": "2026-08-08T01:22:28-03:00",
   "events": [
+    {
+      "at": "2026-08-08T01:22:28-03:00",
+      "status": "success",
+      "type": "snapshot",
+      "title": "Snapshot EDAS sincronizado para o S13",
+      "detail": "Controle oficial confirmou 42 Sprints válidos S01–S42. O S05 passou a ter bloco objetivo concluído com 40 questões, 33 acertos e 82,50%, elevando o acumulado para 5 Sprints com bloco objetivo concluído, 185 questões e 155 acertos (83,78%). O foco diário passou ao S13, revisão semanal adaptativa."
+    },
+    {
+      "at": "2026-08-08T01:22:28-03:00",
+      "status": "success",
+      "type": "errors",
+      "title": "Sete erros do S05 incorporados",
+      "detail": "O Caderno de Erros passou de 23 para 30 registros. Foram confirmados 7 novos erros reais do S05: três de Gestão de Processos, um de Assistência Social e três de Português. Todos têm gravidade Média; quatro dos sete são marcados como discursáveis no banco apenas quando a fonte oficial assim indica."
+    },
+    {
+      "at": "2026-08-08T01:22:28-03:00",
+      "status": "warning",
+      "type": "content",
+      "title": "S13 preservado como revisão adaptativa com portão fechado",
+      "detail": "O Material de Revisão do S13 foi lido e publicado. A página oficial de questões informa que a amostra final de até 20 questões depende dos resultados reais de S08–S12, que permanecem sem execução e correção. Nenhuma questão foi inventada; o catálogo válido anterior do S12 foi preservado sem alteração."
+    },
     {
       "at": "2026-08-07T19:16:37-03:00",
       "status": "success",
@@ -15,105 +36,105 @@
       "status": "success",
       "type": "errors",
       "title": "Dois novos erros do S04 incorporados",
-      "detail": "O Caderno de Erros passou de 21 para 23 registros. Foram confirmados dois novos erros reais de Administração: Análise SWOT — cruzamento FA — e Processo decisório — racionalidade limitada/satisficing. Ambos têm gravidade Média e potencial discursivo."
+      "detail": "O Caderno de Erros passou de 21 para 23 registros. Foram confirmados dois novos erros reais de Administração: Análise SWOT e Processo decisório."
     },
     {
       "at": "2026-08-07T13:23:51-03:00",
       "status": "no_changes",
       "type": "snapshot",
       "title": "Fontes oficiais revalidadas sem alterações",
-      "detail": "Página principal e as três views operacionais foram percorridas até has_more=false. A consulta SQL do Controle também confirmou 42 Sprints e somente S01–S03 com bloco objetivo concluído. Permanecem 21 erros, 12 estudos de caso, 3 Sprints executados, 115 questões e 94 acertos. S12 segue não iniciado e pronto — auditado; Material Premium e bateria oficial de 45 questões permanecem válidos. Nenhum snapshot, catálogo, código, rota ou versão do PWA foi alterado."
+      "detail": "Permaneciam 21 erros, 12 estudos de caso, 3 Sprints executados, 115 questões e 94 acertos."
     },
     {
       "at": "2026-08-07T07:16:07-03:00",
       "status": "no_changes",
       "type": "snapshot",
       "title": "Fontes oficiais revalidadas sem alterações",
-      "detail": "Página principal e as três views operacionais foram percorridas até has_more=false. Permanecem confirmados 42 Sprints, 21 erros, 12 estudos de caso, 3 Sprints executados, 115 questões e 94 acertos. S12 continua não iniciado e pronto — auditado; Material Premium, bateria oficial de 45 questões e ficha técnica reservada permanecem válidos. A consulta SQL estava indisponível por limite do Notion, mas a validação foi concluída pelas views e registros individuais. Nenhum snapshot, catálogo, código, rota ou versão do PWA foi alterado."
+      "detail": "Permaneciam confirmados 42 Sprints, 21 erros, 12 estudos de caso, 3 Sprints executados, 115 questões e 94 acertos."
     },
     {
       "at": "2026-08-07T01:23:31-03:00",
       "status": "success",
       "type": "snapshot",
       "title": "Snapshot EDAS sincronizado para o S12",
-      "detail": "Página principal e as três views operacionais foram lidas integralmente até has_more=false. Confirmados 42 Sprints, 21 erros, 12 estudos de caso, 3 Sprints executados, 115 questões e 94 acertos. O foco diário passou para S12."
+      "detail": "Confirmados 42 Sprints, 21 erros, 12 estudos de caso, 3 Sprints executados, 115 questões e 94 acertos. O foco diário passou para S12."
     },
     {
       "at": "2026-08-07T01:23:31-03:00",
       "status": "success",
       "type": "content",
       "title": "Material e questões oficiais do S12 validados",
-      "detail": "Material Premium S12, bateria oficial de 45 questões e ficha técnica reservada foram lidos na árvore oficial. O catálogo do Cargo 400 foi publicado sem reutilizar conteúdo do TDAS."
+      "detail": "Material Premium S12, bateria oficial de 45 questões e ficha técnica reservada foram validados no Notion."
     },
     {
       "at": "2026-08-07T01:23:31-03:00",
       "status": "success",
       "type": "release",
       "title": "Cache de dados do PWA corrigido",
-      "detail": "A release 20260807.1 passou a tratar todos os JSON de dados do EDAS com estratégia network-first e fallback em cache, evitando persistência de material ou catálogo diário obsoleto."
+      "detail": "A release 20260807.1 passou a tratar os JSON de dados do EDAS com estratégia network-first e fallback em cache."
     },
     {
       "at": "2026-08-06T19:22:57-03:00",
       "status": "no_changes",
       "type": "snapshot",
       "title": "Fontes oficiais revalidadas sem alterações",
-      "detail": "A página principal e os três data sources oficiais foram consultados. O Controle retornou has_more=false; permanecem confirmados 42 Sprints, S11 não iniciado, 21 erros, 12 estudos de caso, 3 Sprints executados, 115 questões e 94 acertos. Nenhum snapshot, material, catálogo, código, rota ou versão do PWA foi alterado."
+      "detail": "Permaneciam confirmados 42 Sprints, 21 erros, 12 estudos de caso, 3 Sprints executados, 115 questões e 94 acertos."
     },
     {
       "at": "2026-08-06T07:16:40-03:00",
       "status": "no_changes",
       "type": "snapshot",
       "title": "Fontes oficiais revalidadas sem alterações",
-      "detail": "Página principal e as três views operacionais foram lidas integralmente até has_more=false. Permanecem confirmados 42 Sprints, 21 erros, 12 estudos de caso, 3 Sprints executados, 115 questões e 94 acertos. S11 continua não iniciado; nenhum snapshot, material, catálogo, código, rota ou versão do PWA foi alterado."
+      "detail": "Permaneciam confirmados 42 Sprints, 21 erros, 12 estudos de caso, 3 Sprints executados, 115 questões e 94 acertos."
     },
     {
       "at": "2026-08-06T01:18:15-03:00",
       "status": "success",
       "type": "snapshot",
       "title": "Snapshot EDAS sincronizado para o S11",
-      "detail": "As três views oficiais foram percorridas até has_more=false. Foram confirmados 42 Sprints, 21 erros, 12 estudos de caso e ausência de nova execução objetiva. O foco diário passou para S11 e o material oficial de OS&M foi publicado."
+      "detail": "Confirmados 42 Sprints, 21 erros, 12 estudos de caso e ausência de nova execução objetiva."
     },
     {
       "at": "2026-08-06T01:18:15-03:00",
       "status": "warning",
       "type": "source",
       "title": "Questões oficiais do S11 sem acesso pelo conector",
-      "detail": "A página de questões retornou object_not_found. O link oficial foi preservado e o catálogo autorizado anterior não foi substituído, esvaziado ou misturado com conteúdo do TDAS."
+      "detail": "O link oficial foi preservado e o catálogo autorizado anterior não foi substituído."
     },
     {
       "at": "2026-08-05T13:20:10-03:00",
       "status": "success",
       "type": "validation",
       "title": "Sincronização S10 validada no GitHub",
-      "detail": "JavaScript, JSON, 42 Sprints, rotas, PWA, isolamento do Cargo 400 e versão técnica única 20260805.3 passaram nas validações automatizadas."
+      "detail": "JavaScript, JSON, 42 Sprints, rotas, PWA, isolamento do Cargo 400 e versão técnica passaram nas validações automatizadas."
     },
     {
       "at": "2026-08-05T13:20:10-03:00",
       "status": "success",
       "type": "snapshot",
       "title": "Snapshot EDAS sincronizado para o S10",
-      "detail": "42 Sprints, 21 erros oficiais, 12 estudos de caso e material oficial do S10 validados. Métricas executadas permaneceram em 3 Sprints, 115 questões e 94 acertos. A página de questões S10 não estava acessível; o catálogo anterior foi preservado."
+      "detail": "42 Sprints, 21 erros oficiais, 12 estudos de caso e material oficial do S10 validados."
     },
     {
       "at": "2026-08-05T10:40:00-03:00",
       "status": "error",
       "type": "source",
       "title": "Sincronização manual bloqueada pelo conector do Notion",
-      "detail": "A leitura da página principal, Controle de Questões, Caderno de Erros e Estudos de Caso não pôde ser iniciada porque o conector do Notion ficou indisponível. Nenhum snapshot, material, catálogo, métrica ou arquivo funcional foi alterado; o último conjunto válido foi preservado integralmente."
+      "detail": "Nenhum snapshot, material, catálogo, métrica ou arquivo funcional foi alterado."
     },
     {
       "at": "2026-08-05T10:10:00-03:00",
       "status": "success",
       "type": "validation",
       "title": "Pacote avançado validado no GitHub",
-      "detail": "Hash, JavaScript, JSON, 19 rotas, PWA, escopo do aplicativo e preservação dos 42 Sprints passaram na validação específica do EDAS."
+      "detail": "Hash, JavaScript, JSON, rotas, PWA, escopo do aplicativo e preservação dos 42 Sprints passaram na validação."
     },
     {
       "at": "2026-08-05T10:10:00-03:00",
       "status": "warning",
       "type": "source",
       "title": "Notion indisponível na rodada de paridade avançada",
-      "detail": "O último snapshot validado foi preservado. Nenhum valor foi zerado e nenhum dado parcial foi publicado."
+      "detail": "O último snapshot validado foi preservado."
     },
     {
       "at": "2026-08-05T10:10:00-03:00",
