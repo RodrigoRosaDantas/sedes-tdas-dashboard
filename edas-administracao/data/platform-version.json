@@ -1,14 +1,14 @@
 {
   "schemaVersion": "1.0.0",
   "platformVersion": "20260807.8",
-  "dataVersion": "20260807.2",
+  "dataVersion": "20260808.1",
   "catalogVersion": "edas-400-s12-20260807",
   "serviceWorkerVersion": "edas-20260807.8",
-  "sourceCommit": "ac723904f60fe010f93d111f9955f8f6c1fe2d7e",
-  "syncDate": "2026-08-07",
-  "syncAt": "2026-08-07T19:16:37-03:00",
+  "sourceCommit": "9a999febf10324406b7e16f7400ccc266a6235af",
+  "syncDate": "2026-08-08",
+  "syncAt": "2026-08-08T01:22:28-03:00",
   "releaseAt": "2026-08-07T21:38:00-03:00",
-  "sprintId": "S12",
-  "publicationId": "20260807.8|20260807.2|edas-400-s12-20260807|2026-08-07T19:16:37-03:00|ac723904f60f",
-  "note": "Release técnica 20260807.8 sobre os dados oficiais 20260807.2: header mobile compacto, menu lateral refinado, barra inferior mais leve, hero focado no Sprint atual e preferências locais de conforto visual. Não representa nova sincronização do Notion."
+  "sprintId": "S13",
+  "publicationId": "20260807.8|20260808.1|edas-400-s12-20260807|2026-08-08T01:22:28-03:00|9a999febf103",
+  "note": "Sincronização semântica 20260808.1 sobre a plataforma técnica 20260807.8: S05 incorporado ao desempenho oficial, Caderno de Erros em 30 registros e foco diário movido para S13. O S13 é revisão adaptativa; seu material está disponível, mas a camada de questões permanece bloqueada até existirem resultados reais de S08–S12."
 }
