@@ -1,0 +1,43 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs/promises';
+const read=file=>fs.readFile(file,'utf8');
+const [shell,css,home,settings,index,configHtml,more,sw,postprocess,platform]=await Promise.all([
+ read('assets/tdas-mobile-ux.js'),read('assets/tdas-mobile-ux.css'),read('assets/home-mobile.js'),read('assets/settings.js'),read('index.html'),read('configuracoes/index.html'),read('assets/more.js'),read('sw.js'),read('scripts/postprocess-v26.mjs'),fs.readFile('data/platform-version.json','utf8').then(JSON.parse)
+]);
+for(const text of ['Início','Estudar','Questões','Desempenho','Mais'])assert.ok(shell.includes(`'${text}'`),`Barra mobile deve conter ${text}.`);
+const navDefinition=shell.match(/const items=\[([\s\S]*?)\];nav\.innerHTML/)?.[1]||'';
+assert.match(navDefinition,/\['home','Início'\].*\['estudar','Estudar'\].*\['resolver','Questões'\].*\['desempenho','Desempenho'\].*\['mais','Mais'\]/s,'Barra inferior deve manter exatamente a ordem Início, Estudar, Questões, Desempenho e Mais.');
+for(const group of ['Estudar','Praticar','Evolução','Sistema'])assert.ok(shell.includes(`['${group}'`),`Drawer deve conter grupo ${group}.`);
+assert.match(shell,/Técnico Administrativo · Cargo 202/,'Cabeçalho deve identificar Cargo 202.');
+assert.match(shell,/data-menu-toggle/,'Shell deve expor botão Menu.');
+assert.match(shell,/Escape/,'Drawer deve fechar por Escape.');
+assert.match(shell,/touchstart/,'Drawer deve possuir gesto touch.');
+for(const state of ['Atualizado','Publicação atrasada','Snapshot desatualizado','Offline','Verificação indisponível'])assert.ok(shell.includes(state),`Badge deve suportar estado ${state}.`);
+assert.match(shell,/window\.addEventListener\('online',refreshPublication\)/,'Reconexão deve consultar novamente a publicação.');
+assert.match(shell,/tdas\.202\.view-comfort\.v1/,'Modo confortável deve usar chave local isolada do Cargo 202.');
+assert.match(shell,/tdas\.202\.font-scale\.v1/,'Texto ampliado deve usar chave local isolada do Cargo 202.');
+assert.match(css,/prefers-reduced-motion:reduce/,'CSS deve respeitar movimento reduzido.');
+assert.match(css,/\.tdas-view-comfort/,'CSS deve implementar modo confortável.');
+assert.match(css,/\.tdas-view-large-text/,'CSS deve implementar texto ampliado.');
+assert.match(home,/Próximo passo/,'Home deve começar pelo próximo passo.');
+assert.match(home,/d\.today\.pe/,'Home deve usar o PE oficial do snapshot.');
+assert.match(home,/revisar\/\?pe=/,'PE concluído deve direcionar para revisão.');
+assert.match(home,/resolver\/\?pe=/,'Home deve oferecer CTA de Questões.');
+assert.ok(!home.includes('Cada ciclo concluído aproxima você'),'Hero institucional antigo não deve permanecer na Home nova.');
+assert.ok(!home.includes('Projeções transparentes'),'Projeções técnicas não devem poluir a Home nova.');
+assert.ok(!home.includes('Alertas prioritários'),'Alertas extensos não devem poluir a Home nova.');
+for(const label of ['Release técnica','Versão dos dados','Última execução real','Próxima janela','Service worker','Dados locais','Modo confortável','Texto ampliado','Fontes oficiais'])assert.ok(settings.includes(label),`Configurações deve conter ${label}.`);
+assert.match(settings,/platformVersion/,'Configurações deve ler platformVersion.');
+assert.match(settings,/dataVersion/,'Configurações deve ler dataVersion.');
+assert.match(settings,/syncAt/,'Configurações deve ler syncAt real.');
+assert.ok(!settings.includes('api.notion.com'),'Configurações não deve escrever ou consultar a API do Notion pelo navegador.');
+assert.match(index,/home-mobile\.js/,'Home pública deve usar o módulo novo.');
+assert.match(index,/home-command-center\.js/,'Central de Execução deve permanecer ativa.');
+assert.match(configHtml,/settings\.js/,'Rota Configurações deve carregar seu módulo.');
+assert.match(more,/configuracoes\//,'Tela Mais deve encaminhar para Configurações.');
+assert.ok(!more.includes('data-theme-toggle>Alternar tema'),'Tela Mais não deve duplicar controle técnico de tema fora de Configurações.');
+for(const item of ['configuracoes/','assets/home-mobile.js','assets/tdas-mobile-ux.js','assets/tdas-mobile-ux.css','assets/settings.js']){assert.ok(sw.includes(item),`PWA deve incluir ${item}.`);assert.ok(postprocess.includes(item),`Gerador do PWA deve preservar ${item}.`)}
+assert.ok(!sw.includes('question-keys/'),'Gabarito não pode entrar no precache do TDAS.');
+assert.equal(platform.dataVersion,'20.3','A release de UX não deve alterar a versão dos dados oficiais nesta branch.');
+assert.equal(platform.syncAt,'2026-08-07T20:46:16-03:00','A release de UX não deve fingir nova sincronização nesta branch.');
+console.log('UX mobile TDAS validada: Home por PE, navegação 5 áreas, drawer, Configurações, conforto visual e PWA preservados.');
