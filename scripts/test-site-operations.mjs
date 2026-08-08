@@ -7,6 +7,7 @@ const syncWorkflow = read('.github/workflows/notion-sync.yml');
 const publicationWatchdog = read('.github/workflows/tdas-publication-watchdog.yml');
 const redactionsWatchdog = read('.github/workflows/tdas-redactions-watchdog.yml');
 const redactionsBrowser = read('.github/workflows/redactions-browser.yml');
+const tdasMobileBrowser = read('.github/workflows/tdas-mobile-browser.yml');
 const liveMonitor = read('scripts/monitor-live-site.mjs');
 const documentation = read('docs/OPERACAO_SITE_TDAS.md');
 const readme = read('README.md');
@@ -24,31 +25,17 @@ const expectedCommands = {
   'ops:full': 'npm run check && npm run monitor:live-site && npm run monitor:edas-live'
 };
 
-for (const [name, command] of Object.entries(expectedCommands)) {
-  assert.equal(scripts[name], command, `O comando ${name} deve permanecer padronizado.`);
-}
+for (const [name, command] of Object.entries(expectedCommands)) assert.equal(scripts[name], command, `O comando ${name} deve permanecer padronizado.`);
 assert.match(scripts.check, /test-site-operations\.mjs/, 'A auditoria operacional deve fazer parte do gate integral.');
 assert.match(scripts.check, /test-edas-operations\.mjs/, 'A auditoria operacional EDAS deve fazer parte do gate integral.');
+assert.match(scripts.check, /test-tdas-mobile-ux\.mjs/, 'A UX mobile TDAS deve fazer parte do gate integral.');
+assert.equal(scripts['test:tdas-mobile-browser'],'node scripts/test-tdas-mobile-browser.mjs','O browser smoke mobile TDAS deve ter comando oficial.');
 
-for (const dependency of [
-  'scripts/postprocess-v23.mjs',
-  'scripts/postprocess-v24.mjs',
-  'scripts/postprocess-v26.mjs',
-  'scripts/postprocess-redactions.mjs',
-  'scripts/record-sync-error.mjs',
-  'scripts/test-site-operations.mjs'
-]) {
-  assert.ok(syncWorkflow.includes(`- '${dependency}'`), `A sincronização deve reagir a mudanças em ${dependency}.`);
-}
+for (const dependency of ['scripts/postprocess-v23.mjs','scripts/postprocess-v24.mjs','scripts/postprocess-v26.mjs','scripts/postprocess-redactions.mjs','scripts/record-sync-error.mjs','scripts/test-site-operations.mjs']) assert.ok(syncWorkflow.includes(`- '${dependency}'`), `A sincronização deve reagir a mudanças em ${dependency}.`);
 
 assert.match(publicationWatchdog, /workflow_run:/, 'O watchdog de publicação deve executar após a sincronização.');
 assert.match(publicationWatchdog, /\n  push:\n/, 'O watchdog deve se autoverificar após mudanças no próprio monitor integradas à main.');
-for (const dependency of [
-  '.github/workflows/tdas-publication-watchdog.yml',
-  'scripts/monitor-tdas-publication.mjs',
-  'scripts/monitor-live-site.mjs',
-  'scripts/test-site-operations.mjs'
-]) {
+for (const dependency of ['.github/workflows/tdas-publication-watchdog.yml','scripts/monitor-tdas-publication.mjs','scripts/monitor-live-site.mjs','scripts/test-site-operations.mjs']) {
   const occurrences = publicationWatchdog.split(`- '${dependency}'`).length - 1;
   assert.ok(occurrences >= 2, `O watchdog deve cobrir ${dependency} em PR e push.`);
 }
@@ -57,20 +44,19 @@ assert.match(publicationWatchdog, /monitor:live-site/, 'O watchdog deve conferir
 assert.match(publicationWatchdog, /LIVE_SITE_REPORT_PATH/, 'O relatório do site implantado deve ser persistido no workflow.');
 assert.match(publicationWatchdog, /issues: write/, 'O watchdog deve poder manter um incidente técnico único.');
 
-for (const dependency of [
-  'scripts/test-redactions-operational.mjs',
-  'scripts/test-redactions-browser.mjs',
-  'scripts/postprocess-v26.mjs',
-  'scripts/monitor-live-site.mjs',
-  'data/platform-version.json',
-  'sw.js'
-]) {
-  assert.ok(redactionsWatchdog.includes(`- '${dependency}'`), `O monitor discursivo deve reagir a ${dependency}.`);
-}
+for (const dependency of ['scripts/test-redactions-operational.mjs','scripts/test-redactions-browser.mjs','scripts/postprocess-v26.mjs','scripts/monitor-live-site.mjs','data/platform-version.json','sw.js']) assert.ok(redactionsWatchdog.includes(`- '${dependency}'`), `O monitor discursivo deve reagir a ${dependency}.`);
 assert.match(redactionsWatchdog, /monitor:redactions/, 'O monitor discursivo deve usar o comando oficial.');
 assert.match(redactionsBrowser, /workflow_dispatch:/, 'O teste dedicado deve permitir execução manual.');
 assert.match(redactionsBrowser, /schedule:/, 'O teste dedicado deve ter uma execução preventiva diária.');
 assert.match(redactionsBrowser, /cron: '35 10 \* \* \*'/, 'O teste discursivo diário deve rodar às 07h35 de Brasília.');
+
+assert.match(tdasMobileBrowser, /name: Validar UX mobile TDAS no navegador/, 'A UX mobile TDAS deve ter workflow dedicado.');
+assert.match(tdasMobileBrowser, /pull_request:/, 'O browser mobile TDAS deve validar pull requests.');
+assert.match(tdasMobileBrowser, /push:/, 'O browser mobile TDAS deve se revalidar após merge na main.');
+assert.match(tdasMobileBrowser, /schedule:/, 'O browser mobile TDAS deve possuir revalidação preventiva diária.');
+assert.match(tdasMobileBrowser, /npm run test:tdas-mobile-ux/, 'O workflow mobile deve validar o contrato estrutural.');
+assert.match(tdasMobileBrowser, /npm run test:tdas-mobile-browser/, 'O workflow mobile deve executar Chrome real.');
+for (const dependency of ['assets/tdas-mobile-ux.js','assets/tdas-mobile-ux.css','assets/home-mobile.js','assets/settings.js','configuracoes/**']) assert.ok(tdasMobileBrowser.includes(`- '${dependency}'`), `Browser mobile deve reagir a ${dependency}.`);
 
 assert.match(liveMonitor, /data\/platform-version\.json/, 'O monitor implantado deve comparar o manifesto público.');
 assert.match(liveMonitor, /data\/redactions\.json/, 'O monitor implantado deve comparar o contrato discursivo.');
@@ -80,13 +66,11 @@ assert.match(liveMonitor, /HOME_SYNC_HOOK_MISSING/, 'O monitor deve exigir o hoo
 assert.match(liveMonitor, /BLIND_APPLICATION_LEAK/, 'O monitor implantado deve proteger a aplicação cega.');
 assert.match(liveMonitor, /LIVE_SITE_MAX_ATTEMPTS/, 'O monitor implantado deve tolerar o tempo de propagação do deploy.');
 
-for (const command of Object.keys(expectedCommands)) {
-  assert.ok(documentation.includes(`npm run ${command}`), `O manual deve documentar npm run ${command}.`);
-}
+for (const command of Object.keys(expectedCommands)) assert.ok(documentation.includes(`npm run ${command}`), `O manual deve documentar npm run ${command}.`);
 assert.match(documentation, /00h50/, 'O manual deve registrar os horários de sincronização.');
 assert.match(documentation, /GitHub Pages/, 'O manual deve explicar a validação do site implantado.');
 assert.match(documentation, /EDAS/, 'O manual deve cobrir o Cargo 400.');
 assert.match(readme, /OPERACAO_SITE_TDAS\.md/, 'O README deve apontar para o manual operacional.');
 assert.match(readme, /monitor:edas/, 'O README deve expor o monitor operacional do EDAS.');
 
-console.log('Rotinas operacionais validadas: TDAS, Banco Discursivo, EDAS, autoverificação de watchdogs, navegadores e GitHub Pages alinhados.');
+console.log('Rotinas operacionais validadas: TDAS, UX mobile, Banco Discursivo, EDAS, autoverificação de watchdogs, navegadores e GitHub Pages alinhados.');
