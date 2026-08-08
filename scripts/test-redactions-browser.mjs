@@ -58,7 +58,11 @@ try{
  assert.equal(await evaluate(mobile,"document.querySelector('[data-tab=bank]')?.getAttribute('aria-selected')"),'true');
  assert.equal(await evaluate(mobile,"getComputedStyle(document.querySelector('.rd-bank-table')).display"),'none');
  assert.notEqual(await evaluate(mobile,"getComputedStyle(document.querySelector('.rd-bank-cards')).display"),'none');
- assert.equal(await evaluate(mobile,"document.querySelector('#mobile-nav')?.textContent.includes('Redações')"),true);
+ assert.equal(await evaluate(mobile,"[...document.querySelectorAll('#mobile-nav a')].map(a=>a.querySelector('span:last-child')?.textContent.trim()||'').join('|')"),'Início|Estudar|Questões|Desempenho|Mais');
+ await evaluate(mobile,"document.querySelector('[data-menu-toggle]').click();true");
+ await waitFor(mobile,"!document.querySelector('[data-tdas-drawer]').hidden",'drawer móvel nas redações');
+ assert.equal(await evaluate(mobile,"document.querySelector('.tdas-drawer-nav')?.textContent.includes('Redação')"),true,'Redação deve permanecer acessível no drawer.');
+ await evaluate(mobile,"document.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}));true");
  assert.equal(await evaluate(mobile,"document.querySelector('[data-tab=bank]')?.hasAttribute('aria-controls')"),true);
  assert.equal(await evaluate(mobile,"document.querySelector('[data-panel=bank]')?.getAttribute('role')"),'tabpanel');
 
@@ -84,7 +88,7 @@ try{
   assert.equal(await evaluate(locked,"document.body.textContent.includes('Proposta completa')"),false);
  }
 
- console.log(JSON.stringify({browser:'ok',homePublication:true,mobileCards:true,tabsAccessible:true,paragraphs:true,offlinePersistent:true,futureLocked:Boolean(lockedRd),lockedRd:lockedRd||null}));
+ console.log(JSON.stringify({browser:'ok',homePublication:true,mobileCards:true,mobileFiveActions:true,drawerRedaction:true,tabsAccessible:true,paragraphs:true,offlinePersistent:true,futureLocked:Boolean(lockedRd),lockedRd:lockedRd||null}));
 }finally{
  await stopChrome();
  await fs.rm(profile,{recursive:true,force:true,maxRetries:8,retryDelay:200}).catch(()=>{});

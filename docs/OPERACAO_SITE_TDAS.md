@@ -19,6 +19,7 @@ O site não deve reconstruir nem corrigir informações do Notion. Toda publica�
 | Monitor da publicação TDAS e GitHub Pages | 02h20, 08h20, 14h20 e 20h20 | Compara calendário, manifesto, material, questões, histórico e a publicação implantada. |
 | Auditoria preventiva PE79–PE112 | 02h20 | Audita as páginas futuras oficiais do TDAS sem escrever nelas. |
 | Navegador geral TDAS | 06h15 | Testa central, retomada, revisão, auditoria, questões, versão e proteção do gabarito. |
+| Navegador mobile TDAS | 07h05 | Testa Home orientada ao PE, header compacto, cinco ações inferiores, drawer, Configurações, preferências locais, PWA e gabarito fora do cache inicial. |
 | Navegador do Banco Discursivo | 07h35 | Testa mobile, filtros, abas, parágrafos, bloqueio futuro e persistência offline. |
 | Revalidação editorial EDAS | 01h20, 07h20, 13h20 e 19h20 | Horários oficiais registrados no snapshot EDAS para releitura das fontes e atualização controlada do Cargo 400. |
 | Watchdog EDAS + GitHub Pages | 01h45, 07h45, 13h45 e 19h45 | Confere versão, Sprint, catálogo, quantidade, histórico, PWA, correção reservada e publicação implantada. |
@@ -58,9 +59,15 @@ Confere comandos, gatilhos, cronogramas, watchdogs e documentação operacional 
 npm run monitor:publication
 npm run monitor:redactions
 npm run monitor:live-site
+npm run test:tdas-mobile-ux
+npm run test:tdas-mobile-browser
 ```
 
-O primeiro confere a publicação técnica TDAS, o segundo o Banco Discursivo e o terceiro compara a `main` com o GitHub Pages.
+- `monitor:publication`: confere a publicação técnica TDAS.
+- `monitor:redactions`: confere o Banco Discursivo.
+- `monitor:live-site`: compara a `main` com o GitHub Pages.
+- `test:tdas-mobile-ux`: valida o contrato estrutural da experiência mobile, Configurações, separação de versões e PWA.
+- `test:tdas-mobile-browser`: executa Chrome real em viewport mobile e valida header, navegação, drawer, preferências e gabarito fora do cache inicial.
 
 ### EDAS
 
@@ -109,7 +116,21 @@ npm run sync:redactions
 
 Regenera os arquivos discursivos a partir dos dados preparados. A publicação oficial continua dependente do workflow completo.
 
-## 4. Rotina antes de alterar o site
+## 4. Padrão de experiência TDAS
+
+A experiência mobile do Cargo 202 segue a arquitetura consolidada no EDAS sem compartilhar dados entre os cargos.
+
+- A Home responde primeiro **o que fazer agora**, usando o PE vigente e a Central de Execução.
+- A barra inferior possui exatamente cinco áreas: **Início, Estudar, Questões, Desempenho e Mais**.
+- O drawer organiza as demais rotas em **Estudar, Praticar, Evolução e Sistema**.
+- Informações técnicas, instalação, sincronização, backup, fontes e preferências ficam em **Configurações**; a Auditoria permanece técnica.
+- O badge de publicação é derivado do manifesto real e deve ser revalidado ao reconectar.
+- Modo confortável e Texto ampliado são preferências locais isoladas pelas chaves `tdas.202.*`.
+- `prefers-reduced-motion` deve ser respeitado.
+- `platformVersion`, `dataVersion` e `syncAt` têm significados independentes; mudança visual não pode simular nova leitura do Notion.
+- O cache técnico pode mudar entre releases, mas tentativas, revisões, rascunhos, caderno local, redações e backups pessoais não podem ser apagados pela atualização.
+
+## 5. Rotina antes de alterar o site
 
 1. Consultar a governança vigente no Notion.
 2. Confirmar a `main` atual e a inexistência de PR cumulativo concorrente.
@@ -121,7 +142,7 @@ Regenera os arquivos discursivos a partir dos dados preparados. A publicação o
 8. Abrir PR com causa, correção, testes e risco residual.
 9. Integrar apenas com todos os gates verdes e sem threads pendentes.
 
-## 5. Rotina após o merge
+## 6. Rotina após o merge
 
 1. Confirmar o commit na `main`.
 2. Verificar a sincronização oficial quando dados ou geradores TDAS forem alterados.
@@ -131,7 +152,7 @@ Regenera os arquivos discursivos a partir dos dados preparados. A publicação o
 6. Verificar service worker, catálogo, aplicação cega e correções reservadas.
 7. Fechar incidente somente após execução saudável posterior.
 
-## 6. Tratamento de falhas
+## 7. Tratamento de falhas
 
 ### Falha TDAS
 
@@ -156,7 +177,7 @@ Os watchdogs mantêm incidentes únicos por módulo e registram publicação esp
 
 Uma verificação posterior saudável registra a recuperação e fecha o incidente. O fechamento nunca ocorre apenas porque a conexão voltou ou a execução foi reiniciada.
 
-## 7. Proteções permanentes
+## 8. Proteções permanentes
 
 - O gabarito TDAS continua fora do precache inicial.
 - O `edas-administracao/data/integration/answer-key.json` também deve permanecer fora do precache; o player só o solicita na finalização.
@@ -164,6 +185,7 @@ Uma verificação posterior saudável registra a recuperação e fecha o inciden
 - O catálogo público EDAS não pode conter campos `gabarito` ou `justificativa`.
 - Propostas futuras do Banco Discursivo permanecem sem comando, texto, nota, feedback ou modelo até a liberação.
 - Caches pessoais `tdas-redactions-user-*` não podem ser apagadas por atualização técnica.
+- Estado local do módulo de questões TDAS (`tdas.202.*`) não pode ser apagado por atualização do cache técnico.
 - O Notion não recebe writeback do site.
 - A camada privada completa das redações permanece acompanhada pela issue #86.
 - Como o repositório é público, o arquivo de correção EDAS ainda é tecnicamente acessível por URL direta; a retirada total desse risco exige backend/autorização e deve ser tratada como melhoria arquitetural separada.

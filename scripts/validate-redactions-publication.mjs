@@ -32,7 +32,9 @@ assert.match(detailPage, /rd-section-nav/, 'A página individual deve possuir í
 assert.match(detailPage, /rewriteCompleted/, 'A página individual deve distinguir reescrita pendente de concluída.');
 assert.doesNotMatch(detailPage, /Abrir registro no Notion/, 'A interface pública não deve expor link direto do registro editorial.');
 const common = fs.readFileSync('assets/common.js', 'utf8');
-assert.match(common, /const mobile=\['home','hoje','redacoes','riscos','mais'\]/, 'Redações deve permanecer visível na navegação móvel.');
+assert.match(common, /const mobile=\['home','estudar','resolver','desempenho','mais'\]/, 'A navegação móvel deve manter as cinco áreas essenciais.');
+const mobileUx = fs.readFileSync('assets/tdas-mobile-ux.js', 'utf8');
+assert.match(mobileUx, /\['redacoes','Redação'\]/, 'Redações deve permanecer acessível no drawer móvel.');
 assert.match(common, /data-last-sync/, 'O shell deve exibir a última sincronização real.');
 assert.match(common, /platform-version\.json/, 'O shell deve consultar o manifesto técnico vigente.');
 assert.match(common, /Atualização atrasada/, 'O shell deve distinguir snapshot atrasado.');
