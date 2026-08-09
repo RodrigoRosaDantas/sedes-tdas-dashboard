@@ -25,7 +25,7 @@ async function newPage(width=1280,height=900){
  const client=connect(target.webSocketDebuggerUrl);await client.ready;await client.send('Page.enable');await client.send('Runtime.enable');await client.send('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile:width<=640});return client;
 }
 async function navigate(client,url){const loaded=client.once('Page.loadEventFired');await client.send('Page.navigate',{url});await loaded;}
-async function evaluate(client,expression){const result=await client.send('Runtime.evaluate',{expression,returnByValue:true,awaitPromise:true});if(result.exceptionDetails)throw new Error(result.exceptionDetails.text||'Erro no navegador');return result.result?.value;}
+async function evaluate(client,expression){const result=await client.send('Runtime.evaluate',{expression,returnByValue:true,awaitPromise:true});if(result.exceptionDetails)throw new Error(result.exceptionDetails.exception?.description||result.exceptionDetails.text||'Erro no navegador');return result.result?.value;}
 async function waitFor(client,expression,label,attempts=80){for(let i=0;i<attempts;i++){try{if(await evaluate(client,expression))return;}catch{}await delay(250);}throw new Error(`Timeout: ${label}`);}
 async function stopChrome(){
  if(chrome.exitCode!==null)return;
@@ -59,6 +59,7 @@ try{
  assert.equal(await evaluate(mobile,"getComputedStyle(document.querySelector('.rd-bank-table')).display"),'none');
  assert.notEqual(await evaluate(mobile,"getComputedStyle(document.querySelector('.rd-bank-cards')).display"),'none');
  assert.equal(await evaluate(mobile,"[...document.querySelectorAll('#mobile-nav a')].map(a=>a.querySelector('span:last-child')?.textContent.trim()||'').join('|')"),'Início|Estudar|Questões|Desempenho|Mais');
+ await waitFor(mobile,"Boolean(document.querySelector('[data-menu-toggle]'))",'botão do menu móvel');
  await evaluate(mobile,"document.querySelector('[data-menu-toggle]').click();true");
  await waitFor(mobile,"!document.querySelector('[data-tdas-drawer]').hidden",'drawer móvel nas redações');
  assert.equal(await evaluate(mobile,"document.querySelector('.tdas-drawer-nav')?.textContent.includes('Redação')"),true,'Redação deve permanecer acessível no drawer.');

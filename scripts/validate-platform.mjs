@@ -127,6 +127,11 @@ required(/^\d{4}-\d{2}-\d{2}$/.test(home.meta?.snapshotDate || ''), 'Data do sna
 required(today.current?.pe === home.today?.pe, 'PE atual diverge entre today.json e home.json.');
 required(agenda.current?.pe === home.today?.pe, 'PE atual diverge entre agenda.json e home.json.');
 required(home.latest?.pe, 'Último PE concluído ausente em home.json.');
+required(agenda.latestCompleted?.pe === home.latest.pe, 'Último PE concluído diverge entre agenda.json e home.json.');
+required(Array.isArray(home.overdue) && Array.isArray(agenda.overdue), 'Listas de PE atrasados ausentes.');
+required(JSON.stringify(home.overdue.map(item => item.pe)) === JSON.stringify(agenda.overdue.map(item => item.pe)), 'PE atrasados divergem entre home.json e agenda.json.');
+required(agenda.summary?.overduePE === agenda.overdue.length, 'Total de PE atrasados não fecha com a agenda.');
+required(agenda.summary?.remainingPE === home.metrics?.totalPE - home.metrics?.completed, 'PE pendentes não fecham com o total oficial menos os cumpridos.');
 required(state.counts?.controls === allControls.length, 'Total processado do Controle diverge do estado.');
 required(state.counts?.errors === risks.summary?.total, 'Total processado do Caderno de Erros diverge do estado.');
 required(state.counts?.redactions === redactions.redactions?.length, 'Total processado das Redações diverge do estado.');

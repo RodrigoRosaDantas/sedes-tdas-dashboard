@@ -42,12 +42,17 @@ export function buildOfficialCycleTasks({today,nextPe,base='/'}={}){
  return tasks;
 }
 
-export function selectPrimaryAction({pe,progress,draft,attempt,nextPe,dueReview,officialCompleted,officialTasks=[],base='/'}={}){
+export function selectPrimaryAction({pe,progress={},draft,attempt,nextPe,dueReview,overduePe,officialCompleted,officialTasks=[],base='/'}={}){
  if(draft&&text(draft.peId).toUpperCase()===text(pe).toUpperCase()){
   const index=Number(draft.session?.currentIndex||0)+1,total=Array.isArray(draft.session?.questionIds)?draft.session.questionIds.length:0;
   return{stage:'questions',label:`Continuar questão ${index} de ${total}`,detail:'Existe uma sessão interrompida neste dispositivo.',href:`${base}resolver/?pe=${encodeURIComponent(pe)}&resume=1`,button:'Continuar de onde parei'};
  }
  if(dueReview)return{stage:'review',label:`Fazer revisão ${dueReview.stage}`,detail:'Há uma revisão local vencida ou disponível.',href:`${base}resolver/?review=${encodeURIComponent(dueReview.id)}`,button:'Iniciar revisão'};
+ const currentStarted=Boolean(progress.material||progress.questions||progress.registered||attempt);
+ if(!officialCompleted&&overduePe&&!currentStarted){
+  const overdueId=text(overduePe.pe),status=text(overduePe.status)||'pendente';
+  return{stage:'overdue',label:`Retomar ${overdueId} — ${text(overduePe.title)||'atividade pendente'}`,detail:`${overdueId} venceu em ${text(overduePe.date)||'data anterior'} e ainda consta como ${status}.`,href:`${base}estudar/?pe=${encodeURIComponent(overdueId)}`,button:'Retomar PE atrasado'};
+ }
  const pendingRedaction=officialTasks.find(item=>item.id==='redaction'&&pending(item));
  if(officialCompleted&&pendingRedaction)return{stage:'redaction',label:pendingRedaction.label,detail:`${pe} foi concluído, mas o fechamento discursivo ainda está pendente.`,href:pendingRedaction.href,button:'Abrir redação'};
  if(officialCompleted&&nextPe)return{stage:'next',label:`Preparar ${nextPe.pe}`,detail:`${pe} foi concluído oficialmente. Próxima atividade: ${nextPe.title||nextPe.pe}.`,href:`${base}estudar/?pe=${encodeURIComponent(nextPe.pe)}`,button:'Abrir próximo PE'};

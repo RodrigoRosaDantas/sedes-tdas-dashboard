@@ -44,13 +44,25 @@ const actualIds = [
 assert.deepEqual(futureIds, ['PE04', 'PE05'], 'A agenda deve conter somente hoje e datas posteriores.');
 assert.deepEqual(result.agenda.next.map(item => item.pe), ['PE04', 'PE05']);
 assert.ok(result.agenda.allFuture.every(item => item.date >= '2026-08-03'));
-assert.equal(result.agenda.summary.remainingPE, 2);
-assert.equal(result.agenda.summary.plannedQuestionsMidpoint, 75);
+assert.deepEqual(result.agenda.overdue.map(item => item.pe), ['PE03'], 'PE vencido e não concluído deve permanecer explícito como atraso.');
+assert.deepEqual(result.home.overdue.map(item => item.pe), ['PE03']);
+assert.equal(result.agenda.summary.remainingPE, 3);
+assert.equal(result.agenda.summary.overduePE, 1);
+assert.equal(result.agenda.summary.plannedQuestionsMidpoint, 95);
 assert.equal(result.agenda.current.pe, 'PE04');
+assert.equal(result.agenda.latestCompleted.pe, 'PE01');
 assert.deepEqual(actualIds, ['PE01', 'PE02', 'PE03'], 'Registros passados devem permanecer no histórico operacional.');
+assert.equal(result.home.metrics.completed, 2, 'PE concluído e descanso passado devem contar como etapas cumpridas.');
 assert.equal(result.audit.summary.rest_days, 1);
-assert.match(result.home.projections[0].formula, /^2 PE não iniciados/);
+assert.match(result.home.projections[0].formula, /^3 PE pendentes \(1 atrasado\)/);
 assert.equal(result.exports.summary.meta.actual_records, 3);
 assert.equal(result.exports.summary.meta.future_records, 2);
 
-console.log('Agenda particionada por data: histórico preservado; somente hoje e próximos PE permanecem no planejamento.');
+const inProgressControls = controls.map(item => item.pe === 'PE04' ? { ...item, status: 'Em andamento', attempted: 5 } : item);
+const inProgress = build(inProgressControls, [], [], '2026-08-03', '2026-08-03T10:00:00-03:00');
+assert.deepEqual(inProgress.agenda.allFuture.map(item => item.pe), ['PE05'], 'PE atual iniciado deve migrar para a execução real, sem duplicar o planejamento futuro.');
+assert.equal(inProgress.agenda.summary.remainingPE, 3, 'PE atual iniciado continua pendente até a conclusão oficial.');
+assert.equal(inProgress.agenda.summary.plannedQuestionsMidpoint, 95, 'Estimativa deve incluir também o PE atual em andamento.');
+assert.deepEqual(inProgress.agenda.overdue.map(item => item.pe), ['PE03']);
+
+console.log('Agenda particionada por data: histórico preservado, atraso explícito e ritmo calculado sobre todos os PE pendentes.');
