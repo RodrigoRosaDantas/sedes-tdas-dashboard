@@ -1,4 +1,5 @@
 import { EXAM_DATE, API_VERSION, norm, round, slugify, sourceList, weeksBetween } from './config.mjs';
+import { isRest } from './progress.mjs';
 
 const done = status => !/nao concluid|incomplet/.test(norm(status)) && /concluid|finalizad|feito|realizad/.test(norm(status));
 const explicitlyPending = status => /nao iniciad|planejad|a fazer|pendente|futuro/.test(norm(status));
@@ -203,8 +204,12 @@ export function build(controls, errors, redactions, date, syncedAt) {
   const activeControls = sortedControls.filter(item => started(item.status));
   const actualControls = sortedControls.filter(item => started(item.status) || Boolean(item.date && item.date < date));
   const futureControls = sortedControls.filter(item => !started(item.status) && Boolean(item.date && item.date >= date)).sort(byDate);
+  const overdueControls = actualControls.filter(item => Boolean(item.date && item.date < date) && !done(item.status) && !isRest(item)).sort(byDate);
+  const fulfilled = actualControls.filter(item => done(item.status) || Boolean(item.date && item.date < date && isRest(item))).length;
+  const pendingControls = sortedControls.filter(item => !done(item.status) && !Boolean(item.date && item.date < date && isRest(item)));
   const actual = actualControls.map(item => publicControl(item, errors));
   const future = futureControls.map(publicFuture);
+  const overdue = overdueControls.map(publicFuture);
   const results = actual.filter(item => item.acertos != null && item.attempted > 0);
   const resultQuestions = results.reduce((sum, item) => sum + item.attempted, 0);
   const correct = results.reduce((sum, item) => sum + item.acertos, 0);
@@ -237,7 +242,7 @@ export function build(controls, errors, redactions, date, syncedAt) {
   const weeks = round(weeksBetween(date, EXAM_DATE), 1);
   const perWeek = weeks ? round(notStarted / weeks, 1) : notStarted;
   const days = Math.max(1, Math.ceil((new Date(`${EXAM_DATE}T12:00:00-03:00`) - new Date(`${date}T12:00:00-03:00`)) / 86400000) + 1);
-  const remaining = futureControls.length;
+  const remaining = pendingControls.length;
   const currentControl = sortedControls.find(item => item.date === date) || futureControls.find(item => item.date >= date) || activeControls.at(-1) || sortedControls.at(-1);
   const latestControl = [...completedControls].sort(byDate).at(-1) || activeControls.at(-1) || sortedControls.at(-1);
   const view = item => item ? publicControl(item, errors) : null;
@@ -248,12 +253,13 @@ export function build(controls, errors, redactions, date, syncedAt) {
   if (notStarted) alerts.push({ level: 'warning', title: 'Ritmo discursivo precisa ser protegido', detail: `Restam ${notStarted} redações. Ritmo necessário: ${perWeek.toFixed(1)} por semana.`, action: 'Abrir redações', href: '/sedes-tdas-dashboard/redacoes/' });
   const home = {
     meta: meta(date),
-    metrics: { completed: completedControls.length, totalPE, questions: completedQuestions, correct, accuracy: resultQuestions ? round(correct / resultQuestions * 100) : 0, errors: errors.length, redactions: sortedRedactions.length, calendarDays: days, operationalDays: days },
+    metrics: { completed: fulfilled, totalPE, questions: completedQuestions, correct, accuracy: resultQuestions ? round(correct / resultQuestions * 100) : 0, errors: errors.length, redactions: sortedRedactions.length, calendarDays: days, operationalDays: days },
     today: view(currentControl),
     latest: view(latestControl),
+    overdue,
     alerts,
     projections: [
-      { label: 'Ritmo de PE', value: `${round(remaining / days, 2).toFixed(2)} PE/dia`, formula: `${remaining} PE não iniciados ÷ ${days} dias operacionais inclusivos` },
+      { label: 'Ritmo de PE', value: `${round(remaining / days, 2).toFixed(2)} PE/dia`, formula: `${remaining} PE pendentes (${overdue.length} atrasado${overdue.length === 1 ? '' : 's'}) ÷ ${days} dias operacionais inclusivos` },
       { label: 'Ritmo de redações', value: `${perWeek.toFixed(1)}/semana`, formula: `${notStarted} redações não iniciadas ÷ ${weeks.toFixed(1)} semanas` },
       { label: 'Questões com resultado', value: resultQuestions.toLocaleString('pt-BR'), formula: 'Soma das questões dos PE com campo Acertos preenchido' }
     ]
@@ -305,14 +311,16 @@ export function build(controls, errors, redactions, date, syncedAt) {
     quality,
     alerts
   };
-  const plannedQuestionsMidpoint = future.reduce((sum, item) => sum + (Number(item.planned_questions) || 0), 0);
+  const plannedQuestionsMidpoint = pendingControls.map(publicFuture).reduce((sum, item) => sum + (Number(item.planned_questions) || 0), 0);
   const agenda = {
     meta: meta(date),
     current,
+    latestCompleted: view(latestControl),
+    overdue,
     next: future.slice(0, 14),
     allFuture: future,
     recentCompleted: [...actual].filter(item => done(item.status)).sort(byDate).slice(-7).map(item => ({ pe: item.pe, date: item.date, title: item.title, meta: item.meta, acertos: item.acertos, accuracy: item.accuracy })),
-    summary: { remainingPE: remaining, operationalDays: days, pace: round(remaining / days, 2), plannedQuestionsMidpoint }
+    summary: { remainingPE: remaining, overduePE: overdue.length, operationalDays: days, pace: round(remaining / days, 2), plannedQuestionsMidpoint }
   };
   const redactionsPublic = {
     meta: meta(date),
@@ -322,7 +330,7 @@ export function build(controls, errors, redactions, date, syncedAt) {
   };
   const subjects = { meta: meta(date), subjects: subjectsPublic };
   const auditSummary = {
-    completed: completedControls.length,
+    completed: fulfilled,
     current: current?.pe || '',
     result_days: results.length,
     missing_result_days: pendingResults,
@@ -339,7 +347,9 @@ export function build(controls, errors, redactions, date, syncedAt) {
     error_bank_critical: critical,
     redactions_valid: sortedRedactions.length,
     redactions_corrected: corrected,
-    redactions_not_started: notStarted
+    redactions_not_started: notStarted,
+    remaining_pe: remaining,
+    overdue_pe: overdue.length
   };
   const downloads = [
     { key: 'execucao', name: `Execução ${actual[0]?.pe || ''}–${actual.at(-1)?.pe || ''}`, filename: 'execucao_TDAS.csv', type: 'CSV' },
@@ -372,7 +382,7 @@ export function build(controls, errors, redactions, date, syncedAt) {
   const [future1, future2] = split(future, 2);
   const [redactions1, redactions2] = split(redactionsPublic.redactions, 2);
   const exportSummary = {
-    meta: { ...meta(date), snapshot_date: date, exam_date: EXAM_DATE, timezone: 'America/Sao_Paulo', actual_records: actual.length, completed_records: completedControls.length, future_records: future.length },
+    meta: { ...meta(date), snapshot_date: date, exam_date: EXAM_DATE, timezone: 'America/Sao_Paulo', actual_records: actual.length, completed_records: fulfilled, future_records: future.length },
     summary: auditSummary,
     current,
     weekly,

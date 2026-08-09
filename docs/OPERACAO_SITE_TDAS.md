@@ -121,6 +121,8 @@ Regenera os arquivos discursivos a partir dos dados preparados. A publicação o
 A experiência mobile do Cargo 202 segue a arquitetura consolidada no EDAS sem compartilhar dados entre os cargos.
 
 - A Home responde primeiro **o que fazer agora**, usando o PE vigente e a Central de Execução.
+- PE vencido e ainda não concluído permanece explícito na Home e na Agenda até a conclusão oficial; o avanço da data não pode descartá-lo do total pendente.
+- O PE atual, o último PE concluído e as pendências anteriores são conceitos separados. O ritmo considera atrasos mais o calendário de hoje em diante.
 - A barra inferior possui exatamente cinco áreas: **Início, Estudar, Questões, Desempenho e Mais**.
 - O drawer organiza as demais rotas em **Estudar, Praticar, Evolução e Sistema**.
 - Informações técnicas, instalação, sincronização, backup, fontes e preferências ficam em **Configurações**; a Auditoria permanece técnica.

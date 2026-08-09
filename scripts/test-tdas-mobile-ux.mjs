@@ -22,6 +22,8 @@ assert.match(css,/\.tdas-view-comfort/,'CSS deve implementar modo confortável.'
 assert.match(css,/\.tdas-view-large-text/,'CSS deve implementar texto ampliado.');
 assert.match(homeModule,/Próximo passo/,'Home deve começar pelo próximo passo.');
 assert.match(homeModule,/d\.today\.pe/,'Home deve usar o PE oficial do snapshot.');
+assert.match(homeModule,/d\.overdue/,'Home deve considerar PE vencido sem apagar progresso local iniciado.');
+assert.match(homeModule,/currentStarted/,'Home deve preservar a execução já iniciada no PE atual.');
 assert.match(homeModule,/revisar\/\?pe=/,'PE concluído deve direcionar para revisão.');
 assert.match(homeModule,/resolver\/\?pe=/,'Home deve oferecer CTA de Questões.');
 assert.ok(!homeModule.includes('Cada ciclo concluído aproxima você'),'Hero institucional antigo não deve permanecer na Home nova.');

@@ -61,4 +61,14 @@ const nextAction=selectPrimaryAction({pe:'PE79',progress:{material:true,question
 assert.equal(nextAction.stage,'next');
 assert.equal(nextAction.label,'Preparar PE80');
 
-console.log(`Prioridades diárias validadas no snapshot ${publishedPe}: sessão interrompida e revisão vencida prevalecem; o cenário unitário preserva RD23 antes do PE80, sem depender do PE publicado.`);
+const overduePe={pe:'PE78',date:'2026-08-05',title:'Atividade oficial atrasada',status:'Não iniciada'};
+const overdueAction=selectPrimaryAction({pe:'PE79',progress:{material:false,questions:false,registered:false},draft:null,attempt:null,nextPe,dueReview:null,overduePe,officialCompleted:false,officialTasks:tasks,base});
+assert.equal(overdueAction.stage,'overdue');
+assert.equal(overdueAction.label,'Retomar PE78 — Atividade oficial atrasada');
+assert.equal(overdueAction.href,'/sedes-tdas-dashboard/estudar/?pe=PE78');
+assert.equal(overdueAction.button,'Retomar PE atrasado');
+
+const startedCurrentAction=selectPrimaryAction({pe:'PE79',progress:{material:true,questions:false,registered:false},draft:null,attempt:null,nextPe,dueReview:null,overduePe,officialCompleted:false,officialTasks:tasks,base});
+assert.equal(startedCurrentAction.stage,'questions','Progresso local no PE atual não pode ser interrompido automaticamente pelo atraso anterior.');
+
+console.log(`Prioridades diárias validadas no snapshot ${publishedPe}: sessão e revisão prevalecem, atraso não some e progresso local iniciado é preservado.`);
