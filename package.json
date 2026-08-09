@@ -1,6 +1,6 @@
 {
   "name": "sedes-tdas-dashboard",
-  "version": "26.16.0",
+  "version": "26.16.1",
   "private": true,
   "type": "module",
   "scripts": {
