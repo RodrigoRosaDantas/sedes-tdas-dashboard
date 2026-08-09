@@ -1,4 +1,4 @@
-import {BASE,escapeHTML} from '../common.js?v=26.16.0';
+import {BASE,escapeHTML} from '../common.js?v=26.16.1';
 import {loadDailyExecution,findDailyExecution,normalizePe} from './daily-execution.js?v=1.1.2';
 import {readPeProgress,summarizeProgress} from './daily-progress.js?v=1.0.0';
 import {readModuleState} from './module-store.js?v=2.1.0';

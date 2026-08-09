@@ -1,5 +1,5 @@
 const BASE='/sedes-tdas-dashboard/';
-const RELEASE='26.16.0';
+const RELEASE='26.16.1';
 const COMFORT_KEY='tdas.202.view-comfort.v1';
 const FONT_KEY='tdas.202.font-scale.v1';
 const LAST_PUBLICATION_KEY='tdas-last-publication-meta-v1';

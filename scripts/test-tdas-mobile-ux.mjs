@@ -2,8 +2,8 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 const read=file=>fs.readFile(file,'utf8');
 const readJson=file=>fs.readFile(file,'utf8').then(JSON.parse);
-const [shell,css,homeModule,settings,index,configHtml,more,sw,postprocess,platform,homeData,history]=await Promise.all([
- read('assets/tdas-mobile-ux.js'),read('assets/tdas-mobile-ux.css'),read('assets/home-mobile.js'),read('assets/settings.js'),read('index.html'),read('configuracoes/index.html'),read('assets/more.js'),read('sw.js'),read('scripts/postprocess-v26.mjs'),readJson('data/platform-version.json'),readJson('data/home.json'),readJson('data/sync-history.json')
+const [shell,css,homeModule,agendaModule,enhancements,settings,index,configHtml,more,sw,postprocess,platform,homeData,history]=await Promise.all([
+ read('assets/tdas-mobile-ux.js'),read('assets/tdas-mobile-ux.css'),read('assets/home-mobile.js'),read('assets/agenda.js'),read('assets/enhance-v20.js'),read('assets/settings.js'),read('index.html'),read('configuracoes/index.html'),read('assets/more.js'),read('sw.js'),read('scripts/postprocess-v26.mjs'),readJson('data/platform-version.json'),readJson('data/home.json'),readJson('data/sync-history.json')
 ]);
 for(const text of ['Início','Estudar','Questões','Desempenho','Mais'])assert.ok(shell.includes(`'${text}'`),`Barra mobile deve conter ${text}.`);
 const navDefinition=shell.match(/const items=\[([\s\S]*?)\];nav\.innerHTML/)?.[1]||'';
@@ -29,6 +29,9 @@ assert.match(homeModule,/resolver\/\?pe=/,'Home deve oferecer CTA de Questões.'
 assert.ok(!homeModule.includes('Cada ciclo concluído aproxima você'),'Hero institucional antigo não deve permanecer na Home nova.');
 assert.ok(!homeModule.includes('Projeções transparentes'),'Projeções técnicas não devem poluir a Home nova.');
 assert.ok(!homeModule.includes('Alertas prioritários'),'Alertas extensos não devem poluir a Home nova.');
+assert.match(agendaModule,/class="card timeline-item" href=/,'Cartões da Agenda devem permanecer ações diretas para o estudo.');
+assert.match(agendaModule,/Abrir estudo →/,'Cartões da Agenda devem explicitar sua ação principal.');
+assert.match(enhancements,/item\.matches\('a\[href\]'\)/,'O aprimoramento legado não pode inserir um link dentro de outro link na Agenda.');
 for(const label of ['Release técnica','Versão dos dados','Última execução real','Próxima janela','Service worker','Dados locais','Modo confortável','Texto ampliado','Fontes oficiais'])assert.ok(settings.includes(label),`Configurações deve conter ${label}.`);
 assert.match(settings,/platformVersion/,'Configurações deve ler platformVersion.');
 assert.match(settings,/dataVersion/,'Configurações deve ler dataVersion.');

@@ -1,4 +1,4 @@
-import { BASE, loadJSON, setupShell, fmtDate, fmtNumber, metric, escapeHTML, setLoadingError } from './common.js?v=26.16.0';
+import { BASE, loadJSON, setupShell, fmtDate, fmtNumber, metric, escapeHTML, setLoadingError } from './common.js?v=26.16.1';
 
 const peHref = pe => `${BASE}estudar/?pe=${encodeURIComponent(pe || '')}`;
 const itemType = item => item?.type || item?.typ || item?.block || 'Não informado';
@@ -10,6 +10,7 @@ const timelineCard = (item, dateLabel = fmtDate(item.date)) => `
     <div>
       <b>${escapeHTML(item.pe)} · ${escapeHTML(item.title)}</b>
       <small>${escapeHTML(itemType(item))} · ${escapeHTML(itemQuestions(item))} questões${item.rd ? ` · ${escapeHTML(item.rd)}` : ''}</small>
+      <br><span class="linked-id">Abrir estudo →</span>
     </div>
     <span class="status warning">${escapeHTML(item.status || 'Não informado')}</span>
   </a>`;

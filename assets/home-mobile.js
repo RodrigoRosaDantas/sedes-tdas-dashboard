@@ -1,4 +1,4 @@
-import { loadJSON, setupShell, fmtNumber, fmtPct, fmtDate, metric, setLoadingError, routes, escapeHTML } from './common.js?v=26.16.0';
+import { loadJSON, setupShell, fmtNumber, fmtPct, fmtDate, metric, setLoadingError, routes, escapeHTML } from './common.js?v=26.16.1';
 import { readPeProgress, summarizeProgress } from './integration/daily-progress.js?v=1.0.0';
 import { readModuleState } from './integration/module-store.js?v=2.1.0';
 import { readSessionDraft } from './integration/session-draft.js?v=1.0.0';
