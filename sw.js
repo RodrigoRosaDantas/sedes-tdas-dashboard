@@ -1,4 +1,4 @@
-const VERSION="tdas-26.15.0-20260808-pe83-034e99c35fa6";
+const VERSION="tdas-26.15.0-20260809-pe84-5b6fe6e947eb";
 const BASE='/sedes-tdas-dashboard/';
 const USER_CACHE_PREFIXES=['tdas-redactions-user-'];
 const CORE_ROUTES=["","hoje/","evolucao/","riscos/","agenda/","redacoes/","auditoria/","mais/","configuracoes/","dados-locais/","questoes-erros/","pe/","materias/","estudar/","resolver/","revisar/","caderno-erros/","desempenho/","fila-ia/","offline.html","manifest.webmanifest","redacoes/detalhe/"];
