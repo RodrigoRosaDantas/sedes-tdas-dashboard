@@ -1,14 +1,14 @@
 {
   "schemaVersion": "1.0.0",
-  "platformVersion": "20260807.8",
+  "platformVersion": "20260809.1",
   "dataVersion": "20260808.1",
   "catalogVersion": "edas-400-s12-20260807",
-  "serviceWorkerVersion": "edas-20260807.8",
-  "sourceCommit": "636ea084bf6bac04b1ff6f043b4c246a8a6c4d4b",
-  "syncDate": "2026-08-08",
-  "syncAt": "2026-08-08T13:23:48-03:00",
-  "releaseAt": "2026-08-07T21:38:00-03:00",
+  "serviceWorkerVersion": "edas-20260809.1",
+  "sourceCommit": "0336b1084362e6911ffeee94312676af47ef790d",
+  "syncDate": "2026-08-09",
+  "syncAt": "2026-08-09T14:00:21-03:00",
+  "releaseAt": "2026-08-09T14:00:21-03:00",
   "sprintId": "S13",
-  "publicationId": "20260807.8|20260808.1|edas-400-s12-20260807|2026-08-08T13:23:48-03:00|636ea084bf6b",
-  "note": "Revalidação oficial em 08/08/2026: Controle confirmou 42 registros S01–S42 sem nova execução objetiva; 30 erros e 12 estudos de caso permanecem válidos. O planejamento oficial completo dos 42 Sprints foi sincronizado para índice e detalhe, preenchendo títulos, composição, revisões, entregáveis, prontidão, tipo e tempo sem alterar métricas nem abrir artificialmente o portão adaptativo do S13."
+  "publicationId": "20260809.1|20260808.1|edas-400-s12-20260807|2026-08-09T14:00:21-03:00|0336b1084362",
+  "note": "Revalidação oficial em 09/08/2026: Controle confirmou 42 Sprints S01–S42, 5 blocos objetivos concluídos, 185 questões, 155 acertos (83,78%), 30 erros e 12 estudos de caso, sem nova execução. O S13 permanece como próxima ação pendente e o S14 continua sendo descanso no calendário. A interface passou a usar estados de atualização em linguagem simples."
 }
