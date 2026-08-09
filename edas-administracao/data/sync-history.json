@@ -1,8 +1,22 @@
 {
   "schemaVersion": "1.0.0",
   "release": "20260808.1",
-  "updatedAt": "2026-08-08T13:23:48-03:00",
+  "updatedAt": "2026-08-09T14:00:21-03:00",
   "events": [
+    {
+      "at": "2026-08-09T14:00:21-03:00",
+      "status": "no_changes",
+      "type": "snapshot",
+      "title": "Fontes oficiais revalidadas sem alterações",
+      "detail": "Controle oficial confirmado com 42 Sprints S01–S42, 5 blocos objetivos concluídos, 185 questões, 155 acertos (83,78%), 30 erros e 12 estudos de caso. O S13 permanece como próxima ação pendente; o S14 é descanso no calendário e não foi convertido em execução."
+    },
+    {
+      "at": "2026-08-09T14:00:21-03:00",
+      "status": "warning",
+      "type": "source",
+      "title": "Estudos de caso validados pela visualização oficial",
+      "detail": "A consulta SQL atingiu o limite de uso do conector do Notion; a rota alternativa pela visualização oficial retornou integralmente os 12 estudos de caso. Nenhum dado parcial foi publicado e nenhuma métrica foi inferida."
+    },
     {
       "at": "2026-08-08T13:23:48-03:00",
       "status": "success",
