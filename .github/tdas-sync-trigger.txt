@@ -3,5 +3,5 @@ Acionador técnico da sincronização TDAS.
 Atualize este arquivo somente quando for necessário solicitar uma recuperação manual da publicação automática.
 
 Última solicitação:
-- data: 2026-08-06
-- motivo: publicar o contrato discursivo 1.1 após corrigir a preservação do cache offline no gerador diário.
+- data: 2026-08-09
+- motivo: reconsultar integralmente as fontes oficiais após alterações manuais no Controle TDAS e publicar o estado validado, incluindo PE83 em andamento, PE84 como descanso planejado e o Caderno de Erros atualizado, sem alterar o monitoramento recorrente.
