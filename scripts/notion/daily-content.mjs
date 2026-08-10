@@ -289,7 +289,7 @@ function parseAnswerKey(markdown) {
 
 export function parseDailyQuestions(markdown, {pe, title, expectedCount = 0, sourcePageId = ''} = {}) {
   const segments = questionSegments(markdown);
-  if (expectedCount === 0 && segments.length === 0) {
+  if (expectedCount === 0) {
     return {
       catalog: {
         schemaVersion: '2.1.0', mode: 'notion-daily-empty', catalogId: `tdas-${String(pe).toLowerCase()}-empty`,
