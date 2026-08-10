@@ -4,4 +4,4 @@ Atualize este arquivo somente quando for necessário solicitar uma recuperação
 
 Última solicitação:
 - data: 2026-08-09
-- motivo: reconsultar integralmente as fontes oficiais após alterações manuais no Controle TDAS e publicar o estado validado, incluindo PE83 em andamento, PE84 como descanso planejado e o Caderno de Erros atualizado, sem alterar o monitoramento recorrente.
+- motivo: reconsultar integralmente as fontes oficiais após fechamento do PE83 no Controle TDAS, mantendo a RD24 como pendência discursiva independente e o PE84 como descanso planejado, sem alterar o monitoramento recorrente.
