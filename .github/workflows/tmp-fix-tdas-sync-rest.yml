@@ -1,0 +1,91 @@
+name: Aplicar correção temporária de sincronização TDAS
+
+on:
+  push:
+    branches: [fix/tdas-sync-rest-20260809]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/tdas-sync-rest-20260809
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Aplicar correções determinísticas
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace(path, old, new):
+              p = Path(path)
+              text = p.read_text()
+              if old not in text:
+                  raise SystemExit(f'Padrão não encontrado em {path}: {old[:80]}')
+              p.write_text(text.replace(old, new, 1))
+
+          replace(
+              'scripts/notion/daily-content.mjs',
+              "  if (expectedCount === 0 && segments.length === 0) {",
+              "  if (expectedCount === 0) {"
+          )
+
+          replace(
+              'scripts/notion/build.mjs',
+              "  const completedControls = sortedControls.filter(item => done(item.status));\n  const activeControls = sortedControls.filter(item => started(item.status));\n  const actualControls = sortedControls.filter(item => started(item.status) || Boolean(item.date && item.date < date));\n  const futureControls = sortedControls.filter(item => !started(item.status) && Boolean(item.date && item.date >= date)).sort(byDate);\n  const overdueControls = actualControls.filter(item => Boolean(item.date && item.date < date) && !done(item.status) && !isRest(item)).sort(byDate);\n  const fulfilled = actualControls.filter(item => done(item.status) || Boolean(item.date && item.date < date && isRest(item))).length;\n  const pendingControls = sortedControls.filter(item => !done(item.status) && !Boolean(item.date && item.date < date && isRest(item)));",
+              "  const completedControls = sortedControls.filter(item => done(item.status));\n  const activeControls = sortedControls.filter(item => started(item.status));\n  const fulfilledRest = item => Boolean(item.date && item.date <= date && isRest(item));\n  const actualControls = sortedControls.filter(item => started(item.status) || Boolean(item.date && item.date < date) || fulfilledRest(item));\n  const futureControls = sortedControls.filter(item => !started(item.status) && !fulfilledRest(item) && Boolean(item.date && item.date >= date)).sort(byDate);\n  const overdueControls = actualControls.filter(item => Boolean(item.date && item.date < date) && !done(item.status) && !isRest(item)).sort(byDate);\n  const fulfilled = actualControls.filter(item => done(item.status) || fulfilledRest(item)).length;\n  const pendingControls = sortedControls.filter(item => !done(item.status) && !fulfilledRest(item));"
+          )
+
+          replace(
+              'scripts/notion/build.mjs',
+              "    if (done(row.status)) {\n      current.completed++;\n      current.meta_completed += Number(row.attempted || row.meta || 0);\n      if (row.acertos != null && row.attempted > 0) {\n        current.result_days++;\n        current.meta_with_result += row.attempted;\n        current.correct += row.acertos;\n      } else if (row.attempted > 0) current.missing_result_days++;\n    }",
+              "    if (done(row.status) || isRest(row)) {\n      current.completed++;\n      current.meta_completed += Number(row.attempted || row.meta || 0);\n    }\n    if (row.acertos != null && row.attempted > 0) {\n      current.result_days++;\n      current.meta_with_result += row.attempted;\n      current.correct += row.acertos;\n    } else if (done(row.status) && row.attempted > 0) current.missing_result_days++;"
+          )
+
+          replace(
+              'scripts/notion/build.mjs',
+              "    metrics: { completed: fulfilled, totalPE, questions: completedQuestions, correct, accuracy: resultQuestions ? round(correct / resultQuestions * 100) : 0, errors: errors.length, redactions: sortedRedactions.length, calendarDays: days, operationalDays: days },",
+              "    metrics: { completed: fulfilled, totalPE, questions: resultQuestions, resultQuestions, correct, accuracy: resultQuestions ? round(correct / resultQuestions * 100) : 0, errors: errors.length, redactions: sortedRedactions.length, calendarDays: days, operationalDays: days },"
+          )
+
+          replace(
+              'scripts/notion/progress.mjs',
+              "  return items.filter(item => isCompletedStatus(item?.status) || Boolean(item?.date && item.date < snapshotDate && isRest(item))).length;",
+              "  return items.filter(item => isCompletedStatus(item?.status) || Boolean(item?.date && item.date <= snapshotDate && isRest(item))).length;"
+          )
+
+          test = Path('scripts/test-daily-content.mjs')
+          text = test.read_text()
+          anchor = "assert.match(catalog.keyPath,/question-keys\\/pe78\\.json$/);\n"
+          addition = "\nconst staleQuestionsOnRest = parseDailyQuestions(markdown,{pe:'PE84',title:'Descanso',expectedCount:0,sourcePageId:'rest'});\nassert.equal(staleQuestionsOnRest.catalog.mode,'notion-daily-empty');\nassert.equal(staleQuestionsOnRest.catalog.questionCount,0);\nassert.deepEqual(staleQuestionsOnRest.catalog.questions,[]);\nassert.equal(staleQuestionsOnRest.key,null);\n"
+          if anchor not in text:
+              raise SystemExit('Âncora de teste diário não encontrada')
+          test.write_text(text.replace(anchor, anchor + addition, 1))
+
+          test = Path('scripts/test-schedule-partition.mjs')
+          text = test.read_text()
+          anchor = "assert.equal(inProgress.home.metrics.completed, 2, 'PE concluído e descanso passado devem contar como etapas cumpridas.');\n"
+          addition = "\nconst inProgressWithResultControls = controls.map(item => item.pe === 'PE04' ? { ...item, status: 'Em andamento', attempted: 5, acertos: 4 } : item);\nconst inProgressWithResult = build(inProgressWithResultControls, [], [], '2026-08-03', '2026-08-03T10:30:00-03:00');\nassert.equal(inProgressWithResult.home.metrics.questions, 15, 'Questões já respondidas em PE em andamento devem entrar em Questões com resultado.');\nassert.equal(inProgressWithResult.home.metrics.correct, 13);\n\nconst currentRestControls = controls.map(item => item.pe === 'PE04' ? { ...item, status: 'Descanso', typ: 'Descanso', title: 'Descanso planejado', meta: 0, attempted: 0, acertos: 0 } : item);\nconst currentRest = build(currentRestControls, [], [], '2026-08-03', '2026-08-03T11:00:00-03:00');\nassert.equal(currentRest.home.metrics.completed, 3, 'Descanso planejado no próprio dia do snapshot deve contar como etapa cumprida.');\nassert.equal(currentRest.agenda.current.pe, 'PE04');\nassert.deepEqual(currentRest.agenda.allFuture.map(item => item.pe), ['PE05']);\nassert.equal(currentRest.agenda.summary.remainingPE, 2);\n"
+          if anchor not in text:
+              raise SystemExit('Âncora de teste de agenda não encontrada')
+          test.write_text(text.replace(anchor, anchor + addition, 1))
+          PY
+      - name: Validar suíte integral
+        run: npm run check
+      - name: Consolidar correção na branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm .github/workflows/tmp-fix-tdas-sync-rest.yml
+          git config user.name 'tdas-maintenance[bot]'
+          git config user.email 'tdas-maintenance[bot]@users.noreply.github.com'
+          git add scripts/notion/daily-content.mjs scripts/notion/build.mjs scripts/notion/progress.mjs scripts/test-daily-content.mjs scripts/test-schedule-partition.mjs .github/workflows/tmp-fix-tdas-sync-rest.yml
+          git commit -m 'Corrigir sincronização de descanso e resultados em andamento'
+          git push origin HEAD:fix/tdas-sync-rest-20260809
