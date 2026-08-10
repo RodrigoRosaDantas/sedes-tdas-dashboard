@@ -47,7 +47,7 @@ const overdue = actual
   .sort(byDate)
   .map(publicPending);
 const pendingActual = actual
-  .filter(item => !isCompletedStatus(item.status) && !Boolean(item.date && item.date < snapshotDate && isRest(item)))
+  .filter(item => !isCompletedStatus(item.status) && !Boolean(item.date && item.date <= snapshotDate && isRest(item)))
   .map(publicPending);
 const remaining = pendingActual.length + future.length;
 const days = Number(agenda.summary?.operationalDays || home.metrics?.operationalDays || home.metrics?.calendarDays || 1);
