@@ -2,6 +2,7 @@ import fs from 'node:fs/promises';
 import { DAILY_ROOTS, discoverDailyPages, parseDailyQuestions, peCode, renderMaterialMarkdown } from './notion/daily-content.mjs';
 import { fetchMarkdown } from './notion/api.mjs';
 import { correctionPolicy } from './notion/daily-audit-policy.mjs';
+import { isRest } from './notion/progress.mjs';
 
 const CONTROL_FILES = Object.freeze([
   'data/export/actual-01.json',
@@ -55,7 +56,8 @@ async function loadControls() {
     const pe = peId(number);
     const record = byPe.get(pe);
     required(record, `${pe}: controle não localizado nos arquivos oficiais gerados do Notion.`);
-    const expectedCount = Number(record.planned_questions ?? record.meta ?? 0);
+    const declaredCount = Number(record.planned_questions ?? record.meta ?? 0);
+    const expectedCount = isRest(record) ? 0 : declaredCount;
     required(Number.isInteger(expectedCount) && expectedCount >= 0, `${pe}: quantidade programada inválida.`);
     required(/^\d{4}-\d{2}-\d{2}$/.test(String(record.date || '')), `${pe}: data inválida.`);
     selected.push({

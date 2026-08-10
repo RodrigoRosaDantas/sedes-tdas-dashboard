@@ -65,4 +65,18 @@ assert.equal(inProgress.agenda.summary.remainingPE, 3, 'PE atual iniciado contin
 assert.equal(inProgress.agenda.summary.plannedQuestionsMidpoint, 95, 'Estimativa deve incluir também o PE atual em andamento.');
 assert.deepEqual(inProgress.agenda.overdue.map(item => item.pe), ['PE03']);
 
-console.log('Agenda particionada por data: histórico preservado, atraso explícito e ritmo calculado sobre todos os PE pendentes.');
+const inProgressWithResultControls = controls.map(item => item.pe === 'PE04' ? { ...item, status: 'Em andamento', attempted: 5, acertos: 4 } : item);
+const inProgressWithResult = build(inProgressWithResultControls, [], [], '2026-08-03', '2026-08-03T10:30:00-03:00');
+assert.equal(inProgressWithResult.home.metrics.questions, 15, 'Questões já respondidas em PE em andamento devem entrar em Questões com resultado.');
+assert.equal(inProgressWithResult.home.metrics.correct, 13);
+assert.equal(inProgressWithResult.evolution.weekly.find(item => item.week === 1)?.meta_with_result, 15);
+
+const currentRestControls = controls.map(item => item.pe === 'PE04' ? { ...item, status: 'Descanso', typ: 'Descanso', title: 'Descanso planejado', meta: 0, attempted: 0, acertos: 0 } : item);
+const currentRest = build(currentRestControls, [], [], '2026-08-03', '2026-08-03T11:00:00-03:00');
+assert.equal(currentRest.home.metrics.completed, 3, 'Descanso planejado no próprio dia do snapshot deve contar como etapa cumprida.');
+assert.equal(currentRest.agenda.current.pe, 'PE04');
+assert.deepEqual(currentRest.agenda.allFuture.map(item => item.pe), ['PE05']);
+assert.equal(currentRest.agenda.summary.remainingPE, 2);
+assert.equal(currentRest.audit.summary.rest_days, 2);
+
+console.log('Agenda particionada por data: histórico preservado, atraso explícito, descanso atual contado e resultados em andamento incorporados.');

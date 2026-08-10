@@ -131,15 +131,15 @@ function weeklyRows(actual) {
     if (!map.has(week)) map.set(week, { week, rows: 0, completed: 0, result_days: 0, meta_completed: 0, meta_with_result: 0, correct: 0, linked_errors: 0, missing_result_days: 0 });
     const current = map.get(week);
     current.rows++;
-    if (done(row.status)) {
+    if (done(row.status) || isRest(row)) {
       current.completed++;
       current.meta_completed += Number(row.attempted || row.meta || 0);
-      if (row.acertos != null && row.attempted > 0) {
-        current.result_days++;
-        current.meta_with_result += row.attempted;
-        current.correct += row.acertos;
-      } else if (row.attempted > 0) current.missing_result_days++;
     }
+    if (row.acertos != null && row.attempted > 0) {
+      current.result_days++;
+      current.meta_with_result += row.attempted;
+      current.correct += row.acertos;
+    } else if (done(row.status) && row.attempted > 0) current.missing_result_days++;
     current.linked_errors += row.errors || 0;
   }
   return [...map.values()].sort((a, b) => a.week - b.week).map(row => ({ ...row, accuracy: row.meta_with_result ? round(row.correct / row.meta_with_result * 100) : 0 }));
@@ -202,11 +202,12 @@ export function build(controls, errors, redactions, date, syncedAt) {
   const sortedRedactions = [...redactions].sort(byCode);
   const completedControls = sortedControls.filter(item => done(item.status));
   const activeControls = sortedControls.filter(item => started(item.status));
-  const actualControls = sortedControls.filter(item => started(item.status) || Boolean(item.date && item.date < date));
-  const futureControls = sortedControls.filter(item => !started(item.status) && Boolean(item.date && item.date >= date)).sort(byDate);
+  const fulfilledRest = item => Boolean(item.date && item.date <= date && isRest(item));
+  const actualControls = sortedControls.filter(item => started(item.status) || Boolean(item.date && item.date < date) || fulfilledRest(item));
+  const futureControls = sortedControls.filter(item => !started(item.status) && !fulfilledRest(item) && Boolean(item.date && item.date >= date)).sort(byDate);
   const overdueControls = actualControls.filter(item => Boolean(item.date && item.date < date) && !done(item.status) && !isRest(item)).sort(byDate);
-  const fulfilled = actualControls.filter(item => done(item.status) || Boolean(item.date && item.date < date && isRest(item))).length;
-  const pendingControls = sortedControls.filter(item => !done(item.status) && !Boolean(item.date && item.date < date && isRest(item)));
+  const fulfilled = actualControls.filter(item => done(item.status) || fulfilledRest(item)).length;
+  const pendingControls = sortedControls.filter(item => !done(item.status) && !fulfilledRest(item));
   const actual = actualControls.map(item => publicControl(item, errors));
   const future = futureControls.map(publicFuture);
   const overdue = overdueControls.map(publicFuture);
@@ -253,7 +254,7 @@ export function build(controls, errors, redactions, date, syncedAt) {
   if (notStarted) alerts.push({ level: 'warning', title: 'Ritmo discursivo precisa ser protegido', detail: `Restam ${notStarted} redações. Ritmo necessário: ${perWeek.toFixed(1)} por semana.`, action: 'Abrir redações', href: '/sedes-tdas-dashboard/redacoes/' });
   const home = {
     meta: meta(date),
-    metrics: { completed: fulfilled, totalPE, questions: completedQuestions, correct, accuracy: resultQuestions ? round(correct / resultQuestions * 100) : 0, errors: errors.length, redactions: sortedRedactions.length, calendarDays: days, operationalDays: days },
+    metrics: { completed: fulfilled, totalPE, questions: resultQuestions, resultQuestions, correct, accuracy: resultQuestions ? round(correct / resultQuestions * 100) : 0, errors: errors.length, redactions: sortedRedactions.length, calendarDays: days, operationalDays: days },
     today: view(currentControl),
     latest: view(latestControl),
     overdue,
