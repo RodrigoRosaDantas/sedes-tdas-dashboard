@@ -46,6 +46,11 @@ assert.ok(!('gabarito' in catalog));
 assert.ok(!JSON.stringify(catalog).includes('1-B | 2-D'));
 assert.match(catalog.keyPath,/question-keys\/pe78\.json$/);
 
+const staleQuestionsOnRest=parseDailyQuestions(markdown,{pe:'PE84',title:'Descanso',expectedCount:0,sourcePageId:'rest'});
+assert.equal(staleQuestionsOnRest.catalog.mode,'notion-daily-empty');
+assert.equal(staleQuestionsOnRest.catalog.questionCount,0);
+assert.deepEqual(staleQuestionsOnRest.catalog.questions,[]);
+assert.equal(staleQuestionsOnRest.key,null);
 
 const binaryMarkdown = `# 2. Questões
 ## Arquivologia — Questões 1 a 2
@@ -179,4 +184,4 @@ assert.match(html,/<strong>Estudar<\/strong>/);
 assert.match(html,/<ul>/);
 assert.match(html,/<table>/);
 assert.ok(!html.includes('<script'));
-console.log('Conteúdo diário testado: texto legítimo preservado, estrutura pública restrita e correção separada.');
+console.log('Conteúdo diário testado: texto legítimo preservado, meta zero prevalece sobre conteúdo residual, estrutura pública restrita e correção separada.');
