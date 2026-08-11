@@ -1,14 +1,14 @@
 {
   "schemaVersion": "1.0.0",
   "platformVersion": "20260809.1",
-  "dataVersion": "20260808.1",
+  "dataVersion": "20260811.1",
   "catalogVersion": "edas-400-s12-20260807",
   "serviceWorkerVersion": "edas-20260809.1",
-  "sourceCommit": "0336b1084362e6911ffeee94312676af47ef790d",
-  "syncDate": "2026-08-09",
-  "syncAt": "2026-08-09T14:00:21-03:00",
+  "sourceCommit": "2a295af20e0c0348bdfb962e45495b7b1987b42d",
+  "syncDate": "2026-08-11",
+  "syncAt": "2026-08-11T01:25:02-03:00",
   "releaseAt": "2026-08-09T14:00:21-03:00",
-  "sprintId": "S13",
-  "publicationId": "20260809.1|20260808.1|edas-400-s12-20260807|2026-08-09T14:00:21-03:00|0336b1084362",
-  "note": "Revalidação oficial em 09/08/2026: Controle confirmou 42 Sprints S01–S42, 5 blocos objetivos concluídos, 185 questões, 155 acertos (83,78%), 30 erros e 12 estudos de caso, sem nova execução. O S13 permanece como próxima ação pendente e o S14 continua sendo descanso no calendário. A interface passou a usar estados de atualização em linguagem simples."
+  "sprintId": "S08",
+  "publicationId": "20260809.1|20260811.1|edas-400-s12-20260807|2026-08-11T01:25:02-03:00|2a295af20e0c",
+  "note": "Sincronização oficial em 11/08/2026: as três views EDAS foram percorridas integralmente. O S06 foi executado em 10/08 com 20 questões, 12 acertos e 8 erros, elevando o acumulado para 6 blocos concluídos, 205 questões, 167 acertos (81,46%) e 38 erros. O Caderno possui 31 páginas detalhadas e os 12 estudos de caso permanecem não iniciados. O S08 é a próxima ação pendente; S16 é o Sprint do calendário em 11/08."
 }
