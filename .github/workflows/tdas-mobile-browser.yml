@@ -11,6 +11,10 @@ on:
       - 'assets/home-mobile.js'
       - 'assets/tdas-mobile-ux.js'
       - 'assets/tdas-mobile-ux.css'
+      - 'assets/tdas-pro-modules.js'
+      - 'assets/tdas-pro-modules.css'
+      - 'assets/tdas-command-palette.js'
+      - 'assets/tdas-command-palette.css'
       - 'assets/settings.js'
       - 'assets/more.js'
       - 'assets/enhance-v20.js'
@@ -18,6 +22,8 @@ on:
       - 'assets/integration/study-ux.js'
       - 'scripts/test-tdas-mobile-browser.mjs'
       - 'scripts/test-tdas-mobile-ux.mjs'
+      - 'scripts/test-command-palette.mjs'
+      - 'scripts/test-command-palette-browser.mjs'
       - 'sw.js'
       - 'package.json'
   push:
@@ -29,6 +35,10 @@ on:
       - 'assets/home-mobile.js'
       - 'assets/tdas-mobile-ux.js'
       - 'assets/tdas-mobile-ux.css'
+      - 'assets/tdas-pro-modules.js'
+      - 'assets/tdas-pro-modules.css'
+      - 'assets/tdas-command-palette.js'
+      - 'assets/tdas-command-palette.css'
       - 'assets/settings.js'
       - 'assets/more.js'
       - 'assets/enhance-v20.js'
@@ -36,6 +46,8 @@ on:
       - 'assets/integration/study-ux.js'
       - 'scripts/test-tdas-mobile-browser.mjs'
       - 'scripts/test-tdas-mobile-ux.mjs'
+      - 'scripts/test-command-palette.mjs'
+      - 'scripts/test-command-palette-browser.mjs'
       - 'sw.js'
       - 'package.json'
   schedule:
@@ -68,3 +80,8 @@ jobs:
         env:
           CHROME_BIN: google-chrome
         run: npm run test:tdas-mobile-browser
+
+      - name: Validar Command Palette no Chrome real
+        env:
+          CHROME_BIN: google-chrome
+        run: npm run test:command-palette-browser
