@@ -118,14 +118,20 @@ Regenera os arquivos discursivos a partir dos dados preparados. A publicação o
 
 ## 4. Padrão de experiência TDAS
 
-A experiência mobile do Cargo 202 segue a arquitetura consolidada no EDAS sem compartilhar dados entre os cargos.
+A experiência do Cargo 202 é orientada à **execução diária**, sem compartilhar dados com o Cargo 400.
 
-- A Home responde primeiro **o que fazer agora**, usando o PE vigente e a Central de Execução.
+- A Home responde primeiro **o que fazer agora**, usando o PE vigente, a Central de Execução e uma única ação primária coerente com o estado local/oficial.
 - PE vencido e ainda não concluído permanece explícito na Home e na Agenda até a conclusão oficial; o avanço da data não pode descartá-lo do total pendente.
 - O PE atual, o último PE concluído e as pendências anteriores são conceitos separados. O ritmo considera atrasos mais o calendário de hoje em diante.
-- A barra inferior possui exatamente cinco áreas: **Início, Estudar, Questões, Desempenho e Mais**.
-- O drawer organiza as demais rotas em **Estudar, Praticar, Evolução e Sistema**.
+- A barra inferior mobile possui exatamente cinco áreas: **Hoje, Questões, Revisar, Erros e Mais**.
+- A navegação desktop destaca **Hoje, Questões, Revisar, Erros, Progresso e Conteúdo**; opções administrativas não disputam prioridade com a execução diária.
+- O drawer organiza as demais rotas em **Hoje, Conteúdo, Praticar, Progresso e Sistema**.
 - Informações técnicas, instalação, sincronização, backup, fontes e preferências ficam em **Configurações**; a Auditoria permanece técnica.
+- Durante uma questão ativa, o player entra em modo focado: navegação periférica é escondida, resposta/confiança continuam persistidas questão a questão e a correção permanece reservada até a finalização.
+- A confiança usa linguagem direta: **Sei, Tenho dúvida e Chute**.
+- Após a finalização, erros podem receber causa local — **Não sabia, Confundi conceitos, Esqueci a regra, Interpretei errado, Pressa ou Pegadinha** — armazenada separadamente em `tdas.202.error-causes.v1`, sem alterar gabarito ou Notion.
+- Revisões vencidas podem ser resumidas como uma fila do dia com estimativa de tempo; o motor D+1/D+7/D+20 e os estados de domínio continuam sendo a fonte da ordem de revisão.
+- O estado de dados deve distinguir claramente a **publicação já sincronizada** de uma nova leitura do Notion. No navegador, `Verificar publicação` consulta o manifesto publicado; não chama a API do Notion nem expõe token.
 - O badge de publicação é derivado do manifesto real e deve ser revalidado ao reconectar.
 - Modo confortável e Texto ampliado são preferências locais isoladas pelas chaves `tdas.202.*`.
 - `prefers-reduced-motion` deve ser respeitado.
