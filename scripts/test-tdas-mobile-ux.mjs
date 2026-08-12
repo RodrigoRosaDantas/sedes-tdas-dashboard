@@ -2,8 +2,8 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 const read=file=>fs.readFile(file,'utf8');
 const readJson=file=>fs.readFile(file,'utf8').then(JSON.parse);
-const [shell,css,proCss,studyUx,homeModule,agendaModule,enhancements,settings,index,configHtml,more,sw,postprocess,platform,homeData,history]=await Promise.all([
- read('assets/tdas-mobile-ux.js'),read('assets/tdas-mobile-ux.css'),read('assets/tdas-pro-dashboard.css'),read('assets/integration/study-ux.js'),read('assets/home-mobile.js'),read('assets/agenda.js'),read('assets/enhance-v20.js'),read('assets/settings.js'),read('index.html'),read('configuracoes/index.html'),read('assets/more.js'),read('sw.js'),read('scripts/postprocess-v26.mjs'),readJson('data/platform-version.json'),readJson('data/home.json'),readJson('data/sync-history.json')
+const [shell,css,proCss,moduleCss,moduleUx,studyUx,homeModule,agendaModule,enhancements,settings,index,configHtml,more,sw,postprocess,platform,homeData,history]=await Promise.all([
+ read('assets/tdas-mobile-ux.js'),read('assets/tdas-mobile-ux.css'),read('assets/tdas-pro-dashboard.css'),read('assets/tdas-pro-modules.css'),read('assets/tdas-pro-modules.js'),read('assets/integration/study-ux.js'),read('assets/home-mobile.js'),read('assets/agenda.js'),read('assets/enhance-v20.js'),read('assets/settings.js'),read('index.html'),read('configuracoes/index.html'),read('assets/more.js'),read('sw.js'),read('scripts/postprocess-v26.mjs'),readJson('data/platform-version.json'),readJson('data/home.json'),readJson('data/sync-history.json')
 ]);
 for(const text of ['Hoje','Questões','Revisar','Erros','Mais'])assert.ok(shell.includes(`'${text}'`),`Barra mobile deve conter ${text}.`);
 const navDefinition=shell.match(/const items=\[([\s\S]*?)\];nav\.innerHTML/)?.[1]||'';
@@ -15,6 +15,8 @@ assert.match(shell,/data-menu-toggle/,'Shell deve expor botão Menu.');
 assert.match(shell,/Escape/,'Drawer deve fechar por Escape.');
 assert.match(shell,/touchstart/,'Drawer deve possuir gesto touch.');
 assert.match(shell,/study-ux\.js\?v=1\.0\.0/,'Shell deve carregar a camada de UX de estudo.');
+assert.match(shell,/tdas-pro-modules\.js\?v=1\.0\.0/,'Shell deve carregar a camada PRO transversal.');
+assert.match(shell,/tdas-pro-modules\.css\?v=1/,'Shell deve carregar o CSS PRO transversal.');
 for(const state of ['Atualizado','Publicação atrasada','Snapshot desatualizado','Offline','Verificação indisponível'])assert.ok(shell.includes(state),`Badge deve suportar estado ${state}.`);
 assert.match(shell,/window\.addEventListener\('online',refreshPublication\)/,'Reconexão deve consultar novamente a publicação.');
 assert.match(shell,/tdas\.202\.view-comfort\.v1/,'Modo confortável deve usar chave local isolada do Cargo 202.');
@@ -25,6 +27,14 @@ assert.match(css,/\.tdas-view-large-text/,'CSS deve implementar texto ampliado.'
 for(const marker of ['Product Design System PRO','--pro-violet','tdas-hero-aside','tdas-pro-grid','tdas-insight-grid','tdas-result-ring'])assert.ok(css.includes(marker),`Design PRO deve preservar ${marker}.`);
 assert.ok(!css.includes('identidade visual Ember'),'Identidade Ember não deve reaparecer após o redesign PRO.');
 for(const marker of ['tdas-command-search','tdas-performance-chart','tdas-week-strip','tdas-edital-summary','tdas-acervo-metrics','tdas-nav-copy'])assert.ok(proCss.includes(marker),`Componentes avançados devem preservar ${marker}.`);
+for(const marker of ['tdas-pro-contextbar','tdas-module-scorecard','tdas-module-trail','tdas-module-command','tdas-pro-crossnav','pilot-question','review-card','daily-material-content'])assert.ok(moduleCss.includes(marker),`Camada transversal deve estilizar ${marker}.`);
+for(const page of ['resolver','revisar','caderno','desempenho','estudar','materias'])assert.ok(moduleUx.includes(`${page}:`),`Camada PRO deve possuir contrato para ${page}.`);
+for(const marker of ['Sessão cega preservada','Feche a fila antes de aumentar o volume','Ataque reincidências antes de seguir','Seu dado já aponta uma ação','Não administre o fluxo: execute a sequência','Use a biblioteca para decidir'])assert.ok(moduleUx.includes(marker),`Camada PRO deve conter decisão contextual: ${marker}.`);
+assert.match(moduleUx,/tdas\.202\.question-module\.v2\.draft/,'Scorecard do Resolver deve ler a chave real de rascunho.');
+assert.match(moduleUx,/MutationObserver/,'Camada PRO deve reagir às transições internas do player.');
+assert.match(moduleUx,/data-pro-scorecard/,'Camada PRO deve injetar scorecard contextual.');
+assert.match(moduleUx,/data-pro-crossnav/,'Camada PRO deve manter atalhos entre os módulos do ciclo.');
+assert.ok(!moduleUx.includes('api.notion.com'),'Camada PRO não pode consultar diretamente a API do Notion.');
 assert.match(studyUx,/tdas\.202\.error-causes\.v1/,'Diagnóstico de causa deve usar chave local isolada.');
 for(const label of ['Não sabia','Confundi conceitos','Esqueci a regra','Interpretei errado','Pressa','Pegadinha'])assert.ok(studyUx.includes(label),`Diagnóstico deve oferecer ${label}.`);
 for(const marker of ['Por que você errou?','Revisão de hoje','Notion → validação GitHub → site','tdas-player-focus','Salvar e próxima →'])assert.ok(studyUx.includes(marker),`Camada UX deve conter ${marker}.`);
@@ -58,11 +68,11 @@ assert.match(index,/tdas-pro-dashboard\.css/,'Home pública deve carregar os com
 assert.match(configHtml,/settings\.js/,'Rota Configurações deve carregar seu módulo.');
 assert.match(more,/configuracoes\//,'Tela Mais deve encaminhar para Configurações.');
 assert.ok(!more.includes('data-theme-toggle>Alternar tema'),'Tela Mais não deve duplicar controle técnico de tema fora de Configurações.');
-for(const item of ['configuracoes/','assets/home-mobile.js','assets/tdas-mobile-ux.js','assets/tdas-mobile-ux.css','assets/tdas-pro-dashboard.css','assets/settings.js','assets/integration/study-ux.js']){assert.ok(sw.includes(item),`PWA deve incluir ${item}.`);assert.ok(postprocess.includes(item),`Gerador do PWA deve preservar ${item}.`)}
+for(const item of ['configuracoes/','assets/home-mobile.js','assets/tdas-mobile-ux.js','assets/tdas-mobile-ux.css','assets/tdas-pro-dashboard.css','assets/tdas-pro-modules.css','assets/tdas-pro-modules.js','assets/settings.js','assets/integration/study-ux.js']){assert.ok(sw.includes(item),`PWA deve incluir ${item}.`);assert.ok(postprocess.includes(item),`Gerador do PWA deve preservar ${item}.`)}
 assert.ok(!sw.includes('question-keys/'),'Gabarito não pode entrar no precache do TDAS.');
 const lastValidSync=(history.entries||[]).find(item=>['success','no_changes'].includes(item?.status)&&item?.at)?.at;
 assert.equal(platform.dataVersion,homeData.meta?.version,'dataVersion deve continuar derivada do snapshot oficial.');
 assert.equal(platform.syncAt,lastValidSync,'syncAt deve continuar derivada da última sincronização real, não da release visual.');
 assert.equal(platform.peId,homeData.today?.pe,'PE do manifesto deve continuar alinhado ao snapshot oficial.');
-assert.match(platform.serviceWorkerVersion,/pro2$/,'Cache visual deve identificar a geração PRO atual.');
-console.log('UX TDAS validada: Dashboard PRO inspirado no chatgpt.site, busca-comando, execução, desempenho, cobertura, edital, acervo, player e PWA preservados.');
+assert.match(platform.serviceWorkerVersion,/pro3$/,'Cache visual deve identificar a geração PRO3 atual.');
+console.log('UX TDAS validada: Dashboard PRO + módulos transversais, decisões contextuais, player focado, PWA e separação plataforma/dados preservados.');
