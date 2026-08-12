@@ -58,7 +58,8 @@ try{
  assert.equal(await evaluate(mobile,"document.querySelector('[data-tab=bank]')?.getAttribute('aria-selected')"),'true');
  assert.equal(await evaluate(mobile,"getComputedStyle(document.querySelector('.rd-bank-table')).display"),'none');
  assert.notEqual(await evaluate(mobile,"getComputedStyle(document.querySelector('.rd-bank-cards')).display"),'none');
- assert.equal(await evaluate(mobile,"[...document.querySelectorAll('#mobile-nav a')].map(a=>a.querySelector('span:last-child')?.textContent.trim()||'').join('|')"),'Início|Estudar|Questões|Desempenho|Mais');
+ await waitFor(mobile,"[...document.querySelectorAll('#mobile-nav a')].map(a=>a.querySelector('span:last-child')?.textContent.trim()||'').join('|')==='Hoje|Questões|Revisar|Erros|Mais'",'barra mobile orientada à execução');
+ assert.equal(await evaluate(mobile,"[...document.querySelectorAll('#mobile-nav a')].map(a=>a.querySelector('span:last-child')?.textContent.trim()||'').join('|')"),'Hoje|Questões|Revisar|Erros|Mais');
  await waitFor(mobile,"Boolean(document.querySelector('[data-menu-toggle]'))",'botão do menu móvel');
  await evaluate(mobile,"document.querySelector('[data-menu-toggle]').click();true");
  await waitFor(mobile,"!document.querySelector('[data-tdas-drawer]').hidden",'drawer móvel nas redações');
