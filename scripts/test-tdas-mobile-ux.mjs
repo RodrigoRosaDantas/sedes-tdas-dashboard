@@ -74,5 +74,5 @@ const lastValidSync=(history.entries||[]).find(item=>['success','no_changes'].in
 assert.equal(platform.dataVersion,homeData.meta?.version,'dataVersion deve continuar derivada do snapshot oficial.');
 assert.equal(platform.syncAt,lastValidSync,'syncAt deve continuar derivada da última sincronização real, não da release visual.');
 assert.equal(platform.peId,homeData.today?.pe,'PE do manifesto deve continuar alinhado ao snapshot oficial.');
-assert.match(platform.serviceWorkerVersion,/pro3$/,'Cache visual deve identificar a geração PRO3 atual.');
+assert.match(platform.serviceWorkerVersion,/pro4$/,'Cache visual deve identificar a geração PRO4 atual.');
 console.log('UX TDAS validada: Dashboard PRO + módulos transversais, decisões contextuais, player focado, PWA e separação plataforma/dados preservados.');
