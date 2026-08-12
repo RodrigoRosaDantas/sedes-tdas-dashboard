@@ -1,0 +1,44 @@
+/* TDAS PRO — Command Palette global */
+.tdas-command-trigger{display:inline-flex;align-items:center;gap:7px;min-height:36px;padding:7px 10px;border:1px solid var(--line);border-radius:11px;background:var(--surface);color:var(--muted);font-size:9px;font-weight:800;cursor:pointer}
+.tdas-command-trigger:hover,.tdas-command-trigger:focus-visible{border-color:color-mix(in srgb,var(--pro-violet) 48%,var(--line));color:var(--text)}
+.tdas-command-trigger span:first-child{font-size:14px;color:var(--pro-mint)}
+.tdas-command-trigger kbd{padding:2px 5px;border:1px solid var(--line);border-bottom-width:2px;border-radius:6px;background:var(--surface2);color:var(--muted);font:700 8px/1 ui-monospace,SFMono-Regular,Menlo,monospace}
+
+.tdas-command-overlay{position:fixed;inset:0;z-index:900;display:grid;place-items:start center;padding:clamp(74px,11vh,120px) 16px 24px;background:rgba(2,8,15,.68);backdrop-filter:blur(9px);-webkit-backdrop-filter:blur(9px)}
+.tdas-command-overlay[hidden]{display:none}
+.tdas-command-dialog{width:min(720px,100%);overflow:hidden;border:1px solid color-mix(in srgb,var(--pro-violet) 32%,var(--line));border-radius:20px;background:var(--surface);box-shadow:0 34px 100px rgba(0,0,0,.48)}
+.tdas-command-head{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:11px;align-items:center;padding:14px 15px;border-bottom:1px solid var(--line)}
+.tdas-command-head>span{color:var(--pro-mint);font-size:20px}
+.tdas-command-head input{width:100%;padding:0!important;border:0!important;outline:0!important;background:transparent!important;color:var(--text);font-size:15px;font-weight:650}
+.tdas-command-head input::placeholder{color:var(--muted);font-weight:500}
+.tdas-command-close{width:32px;height:32px;padding:0;border:1px solid var(--line);border-radius:10px;background:var(--surface2);color:var(--muted);font-size:18px;cursor:pointer}
+.tdas-command-meta{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 14px;color:var(--muted);font-size:8px}
+.tdas-command-meta span{display:flex;gap:8px;align-items:center}
+.tdas-command-meta kbd{padding:2px 5px;border:1px solid var(--line);border-radius:5px;background:var(--surface2);font:700 7px/1 ui-monospace,SFMono-Regular,Menlo,monospace}
+.tdas-command-results{max-height:min(58vh,510px);overflow:auto;padding:7px;scrollbar-width:thin}
+.tdas-command-group{padding:8px 8px 4px;color:var(--muted);font-size:8px;font-weight:900;text-transform:uppercase;letter-spacing:.11em}
+.tdas-command-item{display:grid;grid-template-columns:36px minmax(0,1fr) auto;gap:10px;align-items:center;width:100%;padding:9px 10px;border:1px solid transparent;border-radius:12px;background:transparent;color:var(--text);text-align:left;text-decoration:none;cursor:pointer}
+.tdas-command-item:hover,.tdas-command-item.active{border-color:color-mix(in srgb,var(--pro-violet) 22%,var(--line));background:var(--surface2)}
+.tdas-command-item>i{display:grid;place-items:center;width:34px;height:34px;border-radius:10px;background:color-mix(in srgb,var(--pro-violet) 8%,var(--surface3));color:var(--pro-mint);font-style:normal;font-size:12px;font-weight:850}
+.tdas-command-item b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px}
+.tdas-command-item small{display:block;overflow:hidden;margin-top:2px;color:var(--muted);font-size:8px;text-overflow:ellipsis;white-space:nowrap}
+.tdas-command-item>span:last-child{color:var(--muted);font-size:11px}
+.tdas-command-item[data-kind="action"]>i{background:color-mix(in srgb,var(--pro-mint) 11%,var(--surface3));color:var(--pro-mint)}
+.tdas-command-item[data-kind="risk"]>i{background:color-mix(in srgb,var(--red) 9%,var(--surface3));color:var(--red)}
+.tdas-command-empty{padding:28px 18px;text-align:center;color:var(--muted)}
+.tdas-command-empty b{display:block;margin-bottom:4px;color:var(--text);font-size:12px}
+.tdas-command-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 14px;border-top:1px solid var(--line);background:var(--surface2);color:var(--muted);font-size:8px}
+.tdas-command-open{overflow:hidden}
+
+@media(max-width:780px){
+ .tdas-command-trigger{width:42px;min-width:42px;height:42px;padding:0;justify-content:center;border-radius:13px}
+ .tdas-command-trigger span:last-of-type,.tdas-command-trigger kbd{display:none}
+ .tdas-command-overlay{align-items:start;padding:70px 10px 16px}
+ .tdas-command-dialog{border-radius:17px}
+ .tdas-command-head{padding:12px}
+ .tdas-command-head input{font-size:14px}
+ .tdas-command-results{max-height:62vh}
+ .tdas-command-meta{display:none}
+ .tdas-command-foot{font-size:7.5px}
+}
+@media(max-width:420px){.tdas-command-overlay{padding:62px 7px 10px}.tdas-command-item{grid-template-columns:32px minmax(0,1fr) auto;padding:8px}.tdas-command-item>i{width:31px;height:31px}.tdas-command-foot span:last-child{display:none}}
