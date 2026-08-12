@@ -24,7 +24,7 @@ export function parseMicroMarkdown(markdown,week){
  for(let index=0;index<headings.length;index++){
   const heading=headings[index],number=Number(heading[1]),pe=`PE${String(number).padStart(2,'0')}`;
   const section=source.slice(heading.index,headings[index+1]?.index??source.length);
-  const headingText=strip(heading[0]);
+  const headingText=strip(heading[0]).replace(/^#+\s*/,'');
   const rest=/\bdescanso\b/i.test(headingText)||/\*\*Obrigatório:\*\*\s*descanso/i.test(section);
   const officialExam=number===112||/\bprova oficial\b/i.test(headingText);
   const range=firstRangeAfter(section,'Total estimado')||firstRangeAfter(section,'Total do dia');
