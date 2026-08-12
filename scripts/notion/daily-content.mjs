@@ -328,7 +328,8 @@ export function parseDailyQuestions(markdown, {pe, title, expectedCount = 0, sou
     seenNumbers.add(segment.number);
     const parsed = parseQuestionBody(segment.body);
     const stemWords = parsed.enunciado.split(/\s+/).filter(Boolean);
-    required(parsed.enunciado.length >= 5 && stemWords.length >= 2, `${pe}: questão ${segment.number} sem enunciado suficiente.`);
+    const stemLooksSubstantive = stemWords.length >= 2 || parsed.enunciado.length >= 10;
+    required(parsed.enunciado.length >= 5 && stemLooksSubstantive, `${pe}: questão ${segment.number} sem enunciado suficiente.`);
     const optionKeys = Object.keys(parsed.alternativas);
     required(optionKeys.length >= 2 && optionKeys.length <= OPTION_KEYS.length, `${pe}: questão ${segment.number} deve possuir entre duas e cinco alternativas.`);
     required(optionKeys.join('') === OPTION_KEYS.slice(0, optionKeys.length).join(''), `${pe}: questão ${segment.number} possui alternativas descontínuas.`);
