@@ -9,8 +9,21 @@ on:
     branches: [main]
     paths:
       - '.github/workflows/tdas-publication-watchdog.yml'
+      - 'index.html'
+      - 'assets/tdas-mobile-ux.js'
+      - 'assets/tdas-mobile-ux.css'
+      - 'assets/tdas-pro-dashboard.css'
+      - 'assets/home-mobile-hotfix.css'
+      - 'assets/tdas-pro-modules.js'
+      - 'assets/tdas-pro-modules.css'
+      - 'assets/tdas-command-palette.js'
+      - 'assets/tdas-command-palette.css'
+      - 'sw.js'
+      - 'scripts/postprocess-v26.mjs'
+      - 'scripts/sync-platform-version.mjs'
       - 'scripts/monitor-tdas-publication.mjs'
       - 'scripts/monitor-live-site.mjs'
+      - 'scripts/monitor-tdas-shell.mjs'
       - 'scripts/test-site-operations.mjs'
       - 'data/platform-version.json'
       - 'data/redactions.json'
@@ -21,9 +34,23 @@ on:
     branches: [main]
     paths:
       - '.github/workflows/tdas-publication-watchdog.yml'
+      - 'index.html'
+      - 'assets/tdas-mobile-ux.js'
+      - 'assets/tdas-mobile-ux.css'
+      - 'assets/tdas-pro-dashboard.css'
+      - 'assets/home-mobile-hotfix.css'
+      - 'assets/tdas-pro-modules.js'
+      - 'assets/tdas-pro-modules.css'
+      - 'assets/tdas-command-palette.js'
+      - 'assets/tdas-command-palette.css'
+      - 'sw.js'
+      - 'scripts/postprocess-v26.mjs'
+      - 'scripts/sync-platform-version.mjs'
       - 'scripts/monitor-tdas-publication.mjs'
       - 'scripts/monitor-live-site.mjs'
+      - 'scripts/monitor-tdas-shell.mjs'
       - 'scripts/test-site-operations.mjs'
+      - 'package.json'
   schedule:
     - cron: '20 5,11,17,23 * * *'
 
@@ -38,7 +65,7 @@ concurrency:
 jobs:
   monitor:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 18
     steps:
       - name: Baixar repositório
         uses: actions/checkout@v4
@@ -55,6 +82,7 @@ jobs:
           npm run check:operations
           MONITOR_SELF_TEST=true npm run monitor:publication
           MONITOR_SELF_TEST=true npm run monitor:live-site
+          SHELL_MONITOR_SELF_TEST=true npm run monitor:shell
 
       - name: Verificar publicação técnica vigente
         if: github.event_name != 'pull_request'
@@ -77,14 +105,27 @@ jobs:
           LIVE_SITE_REPORT_PATH: /tmp/tdas-live-site-monitor.json
         run: npm run monitor:live-site
 
+      - name: Verificar paridade da interface TDAS PRO
+        if: github.event_name != 'pull_request'
+        id: shell
+        continue-on-error: true
+        env:
+          SITE_BASE_URL: https://rodrigorosadantas.github.io/sedes-tdas-dashboard
+          SHELL_MONITOR_MAX_ATTEMPTS: '12'
+          SHELL_MONITOR_RETRY_DELAY_MS: '10000'
+          SHELL_MONITOR_REPORT_PATH: /tmp/tdas-shell-monitor.json
+        run: npm run monitor:shell
+
       - name: Manter incidente técnico único
         if: github.event_name != 'pull_request' && always()
         uses: actions/github-script@v7
         env:
           PUBLICATION_OUTCOME: ${{ steps.publication.outcome }}
           LIVE_SITE_OUTCOME: ${{ steps.live_site.outcome }}
+          SHELL_OUTCOME: ${{ steps.shell.outcome }}
           MONITOR_REPORT_PATH: /tmp/tdas-publication-monitor.json
           LIVE_SITE_REPORT_PATH: /tmp/tdas-live-site-monitor.json
+          SHELL_MONITOR_REPORT_PATH: /tmp/tdas-shell-monitor.json
         with:
           script: |
             const fs = require('fs');
@@ -103,16 +144,23 @@ jobs:
               summary: 'O monitor do GitHub Pages não gerou relatório.',
               markdown: '## Monitoramento do site implantado\n\nO relatório público não foi gerado.'
             });
+            const shell = readReport(process.env.SHELL_MONITOR_REPORT_PATH, {
+              healthy: false,
+              summary: 'O monitor da interface TDAS PRO não gerou relatório.',
+              markdown: '## Paridade da interface TDAS\n\nO relatório da camada estática não foi gerado.'
+            });
             const healthy = process.env.PUBLICATION_OUTCOME === 'success'
               && process.env.LIVE_SITE_OUTCOME === 'success'
+              && process.env.SHELL_OUTCOME === 'success'
               && publication.healthy === true
-              && liveSite.healthy === true;
+              && liveSite.healthy === true
+              && shell.healthy === true;
             const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
             const sourceRun = context.eventName === 'workflow_run' ? context.payload.workflow_run : null;
             const sourceRunSection = sourceRun
               ? `\n\n- **Execução originadora:** [${sourceRun.name} #${sourceRun.run_number}](${sourceRun.html_url}) — evento ${sourceRun.event}; conclusão ${sourceRun.conclusion || sourceRun.status}; ID ${sourceRun.id}.`
               : '';
-            const body = `${publication.markdown}\n\n---\n\n${liveSite.markdown}${sourceRunSection}\n\n[Consultar execução do monitor](${runUrl})`;
+            const body = `${publication.markdown}\n\n---\n\n${liveSite.markdown}\n\n---\n\n${shell.markdown}${sourceRunSection}\n\n[Consultar execução do monitor](${runUrl})`;
             const issues = await github.paginate(github.rest.issues.listForRepo, {
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -141,7 +189,7 @@ jobs:
                   body
                 });
               }
-              core.warning(`${publication.summary} ${liveSite.summary}`);
+              core.warning(`${publication.summary} ${liveSite.summary} ${shell.summary}`);
               return;
             }
 
@@ -150,7 +198,7 @@ jobs:
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: existing.number,
-                body: `✅ Recuperação técnica confirmada. A main e o GitHub Pages servem a mesma publicação, incluindo o Banco Discursivo e a proteção da aplicação cega.${sourceRunSection}\n\n[Consultar execução do monitor](${runUrl})`
+                body: `✅ Recuperação técnica confirmada. A main e o GitHub Pages servem a mesma publicação, incluindo a camada TDAS PRO, o Banco Discursivo e a proteção da aplicação cega.${sourceRunSection}\n\n[Consultar execução do monitor](${runUrl})`
               });
               await github.rest.issues.update({
                 owner: context.repo.owner,
@@ -167,8 +215,8 @@ jobs:
                 title
               });
             }
-            core.info(`${publication.summary} ${liveSite.summary}`);
+            core.info(`${publication.summary} ${liveSite.summary} ${shell.summary}`);
 
       - name: Sinalizar publicação técnica ou implantação inconsistente
-        if: ${{ github.event_name != 'pull_request' && (steps.publication.outcome == 'failure' || steps.live_site.outcome == 'failure') }}
+        if: ${{ github.event_name != 'pull_request' && (steps.publication.outcome == 'failure' || steps.live_site.outcome == 'failure' || steps.shell.outcome == 'failure') }}
         run: exit 1
