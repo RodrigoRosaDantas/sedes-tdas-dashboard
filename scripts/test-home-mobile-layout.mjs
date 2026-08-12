@@ -22,11 +22,12 @@ try{
  await waitJson(`http://127.0.0.1:${chromePort}/json/version`);
  for(const width of[360,390,430]){
   const d=await inspect(width);
+  console.log(`HOME_LAYOUT_${width}=${JSON.stringify({topbar:d.topbar,crumb:d.crumb,actions:d.actions,doc:d.doc,body:d.body,chart:d.chart,chartCard:d.chartCard})}`);
   assert.equal(d.hotfix,true,`Hotfix mobile deve estar carregado em ${width}px.`);
   assert.ok(d.doc<=width+1,`Home não pode criar scroll horizontal em ${width}px: scrollWidth=${d.doc}.`);
   assert.ok(d.body<=width+1,`Body não pode exceder a viewport em ${width}px: scrollWidth=${d.body}.`);
   assert.equal(d.badge,'none',`Status textual deve sair do cabeçalho estreito em ${width}px e permanecer no drawer.`);
-  assert.ok(d.crumb.right<=d.actions.left+1,`Identidade e ações do topo não podem se sobrepor em ${width}px.`);
+  assert.ok(d.crumb.right<=d.actions.left+1,`Identidade e ações do topo não podem se sobrepor em ${width}px: ${JSON.stringify({crumb:d.crumb,actions:d.actions,topbar:d.topbar})}`);
   assert.ok(d.actions.right<=width+1,`Busca/menu devem caber no cabeçalho em ${width}px.`);
   assert.ok(d.chart.width<=d.chartCard.width+1,`Gráfico deve ser responsivo em ${width}px.`);
   assert.ok(d.metrics.every(box=>box.left>=-1&&box.right<=width+1),`Cards de métricas devem permanecer dentro da viewport em ${width}px.`);
