@@ -4,4 +4,4 @@ Atualize este arquivo somente quando for necessário solicitar uma recuperação
 
 Última solicitação:
 - data: 2026-08-12
-- motivo: reconsultar integralmente as fontes oficiais após saneamento editorial dos PE87–PE95, preservando o histórico real de 23/30 do PE87 e validando o complemento Q31–Q48, a meta oficial de 48 questões e as metas futuras definidas pelos Micros vigentes, sem alterar o monitoramento recorrente nem o isolamento do Cargo 400.
+- motivo: revalidar a publicação após reposicionar Q31–Q48 do PE87 dentro da bateria oficial, antes do primeiro gabarito computável. A tentativa histórica 23/30 permanece preservada; a meta oficial permanece 48. Manter monitoramento recorrente e isolamento do Cargo 400.
