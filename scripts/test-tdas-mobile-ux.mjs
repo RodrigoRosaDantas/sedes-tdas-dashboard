@@ -22,6 +22,8 @@ assert.match(shell,/tdas\.202\.font-scale\.v1/,'Texto ampliado deve usar chave l
 assert.match(css,/prefers-reduced-motion:reduce/,'CSS deve respeitar movimento reduzido.');
 assert.match(css,/\.tdas-view-comfort/,'CSS deve implementar modo confortável.');
 assert.match(css,/\.tdas-view-large-text/,'CSS deve implementar texto ampliado.');
+for(const marker of ['Product Design System PRO','--pro-violet','tdas-hero-aside','tdas-pro-grid','tdas-insight-grid','tdas-result-ring'])assert.ok(css.includes(marker),`Design PRO deve preservar ${marker}.`);
+assert.ok(!css.includes('identidade visual Ember'),'Identidade Ember não deve reaparecer após o redesign PRO.');
 assert.match(studyUx,/tdas\.202\.error-causes\.v1/,'Diagnóstico de causa deve usar chave local isolada.');
 for(const label of ['Não sabia','Confundi conceitos','Esqueci a regra','Interpretei errado','Pressa','Pegadinha'])assert.ok(studyUx.includes(label),`Diagnóstico deve oferecer ${label}.`);
 for(const marker of ['Por que você errou?','Revisão de hoje','Notion → validação GitHub → site','tdas-player-focus','Salvar e próxima →'])assert.ok(studyUx.includes(marker),`Camada UX deve conter ${marker}.`);
@@ -33,6 +35,9 @@ assert.match(homeModule,/d\.overdue/,'Home deve considerar PE vencido sem apagar
 assert.match(homeModule,/currentStarted/,'Home deve preservar a execução já iniciada no PE atual.');
 assert.match(homeModule,/revisar\/\?pe=/,'PE concluído deve direcionar para revisão.');
 assert.match(homeModule,/resolver\/\?pe=/,'Home deve oferecer CTA de Questões.');
+for(const marker of ['Hoje e próximo passo','Próximos PE','O que merece atenção','Leitura de risco','Erros recentes','Centrais de trabalho'])assert.ok(homeModule.includes(marker),`Home PRO deve conter ${marker}.`);
+assert.match(homeModule,/data\/agenda\.json/,'Home PRO deve carregar a sequência real dos próximos PE.');
+assert.match(homeModule,/data\/today\.json/,'Home PRO deve carregar checklist e erros do PE atual.');
 assert.ok(!homeModule.includes('Cada ciclo concluído aproxima você'),'Hero institucional antigo não deve permanecer na Home nova.');
 assert.ok(!homeModule.includes('Projeções transparentes'),'Projeções técnicas não devem poluir a Home nova.');
 assert.ok(!homeModule.includes('Alertas prioritários'),'Alertas extensos não devem poluir a Home nova.');
@@ -55,4 +60,5 @@ const lastValidSync=(history.entries||[]).find(item=>['success','no_changes'].in
 assert.equal(platform.dataVersion,homeData.meta?.version,'dataVersion deve continuar derivada do snapshot oficial.');
 assert.equal(platform.syncAt,lastValidSync,'syncAt deve continuar derivada da última sincronização real, não da release visual.');
 assert.equal(platform.peId,homeData.today?.pe,'PE do manifesto deve continuar alinhado ao snapshot oficial.');
-console.log('UX TDAS validada: Hoje orientado à ação, navegação direta, player focado, diagnóstico de causa, revisão do dia, PWA e separação plataforma/dados preservados.');
+assert.match(platform.serviceWorkerVersion,/pro2$/,'Cache visual deve identificar a geração PRO atual.');
+console.log('UX TDAS validada: Dashboard PRO orientado à ação, próximos PE, risco acionável, player focado, PWA e separação plataforma/dados preservados.');
