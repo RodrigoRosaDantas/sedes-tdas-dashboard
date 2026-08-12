@@ -2,6 +2,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import {ROOT,hash,localIso,readJson,writeJson} from './config.mjs';
 import {fetchMarkdown,mapLimit,request} from './api.mjs';
+import {syncEditalStatus} from './edital-status.mjs';
 import {TDAS_SOURCE_MANIFEST,microPageForPe} from './source-manifest.mjs';
 import {buildContractAssessment,parseMicroMarkdown,peCode} from './source-contract-policy.mjs';
 
@@ -81,6 +82,7 @@ export async function buildSourceContract({enforce=true}={}){
  required(macroMarkdown.trim().length>500,'Macro retornou conteúdo insuficiente.');
  validateRootContent(rootMarkdown);validateMacroContent(macroMarkdown);
 
+ const editalStatus=await syncEditalStatus({write:true});
  const microDays=[];
  for(let index=0;index<TDAS_SOURCE_MANIFEST.micros.length;index++){
   const page=TDAS_SOURCE_MANIFEST.micros[index],markdown=microMarkdown[index];
@@ -98,20 +100,22 @@ export async function buildSourceContract({enforce=true}={}){
  const sources=[
   sourceRecord('dashboard',TDAS_SOURCE_MANIFEST.root,metaById.get(compact(TDAS_SOURCE_MANIFEST.root.id)),rootMarkdown),
   sourceRecord('edital-check',TDAS_SOURCE_MANIFEST.editalCheck,metaById.get(compact(TDAS_SOURCE_MANIFEST.editalCheck.id))),
+  {key:'edital-checklist',name:TDAS_SOURCE_MANIFEST.editalChecklist.name,id:TDAS_SOURCE_MANIFEST.editalChecklist.databaseId,dataSourceId:TDAS_SOURCE_MANIFEST.editalChecklist.dataSourceId,url:TDAS_SOURCE_MANIFEST.editalChecklist.url,access:true,items:editalStatus.summary.total,lastEditedTime:editalStatus.source.lastEditedTime||''},
   sourceRecord('planning-root',TDAS_SOURCE_MANIFEST.planningRoot,metaById.get(compact(TDAS_SOURCE_MANIFEST.planningRoot.id))),
   sourceRecord('macro',TDAS_SOURCE_MANIFEST.macro,metaById.get(compact(TDAS_SOURCE_MANIFEST.macro.id)),macroMarkdown),
   ...TDAS_SOURCE_MANIFEST.micros.map((page,index)=>sourceRecord(`micro-${String(index+1).padStart(2,'0')}`,page,metaById.get(compact(page.id)),microMarkdown[index])),
   {key:'materials',...TDAS_SOURCE_MANIFEST.execution.materials,access:true},{key:'questions',...TDAS_SOURCE_MANIFEST.execution.questions,access:true}
  ];
  const contract={
-  schemaVersion:'1.0.0',generatedAt,project:TDAS_SOURCE_MANIFEST.project,cargo:TDAS_SOURCE_MANIFEST.cargo,status:assessment.status,
+  schemaVersion:'1.1.0',generatedAt,project:TDAS_SOURCE_MANIFEST.project,cargo:TDAS_SOURCE_MANIFEST.cargo,status:assessment.status,
   policy:{priority:TDAS_SOURCE_MANIFEST.priority,enforcement:'PE atual',week16:'Micro soberano e adaptativo',archiveAllowed:false,cargo400Allowed:false},
+  edital:{source:editalStatus.source,summary:editalStatus.summary},
   current:assessment.current,
-  summary:{sources:sources.length,microDays:microDays.length,conflicts:assessment.conflicts.length,critical:assessment.conflicts.filter(item=>item.severity==='critical').length,warnings:assessment.conflicts.filter(item=>item.severity==='warning').length},
+  summary:{sources:sources.length,microDays:microDays.length,editalItems:editalStatus.summary.total,editalCritical:editalStatus.summary.risk.critical,editalAttention:editalStatus.summary.risk.attention,conflicts:assessment.conflicts.length,critical:assessment.conflicts.filter(item=>item.severity==='critical').length,warnings:assessment.conflicts.filter(item=>item.severity==='warning').length},
   conflicts:assessment.conflicts,sources
  };
  await writeJson('data/source-contract.json',contract);
- console.log(`${currentPe}: contrato multifornte ${contract.status}; ${contract.summary.conflicts} divergência(s), ${contract.summary.critical} crítica(s).`);
+ console.log(`${currentPe}: contrato multifornte ${contract.status}; edital=${editalStatus.summary.total} tópicos; ${contract.summary.conflicts} divergência(s), ${contract.summary.critical} crítica(s).`);
  if(enforce&&contract.status==='blocked'){
   const detail=contract.current.conflicts.filter(item=>item.severity==='critical').map(item=>item.message).join(' | ');
   throw new Error(`Contrato multifornte bloqueou ${currentPe}: ${detail}`);
