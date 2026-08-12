@@ -5,6 +5,7 @@ import {promisify} from 'node:util';
 import {fileURLToPath} from 'node:url';
 
 const execFileAsync=promisify(execFile);
+const VISUAL_CACHE_REV='ember1';
 const readJSON=async(root,file)=>JSON.parse(await fs.readFile(path.join(root,file),'utf8'));
 const sanitize=value=>String(value||'unknown').trim().toLowerCase().replace(/[^a-z0-9.-]+/g,'-').replace(/^-+|-+$/g,'')||'unknown';
 const compactDate=value=>String(value||'').replace(/\D/g,'').slice(0,8)||'undated';
@@ -45,7 +46,7 @@ export async function buildPlatformVersion(root=process.cwd()){
  const syncDate=required(home.meta?.snapshotDate,'data da sincronização');
  const syncAt=resolveSyncAt(syncHistory);
  const sourceCommit=await resolveSourceCommit(root);
- const serviceWorkerVersion=`tdas-${sanitize(platformVersion)}-${compactDate(syncDate)}-${sanitize(peId)}-${shortCatalog(catalogVersion)}`;
+ const serviceWorkerVersion=`tdas-${sanitize(platformVersion)}-${compactDate(syncDate)}-${sanitize(peId)}-${shortCatalog(catalogVersion)}-${VISUAL_CACHE_REV}`;
  const publicationId=[platformVersion,dataVersion,catalogVersion,syncAt,sourceCommit==='unknown'?'unknown':sourceCommit.slice(0,12)].join('|');
  return{schemaVersion:'1.1.0',platformVersion,dataVersion,catalogVersion,serviceWorkerVersion,sourceCommit,syncDate,syncAt,peId,publicationId};
 }
