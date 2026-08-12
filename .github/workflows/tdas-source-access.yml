@@ -1,0 +1,40 @@
+name: Validar fontes-mestre TDAS
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/tdas-source-access.yml'
+      - 'scripts/notion/source-manifest.mjs'
+      - 'scripts/notion/source-contract.mjs'
+      - 'scripts/notion/source-contract-policy.mjs'
+      - 'scripts/test-source-access.mjs'
+      - 'scripts/test-source-contract.mjs'
+      - 'package.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tdas-source-access-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  source-access:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+      TZ: America/Sao_Paulo
+    steps:
+      - name: Baixar repositório
+        uses: actions/checkout@v4
+      - name: Preparar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validar política multifornte
+        run: node scripts/test-source-contract.mjs
+      - name: Confirmar acesso do token ao Dashboard, Macro e Micros
+        run: node scripts/test-source-access.mjs
