@@ -8,8 +8,10 @@ on:
       - 'scripts/notion/source-manifest.mjs'
       - 'scripts/notion/source-contract.mjs'
       - 'scripts/notion/source-contract-policy.mjs'
+      - 'scripts/notion/edital-status.mjs'
       - 'scripts/test-source-access.mjs'
       - 'scripts/test-source-contract.mjs'
+      - 'scripts/test-edital-status.mjs'
       - 'package.json'
   workflow_dispatch:
 
@@ -23,7 +25,7 @@ concurrency:
 jobs:
   source-access:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 12
     env:
       NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
       TZ: America/Sao_Paulo
@@ -38,3 +40,5 @@ jobs:
         run: node scripts/test-source-contract.mjs
       - name: Confirmar acesso do token ao Dashboard, Macro e Micros
         run: node scripts/test-source-access.mjs
+      - name: Ler e consolidar o checklist vivo do Edital
+        run: node scripts/test-edital-status.mjs
