@@ -9,3 +9,5 @@ assert.ok(Array.isArray(status.priorityTopics)&&status.priorityTopics.length>0,'
 assert.equal(status.topics.some(item=>/EDAS|Cargo\s*400/i.test(`${item.topic} ${item.discipline} ${item.block}`)),false,'Cargo 400 contaminou o checklist TDAS.');
 console.log(`Checklist vivo validado: ${status.summary.total} tópicos, ${status.summary.risk.critical} críticos, ${status.summary.risk.attention} em atenção.`);
 console.log(`EDITAL_STATUS_SUMMARY=${JSON.stringify(status.summary)}`);
+console.log(`EDITAL_CRITICAL_TOPICS=${JSON.stringify(status.topics.filter(item=>item.risk==='critical').map(item=>({topic:item.topic,discipline:item.discipline,block:item.block,priority:item.priority,nextAction:item.nextAction||item.strategicAction,url:item.url})))}`);
+console.log(`EDITAL_DISCIPLINES=${JSON.stringify(status.disciplines)}`);
