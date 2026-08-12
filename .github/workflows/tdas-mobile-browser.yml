@@ -9,6 +9,7 @@ on:
       - 'mais/**'
       - 'configuracoes/**'
       - 'assets/home-mobile.js'
+      - 'assets/home-mobile-hotfix.css'
       - 'assets/tdas-mobile-ux.js'
       - 'assets/tdas-mobile-ux.css'
       - 'assets/tdas-pro-modules.js'
@@ -21,6 +22,7 @@ on:
       - 'assets/integration/home-command-center.js'
       - 'assets/integration/study-ux.js'
       - 'scripts/test-tdas-mobile-browser.mjs'
+      - 'scripts/test-home-mobile-layout.mjs'
       - 'scripts/test-tdas-mobile-ux.mjs'
       - 'scripts/test-command-palette.mjs'
       - 'scripts/test-command-palette-browser.mjs'
@@ -33,6 +35,7 @@ on:
       - 'mais/**'
       - 'configuracoes/**'
       - 'assets/home-mobile.js'
+      - 'assets/home-mobile-hotfix.css'
       - 'assets/tdas-mobile-ux.js'
       - 'assets/tdas-mobile-ux.css'
       - 'assets/tdas-pro-modules.js'
@@ -45,6 +48,7 @@ on:
       - 'assets/integration/home-command-center.js'
       - 'assets/integration/study-ux.js'
       - 'scripts/test-tdas-mobile-browser.mjs'
+      - 'scripts/test-home-mobile-layout.mjs'
       - 'scripts/test-tdas-mobile-ux.mjs'
       - 'scripts/test-command-palette.mjs'
       - 'scripts/test-command-palette-browser.mjs'
@@ -80,6 +84,11 @@ jobs:
         env:
           CHROME_BIN: google-chrome
         run: npm run test:tdas-mobile-browser
+
+      - name: Validar Home em 360, 390 e 430 px
+        env:
+          CHROME_BIN: google-chrome
+        run: node scripts/test-home-mobile-layout.mjs
 
       - name: Validar Command Palette no Chrome real
         env:
