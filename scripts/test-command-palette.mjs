@@ -6,7 +6,7 @@ const[palette,css,shell,sw,postprocess,version]=await Promise.all([
  read('assets/tdas-command-palette.js'),read('assets/tdas-command-palette.css'),read('assets/tdas-mobile-ux.js'),read('sw.js'),read('scripts/postprocess-v26.mjs'),readJson('data/platform-version.json')
 ]);
 for(const label of ['Faça agora','Resolver questões','Revisões','Caderno de erros','Progresso','Check do Edital','Plano PE01–PE112','Biblioteca','Redações','Bancos de dados','Configurações'])assert.ok(palette.includes(label),`Palette deve indexar ${label}.`);
-for(const marker of ['readSessionDraft','Continuar ${draft.peId','Revisar agora','Tratar ${errors.length','Array.from({length:112)','data/subjects.json','data/agenda.json','data/home.json'])assert.ok(palette.includes(marker),`Palette deve preservar ${marker}.`);
+for(const marker of ['readSessionDraft','Continuar ${draft.peId','Revisar agora','Tratar ${errors.length','Array.from({length:112},','data/subjects.json','data/agenda.json','data/home.json'])assert.ok(palette.includes(marker),`Palette deve preservar ${marker}.`);
 assert.match(palette,/event\.metaKey\|\|event\.ctrlKey/,'Palette deve aceitar Cmd/Ctrl+K.');
 assert.match(palette,/event\.key==='\/'/,'Palette deve aceitar atalho /.');
 assert.match(palette,/ArrowDown/,'Palette deve navegar por seta para baixo.');
