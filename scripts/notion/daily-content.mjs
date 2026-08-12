@@ -220,17 +220,28 @@ function parseQuestionBody(body) {
   const stem = [];
   const alternatives = {};
   let currentOption = null;
+  const append = value => {
+    const text = String(value ?? '').trim();
+    if (!text) return;
+    if (currentOption) alternatives[currentOption] = `${alternatives[currentOption] || ''} ${text}`.trim();
+    else stem.push(text);
+  };
   for (const raw of lines) {
     const line = raw.trim();
     if (!line || /^#{1,4}\s+/.test(line) || /^---+$/.test(line)) continue;
-    const option = line.match(/^([A-E])\)\s*(.*)$/);
-    if (option) {
-      currentOption = option[1];
-      alternatives[currentOption] = option[2].trim();
+    const markers = [...line.matchAll(/(?:^|\s)([A-E])\)\s*/g)];
+    if (markers.length) {
+      append(line.slice(0, markers[0].index));
+      for (let index = 0; index < markers.length; index++) {
+        const marker = markers[index];
+        currentOption = marker[1];
+        const start = marker.index + marker[0].length;
+        const end = markers[index + 1]?.index ?? line.length;
+        alternatives[currentOption] = line.slice(start, end).trim();
+      }
       continue;
     }
-    if (currentOption) alternatives[currentOption] = `${alternatives[currentOption]} ${line}`.trim();
-    else stem.push(line);
+    append(line);
   }
   const optionKeys = OPTION_KEYS.filter(option => Object.hasOwn(alternatives, option));
   return {
@@ -281,9 +292,17 @@ function parseAnswerKey(markdown) {
   const tableSource = section || source;
   for (const row of tableSource.matchAll(/<tr\b[^>]*>([\s\S]*?)<\/tr>/gi)) {
     const cells = [...row[1].matchAll(/<t[dh]\b[^>]*>([\s\S]*?)<\/t[dh]>/gi)].map(cell => cleanQuestionText(cell[1]));
-    if (/^\d{1,3}$/.test(cells[0] || '') && /^[A-E]$/i.test(cells[1] || '')) add(Number(cells[0]), cells[1].toUpperCase());
+    for (let index = 0; index + 1 < cells.length; index += 2) {
+      if (/^\d{1,3}$/.test(cells[index] || '') && /^[A-E]$/i.test(cells[index + 1] || '')) add(Number(cells[index]), cells[index + 1].toUpperCase());
+    }
   }
-  for (const match of tableSource.matchAll(/^\s*\|\s*(\d{1,3})\s*\|\s*(?:\*\*|__|`)?([A-E])(?:\*\*|__|`)?\s*\|/gmi)) add(Number(match[1]), match[2].toUpperCase());
+  for (const line of tableSource.split('\n')) {
+    if (!/^\s*\|/.test(line)) continue;
+    const cells = line.split('|').slice(1, -1).map(cell => cleanQuestionText(cell));
+    for (let index = 0; index + 1 < cells.length; index += 2) {
+      if (/^\d{1,3}$/.test(cells[index] || '') && /^[A-E]$/i.test(cells[index + 1] || '')) add(Number(cells[index]), cells[index + 1].toUpperCase());
+    }
+  }
   return key;
 }
 
@@ -308,7 +327,8 @@ export function parseDailyQuestions(markdown, {pe, title, expectedCount = 0, sou
     required(!seenNumbers.has(segment.number), `${pe}: questão ${segment.number} duplicada.`);
     seenNumbers.add(segment.number);
     const parsed = parseQuestionBody(segment.body);
-    required(parsed.enunciado.length >= 12, `${pe}: questão ${segment.number} sem enunciado suficiente.`);
+    const stemWords = parsed.enunciado.split(/\s+/).filter(Boolean);
+    required(parsed.enunciado.length >= 5 && stemWords.length >= 2, `${pe}: questão ${segment.number} sem enunciado suficiente.`);
     const optionKeys = Object.keys(parsed.alternativas);
     required(optionKeys.length >= 2 && optionKeys.length <= OPTION_KEYS.length, `${pe}: questão ${segment.number} deve possuir entre duas e cinco alternativas.`);
     required(optionKeys.join('') === OPTION_KEYS.slice(0, optionKeys.length).join(''), `${pe}: questão ${segment.number} possui alternativas descontínuas.`);
