@@ -18,12 +18,14 @@
   .topbar .crumb{
     display:flex;
     flex-wrap:nowrap;
+    width:100%;
+    max-width:100%;
     min-width:0;
     overflow:hidden;
   }
   .topbar .crumb>.dot{flex:0 0 auto}
   .topbar .tdas-publication-badge{display:none!important}
-  .tdas-app-identity{min-width:0;overflow:hidden}
+  .tdas-app-identity{min-width:0;max-width:100%;overflow:hidden}
   .tdas-app-identity strong,.tdas-app-identity small{
     display:block;
     max-width:100%;
@@ -31,7 +33,7 @@
     text-overflow:ellipsis;
     white-space:nowrap;
   }
-  .topbar .actions{flex:0 0 auto;min-width:max-content;gap:5px}
+  .topbar .actions{justify-self:end;flex:0 0 auto;min-width:max-content;gap:5px}
   .topbar .tdas-command-trigger{width:40px;min-width:40px;height:40px;min-height:40px}
   .topbar .tdas-mobile-menu-btn{width:42px;min-width:42px;height:42px;min-height:42px}
 
@@ -70,6 +72,18 @@
 }
 
 @media(max-width:420px){
+  .topbar{grid-template-columns:minmax(0,1fr) 81px;gap:5px}
+  .topbar .actions{
+    display:grid;
+    grid-template-columns:38px 38px;
+    gap:5px;
+    width:81px;
+    min-width:81px;
+  }
+  .topbar .tdas-command-trigger,
+  .topbar .tdas-mobile-menu-btn{width:38px;min-width:38px;height:40px;min-height:40px}
+  .tdas-app-identity small{display:none}
+
   .content{padding-left:12px;padding-right:12px}
   .tdas-home-focus{padding-left:16px;padding-right:16px}
   .tdas-home-actions{grid-template-columns:1fr!important}
@@ -82,7 +96,6 @@
 }
 
 @media(max-width:360px){
-  .tdas-app-identity small{display:none}
   .tdas-home-metrics{grid-template-columns:1fr!important}
   .tdas-home-quick{grid-template-columns:1fr}
 }
