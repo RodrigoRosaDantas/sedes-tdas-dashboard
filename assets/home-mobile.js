@@ -15,7 +15,7 @@ function examCountdown(examDate) {
 const fmtShortDate = value => value ? new Intl.DateTimeFormat('pt-BR',{day:'2-digit',month:'2-digit',timeZone:'America/Sao_Paulo'}).format(new Date(`${value}T12:00:00-03:00`)) : '—';
 const nextItem = item => `<a class="tdas-next-item" href="${BASE}estudar/?pe=${encodeURIComponent(normalizePe(item.pe))}"><span class="tdas-next-id">${escapeHTML(normalizePe(item.pe))}</span><span><b>${escapeHTML(item.title || 'Atividade programada')}</b><small>${escapeHTML(fmtShortDate(item.date))} · ${escapeHTML(item.planned_questions || 0)} questões${item.rd ? ` · ${escapeHTML(item.rd)}` : ''}</small></span><span>›</span></a>`;
 const checklistItem = item => `<div class="tdas-checkitem ${item.done ? 'done' : ''}"><span class="tdas-checkmark">${item.done ? '✓' : ''}</span><span><b>${escapeHTML(item.title)}</b><small>${escapeHTML(item.detail || '')}</small></span></div>`;
-const healthItem = item => `<div class="tdas-health-item" data-level="${escapeHTML(item.level || 'info')}"><i></i><span><b>${escapeHTML(item.title)}</b><span>${escapeHTML(item.detail || '')}</span></span><a href="${escapeHTML(item.href || routes.risks || BASE+'riscos/')}">${escapeHTML(item.action || 'Abrir')} →</a></div>`;
+const healthItem = item => `<div class="tdas-health-item" data-level="${escapeHTML(item.level || 'info')}"><i></i><span><b>${escapeHTML(item.title)}</b><span>${escapeHTML(item.detail || '')}</span></span><a href="${escapeHTML(item.href || routes.riscos || BASE+'riscos/')}">${escapeHTML(item.action || 'Abrir')} →</a></div>`;
 const errorItem = item => `<a href="${BASE}caderno-erros/?origem=${encodeURIComponent(item.origin || '')}"><b>${escapeHTML(item.title)}</b><span>${escapeHTML(item.subject || 'Caderno de erros')} · ${escapeHTML(item.severity || 'revisar')}</span></a>`;
 
 try {
@@ -70,7 +70,7 @@ try {
       <h1>${escapeHTML(headline)}</h1>
       <p class="tdas-home-focus-copy">${escapeHTML(statusCopy)}</p>
       <div class="hero-actions tdas-home-actions"><a class="btn primary" href="${primaryHref}">${escapeHTML(primaryLabel)}</a><a class="btn" href="${secondaryHref}">${escapeHTML(secondaryLabel)}</a></div>
-      <div class="tdas-home-quick"><span>${escapeHTML(focus.status)}</span><span>${escapeHTML(focusQuestions)} questões</span><span>${escapeHTML(focus.type || focus.block || 'Ciclo oficial')}</span><span>Notion → GitHub → site</span></div>
+      <div class="tdas-home-quick"><span>${escapeHTML(focus.status)}</span><span>${escapeHTML(focusQuestions)} questões</span><span>${escapeHTML(focus.type || focus.block || 'Ciclo oficial')}</span><span>Notion → validação GitHub → site</span></div>
       <aside class="tdas-hero-aside" aria-label="Reta final"><small>Até a prova</small><strong>${fmtNumber(days)}</strong><span>${days === 0 ? 'prova hoje' : `dias · ${fmtDate(d.meta.examDate)}`}</span><div class="tdas-hero-progress"><i style="width:${completedPct}%"></i></div><span>${fmtNumber(metrics.completed)} de ${fmtNumber(metrics.totalPE)} PE concluídos · ${String(completedPct).replace('.',',')}%</span></aside>
     </section>
 
