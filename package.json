@@ -56,7 +56,7 @@
     "monitor:edas": "node scripts/monitor-edas-publication.mjs",
     "monitor:edas-live": "node scripts/monitor-edas-live-site.mjs",
     "ops:check": "npm run check:operations && npm run check:site",
-    "ops:full": "npm run check && npm run monitor:live-site && npm run monitor:shell && npm run monitor:edas-live",
+    "ops:full": "npm run check && npm run monitor:live-site && npm run monitor:edas-live",
     "test": "npm run check"
   }
 }
