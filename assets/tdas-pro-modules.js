@@ -3,6 +3,7 @@ import {readPeProgress,summarizeProgress} from './integration/daily-progress.js?
 
 const BASE='/sedes-tdas-dashboard/';
 const CAUSE_KEY='tdas.202.error-causes.v1';
+const DRAFT_KEY='tdas.202.question-module.v2.draft';
 const esc=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
 const fmt=value=>new Intl.NumberFormat('pt-BR').format(Number(value||0));
 const pct=value=>`${Number(value||0).toFixed(1).replace('.',',')}%`;
@@ -26,7 +27,7 @@ async function buildScorecard(key){
  const state=readModuleState(),due=dueReviews(state),completed=completedReviews(state),causes=Object.values(readCauses()),stats=attemptStats(state);
  if(key==='resolver'){
   let catalog=null;try{catalog=await fetch(BASE+'data/integration/question-catalog.json',{cache:'no-store'}).then(r=>r.ok?r.json():null)}catch{}
-  const draft=(()=>{try{return JSON.parse(localStorage.getItem('tdas.202.session-draft.v1')||'null')}catch{return null}})();
+  const draft=(()=>{try{return JSON.parse(localStorage.getItem(DRAFT_KEY)||'null')}catch{return null}})();
   return score('Questões',fmt(catalog?.questions?.length||0),catalog?.peId||'catálogo atual',true)+score('Sessão',draft?'Em andamento':'Pronta',draft?'continuidade preservada':'sem resposta iniciada')+score('Tentativas',fmt(stats.attempts.filter(item=>item.mode==='study').length),'neste dispositivo')+score('Revisões vencidas',fmt(due.length),'fila local');
  }
  if(key==='revisar'){
