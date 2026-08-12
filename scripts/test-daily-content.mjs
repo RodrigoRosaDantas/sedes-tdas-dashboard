@@ -178,10 +178,28 @@ assert.equal(compactKey.answers[0].gabarito,'A');
 assert.equal(compactKey.answers[1].gabarito,'B');
 assert.ok(!JSON.stringify(compactKeyCatalog).includes('Gabarito definitivo'));
 
+const compactLayoutMarkdown = `# 2. Questões
+**1.** O SISAN é
+A) benefício individual. B) unidade do SUAS. C) sistema de segurança alimentar e nutricional. D) modalidade de licitação. E) programa previdenciário.
+**2.** O SUAS é
+A) benefício individual. B) sistema de organização e gestão da assistência social. C) órgão de controle externo. D) unidade física. E) modalidade de licitação.
+# 3. Gabarito
+<table header-row="true">
+<tr><td>Q</td><td>Resp.</td><td>Q</td><td>Resp.</td></tr>
+<tr><td>1</td><td>C</td><td>2</td><td>B</td></tr>
+</table>`;
+const {catalog:compactLayoutCatalog,key:compactLayoutKey}=parseDailyQuestions(compactLayoutMarkdown,{pe:'PE90',title:'Revisão semanal',expectedCount:2,sourcePageId:'compact'});
+assert.equal(compactLayoutCatalog.questions[0].enunciado,'O SISAN é');
+assert.deepEqual(Object.keys(compactLayoutCatalog.questions[0].alternativas),['A','B','C','D','E']);
+assert.equal(compactLayoutCatalog.questions[0].alternativas.C,'sistema de segurança alimentar e nutricional.');
+assert.equal(compactLayoutKey.answers.length,2);
+assert.equal(compactLayoutKey.answers[0].gabarito,'C');
+assert.equal(compactLayoutKey.answers[1].gabarito,'B');
+
 const html=renderMaterialMarkdown(`# Material\n## Objetivo\n**Estudar** com clareza.\n- Primeiro item\n- Segundo item\n<table header-row="true"><tr><td>Campo</td><td>Valor</td></tr><tr><td>PE</td><td>78</td></tr></table>`);
 assert.match(html,/<h2>Material<\/h2>/);
 assert.match(html,/<strong>Estudar<\/strong>/);
 assert.match(html,/<ul>/);
 assert.match(html,/<table>/);
 assert.ok(!html.includes('<script'));
-console.log('Conteúdo diário testado: texto legítimo preservado, meta zero prevalece sobre conteúdo residual, estrutura pública restrita e correção separada.');
+console.log('Conteúdo diário testado: texto legítimo preservado, formato A–E compacto aceito, gabarito multipar completo, meta zero prevalece e correção separada.');
