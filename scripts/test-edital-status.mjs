@@ -8,3 +8,4 @@ assert.ok(Array.isArray(status.disciplines)&&status.disciplines.length>=8,'Disci
 assert.ok(Array.isArray(status.priorityTopics)&&status.priorityTopics.length>0,'Raio-X do edital não gerou prioridades.');
 assert.equal(status.topics.some(item=>/EDAS|Cargo\s*400/i.test(`${item.topic} ${item.discipline} ${item.block}`)),false,'Cargo 400 contaminou o checklist TDAS.');
 console.log(`Checklist vivo validado: ${status.summary.total} tópicos, ${status.summary.risk.critical} críticos, ${status.summary.risk.attention} em atenção.`);
+console.log(`EDITAL_STATUS_SUMMARY=${JSON.stringify(status.summary)}`);
