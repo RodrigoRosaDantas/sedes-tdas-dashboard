@@ -1,0 +1,101 @@
+/* Home TDAS PRO — correção responsiva 2026-08-12.
+   Intervenção mínima: corrige overflow do cabeçalho, hierarquia dos cabeçalhos
+   de seção e gráfico fixo de 720px sem alterar dados ou lógica da Home. */
+
+@media(max-width:780px){
+  html,body,.app,.shell,.content,#conteudo{max-width:100%;min-width:0}
+  body{overflow-x:clip}
+
+  /* O conjunto identidade + status + busca + menu excedia 360–390px. */
+  .topbar{
+    display:grid;
+    grid-template-columns:minmax(0,1fr) auto;
+    align-items:center;
+    gap:7px;
+    width:100%;
+    max-width:100%;
+  }
+  .topbar .crumb{
+    display:flex;
+    flex-wrap:nowrap;
+    width:100%;
+    max-width:100%;
+    min-width:0;
+    overflow:hidden;
+  }
+  .topbar .crumb>.dot{flex:0 0 auto}
+  .topbar .tdas-publication-badge{display:none!important}
+  .tdas-app-identity{min-width:0;max-width:100%;overflow:hidden}
+  .tdas-app-identity strong,.tdas-app-identity small{
+    display:block;
+    max-width:100%;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+  .topbar .actions{justify-self:end;flex:0 0 auto;min-width:max-content;gap:5px}
+  .topbar .tdas-command-trigger{width:40px;min-width:40px;height:40px;min-height:40px}
+  .topbar .tdas-mobile-menu-btn{width:42px;min-width:42px;height:42px;min-height:42px}
+
+  /* Cabeçalhos executivos deixam de disputar largura com carimbos. */
+  .tdas-dashboard-section .section-head,
+  .command-center .section-head{
+    align-items:flex-start;
+    flex-direction:column;
+    min-width:0;
+  }
+  .tdas-dashboard-section .section-head>div,
+  .command-center .section-head>div{min-width:0;max-width:100%}
+  .tdas-dashboard-section .stamp,
+  .command-center .stamp{align-self:flex-start;max-width:100%;white-space:normal}
+
+  /* Todos os blocos da Home respeitam a largura real do dispositivo. */
+  .tdas-command-search,.tdas-home-focus,.tdas-home-metrics,.tdas-pro-grid,
+  .tdas-reference-grid,.tdas-strategy-grid,.tdas-insight-grid,
+  .tdas-performance-card,.tdas-coverage-card,.tdas-edital-card,.tdas-acervo-card,
+  .tdas-today-card,.tdas-next-card,.tdas-insight-card{min-width:0;max-width:100%}
+
+  /* O SVG tinha width:720px no mobile e aparecia recortado. */
+  .tdas-performance-chart{min-width:0;overflow:visible}
+  .tdas-performance-svg{
+    display:block;
+    width:100%!important;
+    max-width:100%!important;
+    height:auto!important;
+    min-width:0!important;
+  }
+
+  .tdas-search-shell{max-width:100%;min-width:0}
+  .tdas-search-shell input{min-width:0}
+  .tdas-next-item{min-width:0}
+  .tdas-next-item>span:nth-child(2){min-width:0}
+}
+
+@media(max-width:420px){
+  .topbar{grid-template-columns:minmax(0,1fr) 81px;gap:5px}
+  .topbar .actions{
+    display:grid;
+    grid-template-columns:38px 38px;
+    gap:5px;
+    width:81px;
+    min-width:81px;
+  }
+  .topbar .tdas-command-trigger,
+  .topbar .tdas-mobile-menu-btn{width:38px;min-width:38px;height:40px;min-height:40px}
+  .tdas-app-identity small{display:none}
+
+  .content{padding-left:12px;padding-right:12px}
+  .tdas-home-focus{padding-left:16px;padding-right:16px}
+  .tdas-home-actions{grid-template-columns:1fr!important}
+  .tdas-home-actions .btn{width:100%!important;min-height:44px;white-space:normal;text-align:center}
+  .tdas-home-quick{display:grid;grid-template-columns:1fr 1fr;align-items:start}
+  .tdas-home-quick span{min-width:0;padding-left:0;padding-right:0}
+  .tdas-today-top{grid-template-columns:1fr!important}
+  .tdas-result-ring{justify-self:start}
+  .tdas-week-strip{grid-template-columns:repeat(4,minmax(0,1fr))!important}
+}
+
+@media(max-width:360px){
+  .tdas-home-metrics{grid-template-columns:1fr!important}
+  .tdas-home-quick{grid-template-columns:1fr}
+}
