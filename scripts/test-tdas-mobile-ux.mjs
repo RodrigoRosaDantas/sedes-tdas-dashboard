@@ -65,14 +65,15 @@ assert.ok(!settings.includes('api.notion.com'),'Configurações não deve escrev
 assert.match(index,/home-mobile\.js/,'Home pública deve usar o módulo novo.');
 assert.match(index,/home-command-center\.js/,'Central de Execução deve permanecer ativa.');
 assert.match(index,/tdas-pro-dashboard\.css/,'Home pública deve carregar os componentes PRO avançados.');
+assert.match(index,/home-mobile-hotfix\.css/,'Home pública deve carregar o hotfix responsivo por último.');
 assert.match(configHtml,/settings\.js/,'Rota Configurações deve carregar seu módulo.');
 assert.match(more,/configuracoes\//,'Tela Mais deve encaminhar para Configurações.');
 assert.ok(!more.includes('data-theme-toggle>Alternar tema'),'Tela Mais não deve duplicar controle técnico de tema fora de Configurações.');
-for(const item of ['configuracoes/','assets/home-mobile.js','assets/tdas-mobile-ux.js','assets/tdas-mobile-ux.css','assets/tdas-pro-dashboard.css','assets/tdas-pro-modules.css','assets/tdas-pro-modules.js','assets/settings.js','assets/integration/study-ux.js']){assert.ok(sw.includes(item),`PWA deve incluir ${item}.`);assert.ok(postprocess.includes(item),`Gerador do PWA deve preservar ${item}.`)}
+for(const item of ['configuracoes/','assets/home-mobile.js','assets/tdas-mobile-ux.js','assets/tdas-mobile-ux.css','assets/tdas-pro-dashboard.css','assets/home-mobile-hotfix.css','assets/tdas-pro-modules.css','assets/tdas-pro-modules.js','assets/tdas-command-palette.css','assets/tdas-command-palette.js','assets/settings.js','assets/integration/study-ux.js']){assert.ok(sw.includes(item),`PWA deve incluir ${item}.`);assert.ok(postprocess.includes(item),`Gerador do PWA deve preservar ${item}.`)}
 assert.ok(!sw.includes('question-keys/'),'Gabarito não pode entrar no precache do TDAS.');
 const lastValidSync=(history.entries||[]).find(item=>['success','no_changes'].includes(item?.status)&&item?.at)?.at;
 assert.equal(platform.dataVersion,homeData.meta?.version,'dataVersion deve continuar derivada do snapshot oficial.');
 assert.equal(platform.syncAt,lastValidSync,'syncAt deve continuar derivada da última sincronização real, não da release visual.');
 assert.equal(platform.peId,homeData.today?.pe,'PE do manifesto deve continuar alinhado ao snapshot oficial.');
-assert.match(platform.serviceWorkerVersion,/pro4$/,'Cache visual deve identificar a geração PRO4 atual.');
-console.log('UX TDAS validada: Dashboard PRO + módulos transversais, decisões contextuais, player focado, PWA e separação plataforma/dados preservados.');
+assert.match(platform.serviceWorkerVersion,/pro5$/,'Cache visual deve identificar a geração PRO5 atual.');
+console.log('UX TDAS validada: Dashboard PRO + módulos transversais, hotfix mobile persistente, player focado, PWA PRO5 e separação plataforma/dados preservados.');

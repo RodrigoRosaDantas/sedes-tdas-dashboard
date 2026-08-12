@@ -52,6 +52,7 @@
     "monitor:publication": "node scripts/monitor-tdas-publication.mjs",
     "monitor:redactions": "node scripts/test-redactions-operational.mjs && node scripts/validate-redactions-publication.mjs",
     "monitor:live-site": "node scripts/monitor-live-site.mjs",
+    "monitor:shell": "node scripts/monitor-tdas-shell.mjs",
     "monitor:edas": "node scripts/monitor-edas-publication.mjs",
     "monitor:edas-live": "node scripts/monitor-edas-live-site.mjs",
     "ops:check": "npm run check:operations && npm run check:site",
