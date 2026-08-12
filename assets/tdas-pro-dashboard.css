@@ -1,0 +1,81 @@
+/* TDAS PRO — componentes avançados inspirados na arquitetura do dashboard chatgpt.site. */
+.tdas-nav-copy{display:grid;gap:1px;min-width:0;line-height:1.08}
+.tdas-nav-copy b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;font-weight:800;color:inherit}
+.tdas-nav-copy small{font-size:8px;font-weight:700;color:var(--muted)}
+.nav a.active .tdas-nav-copy small{color:var(--pro-mint)}
+
+.tdas-command-search{position:relative;z-index:12;margin:0 0 14px}
+.tdas-search-shell{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:10px;min-height:48px;padding:0 13px;border:1px solid var(--line);border-radius:13px;background:color-mix(in srgb,var(--surface) 92%,transparent);box-shadow:0 10px 30px rgba(0,0,0,.06);backdrop-filter:blur(16px)}
+.tdas-search-shell>span:first-child{color:var(--muted);font-size:18px}
+.tdas-search-shell input{width:100%;border:0!important;outline:0!important;background:transparent!important;color:var(--text);font-size:12px}
+.tdas-search-shell input::placeholder{color:var(--muted)}
+.tdas-search-shell kbd{padding:3px 7px;border:1px solid var(--line);border-bottom-width:2px;border-radius:7px;background:var(--surface2);color:var(--muted);font:700 9px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace}
+.tdas-search-results{position:absolute;left:0;right:0;top:calc(100% + 7px);display:grid;gap:3px;max-height:360px;overflow:auto;padding:7px;border:1px solid var(--line);border-radius:14px;background:var(--surface);box-shadow:0 24px 60px rgba(0,0,0,.32)}
+.tdas-search-results[hidden]{display:none}
+.tdas-search-result{display:grid;grid-template-columns:34px minmax(0,1fr) auto;gap:10px;align-items:center;padding:9px 10px;border-radius:10px;color:var(--text);text-decoration:none}
+.tdas-search-result:hover,.tdas-search-result:focus-visible,.tdas-search-result.active{background:var(--surface2)}
+.tdas-search-result>i{display:grid;place-items:center;width:32px;height:32px;border-radius:9px;background:var(--surface3);color:var(--pro-mint);font-style:normal;font-size:11px}
+.tdas-search-result b{display:block;font-size:10px}
+.tdas-search-result small{display:block;margin-top:2px;color:var(--muted);font-size:8px}
+.tdas-search-result>span{color:var(--muted);font-size:12px}
+
+.tdas-reference-grid{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(310px,.8fr);gap:14px}
+.tdas-performance-card,.tdas-coverage-card,.tdas-edital-card,.tdas-acervo-card{padding:18px}
+.tdas-card-kicker{display:flex;justify-content:space-between;gap:12px;align-items:start;margin-bottom:12px}
+.tdas-card-kicker h3{margin:0;font-size:15px;letter-spacing:-.02em}
+.tdas-card-kicker p{margin:3px 0 0;color:var(--muted);font-size:9px}
+.tdas-card-kicker>a,.tdas-card-kicker>span{color:var(--pro-violet);font-size:9px;font-weight:850;white-space:nowrap}
+
+.tdas-performance-chart{position:relative;min-height:250px;padding:8px 4px 0}
+.tdas-performance-svg{display:block;width:100%;height:240px;overflow:visible}
+.tdas-chart-grid{stroke:color-mix(in srgb,var(--line) 80%,transparent);stroke-width:1}
+.tdas-chart-axis{fill:var(--muted);font-size:9px}
+.tdas-chart-area{fill:url(#tdasGradient);opacity:.18}
+.tdas-chart-line{fill:none;stroke:var(--pro-violet);stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.tdas-chart-point{fill:var(--surface);stroke:var(--pro-mint);stroke-width:3}
+.tdas-chart-point.risk{stroke:var(--red)}
+.tdas-chart-label{fill:var(--muted);font-size:8px}
+
+.tdas-week-strip{display:grid;grid-template-columns:repeat(16,minmax(26px,1fr));gap:5px;margin:12px 0 13px}
+.tdas-week-cell{display:grid;place-items:center;min-height:38px;border:1px solid var(--line);border-radius:9px;background:var(--surface2);color:var(--muted);font-size:8px;font-weight:850}
+.tdas-week-cell.done{border-color:color-mix(in srgb,var(--pro-mint) 40%,var(--line));background:color-mix(in srgb,var(--pro-mint) 8%,var(--surface2));color:var(--pro-mint)}
+.tdas-week-cell.active{border-color:var(--pro-violet);background:color-mix(in srgb,var(--pro-violet) 12%,var(--surface2));color:var(--text);box-shadow:0 0 0 1px rgba(126,140,255,.12)}
+.tdas-coverage-summary{display:grid;grid-template-columns:auto minmax(0,1fr);gap:12px;align-items:center}
+.tdas-coverage-summary strong{font-size:32px;line-height:1;letter-spacing:-.05em}
+.tdas-coverage-summary span{color:var(--muted);font-size:9px;line-height:1.45}
+
+.tdas-strategy-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px}
+.tdas-edital-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:13px}
+.tdas-edital-stat{padding:11px;border-radius:12px;background:var(--surface2)}
+.tdas-edital-stat span{display:block;color:var(--muted);font-size:8px}
+.tdas-edital-stat strong{display:block;margin-top:2px;font-size:20px;letter-spacing:-.04em}
+.tdas-edital-stat.critical strong{color:var(--red)}
+.tdas-edital-stat.attention strong{color:var(--yellow)}
+.tdas-edital-progress{height:7px;margin:15px 0 8px;border-radius:999px;background:var(--surface2);overflow:hidden}
+.tdas-edital-progress i{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,var(--pro-violet),var(--pro-mint))}
+.tdas-edital-card>p,.tdas-acervo-card>p{margin:0;color:var(--muted);font-size:9px;line-height:1.5}
+
+.tdas-acervo-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:13px}
+.tdas-acervo-metric{padding:12px;border-radius:12px;background:var(--surface2)}
+.tdas-acervo-metric strong{display:block;font-size:22px;letter-spacing:-.04em}
+.tdas-acervo-metric span{display:block;color:var(--muted);font-size:8px}
+.tdas-acervo-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.tdas-acervo-actions .btn{font-size:9px;padding:8px 10px}
+
+@media(max-width:1100px){
+ .tdas-reference-grid,.tdas-strategy-grid{grid-template-columns:1fr}
+ .tdas-week-strip{grid-template-columns:repeat(8,minmax(30px,1fr))}
+}
+@media(max-width:780px){
+ .tdas-command-search{margin-bottom:10px}
+ .tdas-search-shell{min-height:45px;padding:0 11px}
+ .tdas-search-shell kbd{display:none}
+ .tdas-reference-grid,.tdas-strategy-grid{gap:10px}
+ .tdas-performance-card,.tdas-coverage-card,.tdas-edital-card,.tdas-acervo-card{padding:15px}
+ .tdas-performance-chart{min-height:205px;overflow:hidden}
+ .tdas-performance-svg{width:720px;max-width:none;height:205px}
+ .tdas-week-strip{grid-template-columns:repeat(8,minmax(28px,1fr));gap:4px}
+ .tdas-week-cell{min-height:34px;font-size:7.5px}
+ .tdas-edital-summary{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .tdas-acervo-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
+}

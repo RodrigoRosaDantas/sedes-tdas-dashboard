@@ -2,14 +2,14 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 const read=file=>fs.readFile(file,'utf8');
 const readJson=file=>fs.readFile(file,'utf8').then(JSON.parse);
-const [shell,css,studyUx,homeModule,agendaModule,enhancements,settings,index,configHtml,more,sw,postprocess,platform,homeData,history]=await Promise.all([
- read('assets/tdas-mobile-ux.js'),read('assets/tdas-mobile-ux.css'),read('assets/integration/study-ux.js'),read('assets/home-mobile.js'),read('assets/agenda.js'),read('assets/enhance-v20.js'),read('assets/settings.js'),read('index.html'),read('configuracoes/index.html'),read('assets/more.js'),read('sw.js'),read('scripts/postprocess-v26.mjs'),readJson('data/platform-version.json'),readJson('data/home.json'),readJson('data/sync-history.json')
+const [shell,css,proCss,studyUx,homeModule,agendaModule,enhancements,settings,index,configHtml,more,sw,postprocess,platform,homeData,history]=await Promise.all([
+ read('assets/tdas-mobile-ux.js'),read('assets/tdas-mobile-ux.css'),read('assets/tdas-pro-dashboard.css'),read('assets/integration/study-ux.js'),read('assets/home-mobile.js'),read('assets/agenda.js'),read('assets/enhance-v20.js'),read('assets/settings.js'),read('index.html'),read('configuracoes/index.html'),read('assets/more.js'),read('sw.js'),read('scripts/postprocess-v26.mjs'),readJson('data/platform-version.json'),readJson('data/home.json'),readJson('data/sync-history.json')
 ]);
 for(const text of ['Hoje','Questões','Revisar','Erros','Mais'])assert.ok(shell.includes(`'${text}'`),`Barra mobile deve conter ${text}.`);
 const navDefinition=shell.match(/const items=\[([\s\S]*?)\];nav\.innerHTML/)?.[1]||'';
 assert.match(navDefinition,/\['home','Hoje'\].*\['resolver','Questões'\].*\['revisar','Revisar'\].*\['caderno','Erros'\].*\['mais','Mais'\]/s,'Barra inferior deve manter exatamente a ordem Hoje, Questões, Revisar, Erros e Mais.');
 for(const group of ['Hoje','Conteúdo','Praticar','Progresso','Sistema'])assert.ok(shell.includes(`['${group}'`),`Drawer deve conter grupo ${group}.`);
-for(const text of ['Progresso','Conteúdo'])assert.ok(shell.includes(`'${text}'`),`Navegação desktop deve conter ${text}.`);
+for(const label of ['Faça agora','Resolver questões','Revisões','Caderno de erros','Check do Edital','Plano PE01–PE112','Biblioteca','Bancos de dados'])assert.ok(shell.includes(label),`Navegação desktop PRO deve conter ${label}.`);
 assert.match(shell,/Técnico Administrativo · Cargo 202/,'Cabeçalho deve identificar Cargo 202.');
 assert.match(shell,/data-menu-toggle/,'Shell deve expor botão Menu.');
 assert.match(shell,/Escape/,'Drawer deve fechar por Escape.');
@@ -22,6 +22,9 @@ assert.match(shell,/tdas\.202\.font-scale\.v1/,'Texto ampliado deve usar chave l
 assert.match(css,/prefers-reduced-motion:reduce/,'CSS deve respeitar movimento reduzido.');
 assert.match(css,/\.tdas-view-comfort/,'CSS deve implementar modo confortável.');
 assert.match(css,/\.tdas-view-large-text/,'CSS deve implementar texto ampliado.');
+for(const marker of ['Product Design System PRO','--pro-violet','tdas-hero-aside','tdas-pro-grid','tdas-insight-grid','tdas-result-ring'])assert.ok(css.includes(marker),`Design PRO deve preservar ${marker}.`);
+assert.ok(!css.includes('identidade visual Ember'),'Identidade Ember não deve reaparecer após o redesign PRO.');
+for(const marker of ['tdas-command-search','tdas-performance-chart','tdas-week-strip','tdas-edital-summary','tdas-acervo-metrics','tdas-nav-copy'])assert.ok(proCss.includes(marker),`Componentes avançados devem preservar ${marker}.`);
 assert.match(studyUx,/tdas\.202\.error-causes\.v1/,'Diagnóstico de causa deve usar chave local isolada.');
 for(const label of ['Não sabia','Confundi conceitos','Esqueci a regra','Interpretei errado','Pressa','Pegadinha'])assert.ok(studyUx.includes(label),`Diagnóstico deve oferecer ${label}.`);
 for(const marker of ['Por que você errou?','Revisão de hoje','Notion → validação GitHub → site','tdas-player-focus','Salvar e próxima →'])assert.ok(studyUx.includes(marker),`Camada UX deve conter ${marker}.`);
@@ -33,6 +36,11 @@ assert.match(homeModule,/d\.overdue/,'Home deve considerar PE vencido sem apagar
 assert.match(homeModule,/currentStarted/,'Home deve preservar a execução já iniciada no PE atual.');
 assert.match(homeModule,/revisar\/\?pe=/,'PE concluído deve direcionar para revisão.');
 assert.match(homeModule,/resolver\/\?pe=/,'Home deve oferecer CTA de Questões.');
+for(const marker of ['Dados consolidados do Notion','Hoje e próximo passo','Próximos passos','Últimas 12 execuções','16 semanas','Check do Edital · Cargo 202','Acervo operacional','O que merece atenção','Leitura de risco','Erros recentes','Centrais de trabalho'])assert.ok(homeModule.includes(marker),`Home PRO deve conter ${marker}.`);
+for(const source of ['data/agenda.json','data/today.json','data/evolution.json','data/edital-status.json','data/subjects.json'])assert.ok(homeModule.includes(source),`Home PRO deve carregar ${source}.`);
+assert.match(homeModule,/data-pro-search/,'Home PRO deve expor busca-comando.');
+assert.match(homeModule,/ArrowDown/,'Busca-comando deve suportar navegação por teclado.');
+assert.match(homeModule,/event\.key==='\/'/,'Atalho / deve focar a busca-comando.');
 assert.ok(!homeModule.includes('Cada ciclo concluído aproxima você'),'Hero institucional antigo não deve permanecer na Home nova.');
 assert.ok(!homeModule.includes('Projeções transparentes'),'Projeções técnicas não devem poluir a Home nova.');
 assert.ok(!homeModule.includes('Alertas prioritários'),'Alertas extensos não devem poluir a Home nova.');
@@ -46,13 +54,15 @@ assert.match(settings,/syncAt/,'Configurações deve ler syncAt real.');
 assert.ok(!settings.includes('api.notion.com'),'Configurações não deve escrever ou consultar a API do Notion pelo navegador.');
 assert.match(index,/home-mobile\.js/,'Home pública deve usar o módulo novo.');
 assert.match(index,/home-command-center\.js/,'Central de Execução deve permanecer ativa.');
+assert.match(index,/tdas-pro-dashboard\.css/,'Home pública deve carregar os componentes PRO avançados.');
 assert.match(configHtml,/settings\.js/,'Rota Configurações deve carregar seu módulo.');
 assert.match(more,/configuracoes\//,'Tela Mais deve encaminhar para Configurações.');
 assert.ok(!more.includes('data-theme-toggle>Alternar tema'),'Tela Mais não deve duplicar controle técnico de tema fora de Configurações.');
-for(const item of ['configuracoes/','assets/home-mobile.js','assets/tdas-mobile-ux.js','assets/tdas-mobile-ux.css','assets/settings.js','assets/integration/study-ux.js']){assert.ok(sw.includes(item),`PWA deve incluir ${item}.`);assert.ok(postprocess.includes(item),`Gerador do PWA deve preservar ${item}.`)}
+for(const item of ['configuracoes/','assets/home-mobile.js','assets/tdas-mobile-ux.js','assets/tdas-mobile-ux.css','assets/tdas-pro-dashboard.css','assets/settings.js','assets/integration/study-ux.js']){assert.ok(sw.includes(item),`PWA deve incluir ${item}.`);assert.ok(postprocess.includes(item),`Gerador do PWA deve preservar ${item}.`)}
 assert.ok(!sw.includes('question-keys/'),'Gabarito não pode entrar no precache do TDAS.');
 const lastValidSync=(history.entries||[]).find(item=>['success','no_changes'].includes(item?.status)&&item?.at)?.at;
 assert.equal(platform.dataVersion,homeData.meta?.version,'dataVersion deve continuar derivada do snapshot oficial.');
 assert.equal(platform.syncAt,lastValidSync,'syncAt deve continuar derivada da última sincronização real, não da release visual.');
 assert.equal(platform.peId,homeData.today?.pe,'PE do manifesto deve continuar alinhado ao snapshot oficial.');
-console.log('UX TDAS validada: Hoje orientado à ação, navegação direta, player focado, diagnóstico de causa, revisão do dia, PWA e separação plataforma/dados preservados.');
+assert.match(platform.serviceWorkerVersion,/pro2$/,'Cache visual deve identificar a geração PRO atual.');
+console.log('UX TDAS validada: Dashboard PRO inspirado no chatgpt.site, busca-comando, execução, desempenho, cobertura, edital, acervo, player e PWA preservados.');
