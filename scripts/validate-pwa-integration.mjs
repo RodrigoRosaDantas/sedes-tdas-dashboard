@@ -13,8 +13,10 @@ for(const asset of requiredAssets){required(assets.includes(asset),`asset fora d
 for(const file of requiredData){required(data.includes(file),`dado fora do cache: ${file}`);required(await exists(file),`dado ausente: ${file}`);if(file==='data/platform-version.json')required(versionSync.includes(file),'sincronizador pode remover o manifesto de versão');else required(postprocess.includes(`\"${file}\"`),`gerador pode remover o dado: ${file}`)}
 required(!data.some(file=>file.includes('question-keys/'))&&!sw.includes('question-keys/'),'correção foi pré-carregada antes da finalização');
 required(versionSync.includes("replaceConstant(sw,'VERSION'")&&versionSync.includes("ensureArrayEntry(sw,'DATA','data/platform-version.json')"),'sincronizador não governa versão e precache');
-required(versionSync.includes("VISUAL_CACHE_REV='pro5'"),'revisão visual do cache deve permanecer em PRO5 após o hardening mobile');
+required(versionSync.includes("VISUAL_CACHE_REV='pro6'"),'revisão visual do cache deve permanecer em PRO6 após o hardening de URLs versionadas');
+required(sw.includes('caches.match(request,{ignoreSearch:true})')&&sw.includes("if(url.search||url.pathname.includes('/data/'))"),'service worker não possui fallback offline para URLs versionadas');
+required(postprocess.includes('caches.match(request,{ignoreSearch:true})')&&postprocess.includes("if(url.search||url.pathname.includes('/data/'))"),'gerador pode remover o fallback offline de URLs versionadas');
 required(!data.some(file=>/pe76|pilot/i.test(file))&&!assets.some(file=>/pilot-catalog|real-study|pe-pilot-status/i.test(file)),'PWA ainda inclui conteúdo de exemplo.');
 required(manifest.start_url===BASE&&manifest.scope===BASE,'escopo do manifesto divergente');
 required(packageData.scripts?.['check:pwa']==='node scripts/validate-pwa-integration.mjs','comando check:pwa ausente');
-console.log(`PWA validado: ${requiredRoutes.length} rotas críticas, ${requiredAssets.length} módulos, versão ${version}, Dashboard PRO, Mentor e hotfix mobile disponíveis offline, correção fora do precache.`);
+console.log(`PWA validado: ${requiredRoutes.length} rotas críticas, ${requiredAssets.length} módulos, versão ${version}, fallback de cache versionado ativo, Dashboard PRO, Mentor e hotfix mobile disponíveis offline, correção fora do precache.`);
