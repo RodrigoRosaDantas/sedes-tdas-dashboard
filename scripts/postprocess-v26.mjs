@@ -1,10 +1,12 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import {buildSourceContract} from './notion/source-contract.mjs';
+import {enrichMentorErrors} from './notion/mentor-enrichment.mjs';
 const ROOT=process.cwd(),VERSION='26.0',SYNC_TIMES=['00h50','06h50','12h50','18h50'];
 const read=async(file,fallback=null)=>{try{return JSON.parse(await fs.readFile(path.join(ROOT,file),'utf8'))}catch{return fallback}};
 const write=async(file,value)=>{const target=path.join(ROOT,file);await fs.mkdir(path.dirname(target),{recursive:true});await fs.writeFile(target,`${JSON.stringify(value)}\n`,'utf8')};
 function normalizeVersion(value){if(Array.isArray(value))return value.map(normalizeVersion);if(!value||typeof value!=='object')return typeof value==='string'?value.replaceAll('v24.1','v26.0'):value;const out={};for(const[key,item]of Object.entries(value)){if(key==='version'||key==='schemaVersion')out[key]=VERSION;else if(key==='syncTimes')out[key]=SYNC_TIMES;else out[key]=normalizeVersion(item)}return out}
+await enrichMentorErrors();
 const overlay=normalizeVersion(await read('data/live-v24.json',{}));await write('data/live-v24.json',overlay);
 const sourceContract=await buildSourceContract({enforce:process.env.ENFORCE_SOURCE_CONTRACT!=='false'});
 const errorIndex=await read('data/error-questions/index.json',{}),subjectsData=await read('data/subjects.json',{}),totalPE=112,partCount=Math.max(1,Number(errorIndex.parts?.length||0));
