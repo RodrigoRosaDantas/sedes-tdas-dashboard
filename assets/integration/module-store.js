@@ -5,6 +5,7 @@ const SCHEMA_VERSION = '2.0.0';
 const DAY_MS = 86_400_000;
 const MAX_ATTEMPTS = 200;
 const MAX_INDEX_ITEMS = 2000;
+const SESSION_MODES = Object.freeze(['study', 'review', 'complement']);
 
 const emptyState = () => ({
   schemaVersion: SCHEMA_VERSION,
@@ -75,7 +76,7 @@ function questionRecord(attempt, question, result, meta) {
   const classified = classify(result, meta);
   return Object.freeze({
     id: question.id,
-    numeroOriginal: question.numero_original ?? null,
+    numeroOriginal: question.numeroOriginal ?? question.numero_original ?? null,
     assunto: String(question.assunto || 'Sem assunto'),
     subassunto: String(question.subassunto || ''),
     selected: result.selected,
@@ -86,7 +87,7 @@ function questionRecord(attempt, question, result, meta) {
 }
 
 export function saveCompletedAttempt({catalog, evaluation, responseMeta = {}, mode = 'study', reviewId = null, reviewOutcome = null}, storage) {
-  if (!catalog || !evaluation || !['study', 'review'].includes(mode)) throw new TypeError('Conclusão inválida.');
+  if (!catalog || !evaluation || !SESSION_MODES.includes(mode)) throw new TypeError('Conclusão inválida.');
   if (mode === 'review' && !reviewId) throw new TypeError('Revisão de origem obrigatória.');
   const target = resolveStorage(storage);
   const before = target.getItem(STORAGE_KEY);
@@ -119,21 +120,22 @@ export function saveCompletedAttempt({catalog, evaluation, responseMeta = {}, mo
   });
 
   const errors = results.filter(item => item.classification === 'incorrect_confirmed').map(item => ({
-    ...item, id: `error:${attempt.id}:${item.id}`, attemptId: attempt.id, peId: attempt.peId, createdAt: attempt.finishedAt,
+    ...item, id: `error:${attempt.id}:${item.id}`, attemptId: attempt.id, attemptMode: attempt.mode, peId: attempt.peId, createdAt: attempt.finishedAt,
   }));
   const marked = results.filter(item => item.marked).map(item => ({
-    ...item, id: `marked:${attempt.id}:${item.id}`, attemptId: attempt.id, peId: attempt.peId, createdAt: attempt.finishedAt,
+    ...item, id: `marked:${attempt.id}:${item.id}`, attemptId: attempt.id, attemptMode: attempt.mode, peId: attempt.peId, createdAt: attempt.finishedAt,
   }));
   const aiQueue = results.filter(item => ['annulment_pending', 'source_error'].includes(item.classification)).map(item => ({
-    ...item, id: `ai:${attempt.id}:${item.id}`, attemptId: attempt.id, peId: attempt.peId, createdAt: attempt.finishedAt, status: 'pending',
+    ...item, id: `ai:${attempt.id}:${item.id}`, attemptId: attempt.id, attemptMode: attempt.mode, peId: attempt.peId, createdAt: attempt.finishedAt, status: 'pending',
   }));
   const eligible = results.filter(item => ['incorrect_confirmed', 'correct_with_doubt', 'correct_by_guess', 'marked'].includes(item.classification));
-  const reviews = mode === 'study' ? eligible.flatMap(item => [1, 7, 20].map(days => {
+  const reviews = mode !== 'review' ? eligible.flatMap(item => [1, 7, 20].map(days => {
     const id=`review:${attempt.id}:${item.id}:D+${days}`;
     return{
       ...item,
       id,
       sourceAttemptId: attempt.id,
+      sourceAttemptMode: attempt.mode,
       questionId: item.id,
       peId: attempt.peId,
       stage: `D+${days}`,
