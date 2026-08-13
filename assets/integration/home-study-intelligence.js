@@ -1,4 +1,4 @@
-import {BASE,loadJSON} from '../common.js?v=26.1';
+import {BASE,loadJSON} from '../common.js?v=26.17.0';
 import {readModuleState} from './module-store.js?v=2.1.0';
 import {readSessionDraft} from './session-draft.js?v=1.0.0';
 import {readPeProgress} from './daily-progress.js?v=1.0.0';
