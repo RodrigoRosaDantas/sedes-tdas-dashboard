@@ -2,11 +2,14 @@ name: Validar persistência privada TDAS
 on:
   pull_request:
     paths:
-      - 'assets/integration/*persistence*.js'
-      - 'assets/integration/*history*.js'
-      - 'assets/integration/*export*.js'
-      - 'assets/integration/question-telemetry-v2.js'
-      - 'assets/integration/error-book-enhancer.js'
+      - 'assets/integration/**'
+      - 'data/integration/question-archive/**'
+      - 'exportar-tentativa/**'
+      - 'sincronizacao/**'
+      - 'firestore.rules'
+      - 'scripts/*history*.mjs'
+      - 'scripts/*export*.mjs'
+      - 'scripts/preserve-private-history-pwa.mjs'
       - '.github/workflows/tdas-private-history.yml'
   workflow_dispatch:
 permissions:
@@ -14,21 +17,50 @@ permissions:
 jobs:
   validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Validar sintaxe dos módulos novos
+      - name: Validar sintaxe da persistência
         run: |
           node --check assets/integration/attempt-export.js
-          node --check assets/integration/attempt-history.js
+          node --check assets/integration/attempt-history-v2.js
+          node --check assets/integration/answer-history.js
+          node --check assets/integration/answer-history-runtime-v2.js
           node --check assets/integration/error-book-export.js
-          node --check assets/integration/error-book-enhancer.js
+          node --check assets/integration/error-book-enhancer-v2.js
+          node --check assets/integration/firebase-history-store.js
           node --check assets/integration/history-db-core.js
           node --check assets/integration/persistence-contract.js
-          node --check assets/integration/persistence-local.js
-          node --check assets/integration/question-telemetry-v2.js
+          node --check assets/integration/persistence-queue.js
+          node --check assets/integration/persistence-local-v2.js
+          node --check assets/integration/private-history-auth.js
+          node --check assets/integration/private-history-materialize.js
+          node --check assets/integration/private-history-runtime-v3.js
+          node --check assets/integration/private-history-sync-v3.js
+          node --check assets/integration/question-catalog-archive.js
+          node --check assets/integration/result-persistence-links-v2.js
+          node --check assets/integration/module-error-book-v3.js
+          node --check assets/integration/module-performance-v6.js
+      - name: Validar contrato Firebase
+        run: |
+          grep -F "provider:'firebase'" assets/integration/private-history-config.js
+          grep -F "request.auth.uid == userId" firestore.rules
+          grep -F "'users',String(userId),'attempts'" assets/integration/firebase-history-store.js
+          grep -F "writeBatch" assets/integration/firebase-history-store.js
+      - name: Testar sequência de respostas
+        run: node scripts/test-answer-sequence.mjs
+      - name: Testar contrato JSON
+        run: node scripts/test-attempt-export-contract.mjs
+      - name: Testar catálogo histórico
+        run: node scripts/test-history-archive.mjs
+      - name: Testar blindagem PWA privada
+        run: |
+          node scripts/preserve-private-history-pwa.mjs
+          grep -F 'assets/integration/private-history-sync-v3.js' sw.js
+          grep -F 'data/integration/question-archive/tdas-pe88-339d718d88c1.json' sw.js
+          grep -F 'exportar-tentativa/' sw.js
       - name: Executar gate integral TDAS
         run: npm run check
