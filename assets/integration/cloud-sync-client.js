@@ -1,4 +1,4 @@
-import {createLocalBackup,restoreLocalBackup} from './local-backup.js?v=1.0.0';
+import {applyCloudLocalState,readCloudLocalState} from './cloud-state-adapter.js?v=1.0.0';
 import {backupToEvents,mergeBackupWithEvents,summarizeEventMerge} from './cloud-sync-core.js?v=1.0.0';
 
 export const CLOUD_DEVICE_KEY='tdas.202.cloud.device.v1';
@@ -71,9 +71,9 @@ async function insertMissingEvents(client,userId,events,remote){
 export async function synchronizeCloud({storage}={}){
  const target=resolveStorage(storage),client=await getClient(),{data:{session},error:sessionError}=await client.auth.getSession();
  if(sessionError)throw sessionError;if(!session?.user?.id)throw new Error('Entre na sincronização privada antes de sincronizar.');
- const deviceId=getOrCreateDeviceId(target),localBackup=createLocalBackup(target),localEvents=backupToEvents(localBackup,deviceId);
+ const deviceId=getOrCreateDeviceId(target),localSnapshot=readCloudLocalState(target),localEvents=backupToEvents(localSnapshot,deviceId);
  const before=await fetchAllEvents(client,session.user.id),uploaded=await insertMissingEvents(client,session.user.id,localEvents,before),remote=uploaded?await fetchAllEvents(client,session.user.id):before;
- const mergeSummary=summarizeEventMerge(localBackup,remote,deviceId),mergedBackup=mergeBackupWithEvents(localBackup,remote,deviceId),restored=restoreLocalBackup(mergedBackup,target);
+ const mergeSummary=summarizeEventMerge(localSnapshot,remote,deviceId),mergedSnapshot=mergeBackupWithEvents(localSnapshot,remote,deviceId),restored=applyCloudLocalState(mergedSnapshot,target);
  const meta={schemaVersion:'1.0.0',lastSyncAt:new Date().toISOString(),deviceId,userId:session.user.id,uploadedEvents:uploaded,remoteEvents:remote.length,mergedRecords:mergeSummary.mergedRecords};
  target.setItem(CLOUD_META_KEY,JSON.stringify(meta));
  return Object.freeze({meta:Object.freeze(meta),summary:Object.freeze(restored),localEvents:localEvents.length,remoteEvents:remote.length,uploadedEvents:uploaded,mergedRecords:mergeSummary.mergedRecords});
