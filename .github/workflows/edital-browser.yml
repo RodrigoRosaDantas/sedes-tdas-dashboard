@@ -1,0 +1,119 @@
+name: Validar Edital TDAS no navegador
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'edital/**'
+      - 'assets/edital.js'
+      - 'assets/edital.css'
+      - 'assets/common.js'
+      - 'assets/more.js'
+      - 'data/edital-status.json'
+      - 'scripts/test-edital-page.mjs'
+      - 'package.json'
+      - 'sw.js'
+      - '.github/workflows/edital-browser.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'edital/**'
+      - 'assets/edital.js'
+      - 'assets/edital.css'
+      - 'assets/common.js'
+      - 'assets/more.js'
+      - 'data/edital-status.json'
+      - 'scripts/test-edital-page.mjs'
+      - 'package.json'
+      - 'sw.js'
+      - '.github/workflows/edital-browser.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: edital-browser-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Baixar repositório
+        uses: actions/checkout@v4
+
+      - name: Preparar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Validar contrato do Edital
+        run: npm run test:edital
+
+      - name: Preparar site e expectativas
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/tdas-site/sedes-tdas-dashboard
+          cp -a . /tmp/tdas-site/sedes-tdas-dashboard/
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const root='/tmp/tdas-site/sedes-tdas-dashboard';
+          const data=JSON.parse(fs.readFileSync(`${root}/data/edital-status.json`,'utf8'));
+          const total=Number(data.summary.total||0);
+          const critical=Number(data.summary.risk?.critical||0);
+          const portuguese=data.topics.filter(item=>item.discipline==='Português').length;
+          if(total<80)throw new Error(`Total inesperado do edital: ${total}`);
+          fs.writeFileSync('/tmp/edital-expected.env',`TOTAL=${total}\nCRITICAL=${critical}\nPORTUGUESE=${portuguese}\n`);
+          NODE
+          cd /tmp/tdas-site
+          python3 -m http.server 4175 >/tmp/edital-server.log 2>&1 &
+          echo $! >/tmp/edital-server.pid
+          for attempt in $(seq 1 30); do curl -fsS http://127.0.0.1:4175/sedes-tdas-dashboard/edital/ >/dev/null && exit 0; sleep 1; done
+          cat /tmp/edital-server.log >&2
+          exit 1
+
+      - name: Validar página e filtros em Chrome
+        shell: bash
+        run: |
+          set -euo pipefail
+          source /tmp/edital-expected.env
+          base='http://127.0.0.1:4175/sedes-tdas-dashboard/edital/'
+          chrome=(google-chrome --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --virtual-time-budget=15000 --dump-dom)
+          "${chrome[@]}" "$base" >/tmp/edital.html 2>/tmp/edital.stderr
+          "${chrome[@]}" "${base}?risk=critical" >/tmp/edital-critical.html 2>/tmp/edital-critical.stderr
+          "${chrome[@]}" "${base}?discipline=Portugu%C3%AAs" >/tmp/edital-portugues.html 2>/tmp/edital-portugues.stderr
+          grep -q 'O que já foi coberto' /tmp/edital.html
+          grep -q 'Checklist completo do edital' /tmp/edital.html
+          grep -q "${TOTAL} tópicos" /tmp/edital.html
+          grep -q "${TOTAL} de ${TOTAL} itens" /tmp/edital.html
+          grep -q "${CRITICAL} de ${TOTAL} itens" /tmp/edital-critical.html
+          grep -q "${PORTUGUESE} de ${TOTAL} itens" /tmp/edital-portugues.html
+          grep -q 'Sem aferição' /tmp/edital.html
+          grep -q 'Abrir análise no Notion' /tmp/edital.html
+          grep -q 'Abrir banco' /tmp/edital.html
+          ! grep -Eqi 'Carregando o edital|Não foi possível carregar esta página|Snapshot parcial' /tmp/edital.html
+          ! grep -Eqi 'Uncaught (TypeError|ReferenceError|SyntaxError)' /tmp/edital*.stderr
+          printf '{"editalBrowser":"ok","total":%s,"critical":%s,"portuguese":%s,"filters":true}\n' "$TOTAL" "$CRITICAL" "$PORTUGUESE"
+
+      - name: Diagnosticar falha
+        if: failure()
+        shell: bash
+        run: |
+          cat /tmp/edital-expected.env 2>/dev/null || true
+          for file in /tmp/edital.html /tmp/edital-critical.html /tmp/edital-portugues.html; do
+            [[ -f "$file" ]] || continue
+            echo "=== $file ==="
+            grep -Eo '[0-9]+ de [0-9]+ itens|Não foi possível carregar esta página|Snapshot parcial|O que já foi coberto' "$file" | head -30 || true
+          done
+          for file in /tmp/edital*.stderr; do
+            [[ -f "$file" ]] || continue
+            echo "=== $file ==="
+            tail -80 "$file" || true
+          done
+
+      - name: Encerrar servidor
+        if: always()
+        run: kill "$(cat /tmp/edital-server.pid 2>/dev/null)" 2>/dev/null || true
