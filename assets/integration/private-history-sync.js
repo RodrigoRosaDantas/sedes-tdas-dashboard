@@ -1,1 +1,1 @@
-export {syncPrivateHistory} from './private-history-sync-v2.js?v=2.0.0';
+export {syncPrivateHistory} from './private-history-sync-v3.js?v=3.0.0';
