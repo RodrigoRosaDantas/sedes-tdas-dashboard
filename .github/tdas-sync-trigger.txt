@@ -4,4 +4,4 @@ Atualize este arquivo somente quando for necessário solicitar uma recuperação
 
 Última solicitação:
 - data: 2026-08-12
-- motivo: revalidar e republicar o PE87 após a fonte oficial anular a bateria anterior de 30 questões e substituí-la por uma nova bateria integral de 48 questões. A nova fonte foi saneada, o gabarito operacional de 48 itens foi restaurado para correção separada e a auditoria PE79–PE112 confirmou 34/34 dias prontos. Não preservar nem consolidar o histórico 23/30 como execução válida do PE87 atual. Manter isolamento do Cargo 400.
+- motivo: sincronizar o estado pós-execução real do PE87 após o usuário concluir a bateria válida de 48 questões e atualizar os bancos operacionais no Notion. O Controle de Questões registra PE87 como Concluído, 45/48 acertos (93,75%), 39/42 específicas, 6/6 gerais/Português e 3 erros reais vinculados (Q21, Q22 e Q48). Reconsultar integralmente Controle, Caderno de Erros, Redações e conteúdo diário; recalcular métricas e próxima ação sem editar snapshots manualmente. Preservar a bateria válida de 48 questões, a chave editorial vigente e o isolamento do Cargo 400.
