@@ -1,12 +1,14 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { fetchWithTimeout, normalizeTimeoutMs } from './http-monitor.mjs';
 
 const ROOT = process.cwd();
 const DEFAULT_BASE_URL = 'https://rodrigorosadantas.github.io/sedes-tdas-dashboard';
 const REPORT_PATH = process.env.LIVE_SITE_REPORT_PATH || '/tmp/tdas-live-site-monitor.json';
 const DEFAULT_ATTEMPTS = 12;
 const DEFAULT_DELAY_MS = 15000;
+const REQUEST_TIMEOUT_MS = normalizeTimeoutMs(process.env.LIVE_SITE_REQUEST_TIMEOUT_MS, 8000);
 
 const readJson = async file => JSON.parse(await fs.readFile(path.join(ROOT, file), 'utf8'));
 const sleep = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds));
@@ -109,16 +111,17 @@ export function evaluateLiveSite({
     peId: livePlatform?.peId || null,
     redactionsSchemaVersion: liveRedactions?.schemaVersion || null,
     lockedRd: lockedRd || null,
+    requestTimeoutMs: REQUEST_TIMEOUT_MS,
     issues
   };
 }
 
 async function request(url, responseType = 'json') {
   const separator = url.includes('?') ? '&' : '?';
-  const response = await fetch(`${url}${separator}monitor=${Date.now()}`, {
+  const response = await fetchWithTimeout(`${url}${separator}monitor=${Date.now()}`, {
     cache: 'no-store',
     headers: { 'cache-control': 'no-cache' }
-  });
+  }, { timeoutMs: REQUEST_TIMEOUT_MS });
   if (!response.ok) throw new Error(`${response.status} ${response.statusText} em ${url}`);
   return responseType === 'text' ? response.text() : response.json();
 }
@@ -164,6 +167,7 @@ function markdownReport(report) {
     `- **PE:** ${report.peId || 'ausente'}`,
     `- **Contrato discursivo:** ${report.redactionsSchemaVersion || 'ausente'}`,
     `- **Proposta futura conferida:** ${report.lockedRd || 'nenhuma atualmente bloqueada'}`,
+    `- **Timeout HTTP:** ${report.requestTimeoutMs || REQUEST_TIMEOUT_MS} ms`,
     `- **Resumo:** ${report.summary}`
   ];
   if (report.issues?.length) {
@@ -201,6 +205,7 @@ async function runSelfTest() {
     lockedDetail: { rd: 'RD24', access: { locked: true }, proposal: null, original: null, performance: null, feedback: null, model: null }
   });
   assert.equal(valid.healthy, true);
+  assert.ok(valid.requestTimeoutMs >= 20 && valid.requestTimeoutMs <= 60000);
 
   const stale = evaluateLiveSite({
     expectedPlatform,
@@ -229,7 +234,7 @@ async function runSelfTest() {
   assert.equal(missingRuntime.healthy, false);
   assert.ok(missingRuntime.issues.some(item => item.code === 'HOME_VERSION_HOOK_MISSING'));
   assert.ok(missingRuntime.issues.some(item => item.code === 'HOME_RUNTIME_VERSION_MISMATCH'));
-  console.log('Monitor do GitHub Pages testado: manifesto, runtime da home, redações e aplicação cega cobertos.');
+  console.log(`Monitor do GitHub Pages testado: manifesto, runtime, redações, aplicação cega e timeout HTTP de ${REQUEST_TIMEOUT_MS} ms cobertos.`);
 }
 
 if (process.env.MONITOR_SELF_TEST === 'true') {
@@ -258,6 +263,7 @@ if (process.env.MONITOR_SELF_TEST === 'true') {
         peId: null,
         redactionsSchemaVersion: null,
         lockedRd: null,
+        requestTimeoutMs: REQUEST_TIMEOUT_MS,
         issues: [issue('LIVE_SITE_UNAVAILABLE', error instanceof Error ? error.message : String(error))]
       };
     }
