@@ -1,0 +1,34 @@
+name: Validar persistência privada TDAS
+on:
+  pull_request:
+    paths:
+      - 'assets/integration/*persistence*.js'
+      - 'assets/integration/*history*.js'
+      - 'assets/integration/*export*.js'
+      - 'assets/integration/question-telemetry-v2.js'
+      - 'assets/integration/error-book-enhancer.js'
+      - '.github/workflows/tdas-private-history.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validar sintaxe dos módulos novos
+        run: |
+          node --check assets/integration/attempt-export.js
+          node --check assets/integration/attempt-history.js
+          node --check assets/integration/error-book-export.js
+          node --check assets/integration/error-book-enhancer.js
+          node --check assets/integration/history-db-core.js
+          node --check assets/integration/persistence-contract.js
+          node --check assets/integration/persistence-local.js
+          node --check assets/integration/question-telemetry-v2.js
+      - name: Executar gate integral TDAS
+        run: npm run check
