@@ -5,14 +5,14 @@ const STOPWORDS=new Set(['a','as','o','os','de','da','das','do','dos','e','em','
 const SUBJECT_DISCIPLINES={
  'portugues':['Português'],
  'assistencia social':['SUAS / PNAS / NOB','Programas DF','Gerais DF e Legislação'],
- 'lc 840/2011':['Direito Administrativo / LC 840'],
+ 'lc 840 2011':['Direito Administrativo / LC 840'],
  'arquivologia':['Atendimento / Arquivologia'],
  'direito administrativo':['Direito Administrativo / LC 840'],
  'materiais e patrimonio':['Materiais / Patrimônio / Compras'],
- 'compras publicas / lei 14.133':['Materiais / Patrimônio / Compras'],
+ 'compras publicas lei 14 133':['Materiais / Patrimônio / Compras'],
  'direito constitucional':['Direito Constitucional'],
- 'atualidades / df-ride / pdpm':['Gerais DF e Legislação'],
- 'lei 7.484/2024':['Gerais DF e Legislação'],
+ 'atualidades df ride pdpm':['Gerais DF e Legislação'],
+ 'lei 7 484 2024':['Gerais DF e Legislação'],
  'lei maria da penha':['Gerais DF e Legislação'],
  'primeiros socorros':['Gerais DF e Legislação']
 };
@@ -25,6 +25,7 @@ export const CAUSE_META={
  trap:{label:'Pegadinha',hint:'Catalogar o padrão de cobrança e reconhecer o distrator.'}
 };
 export const normalizeText=value=>String(value??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+const normalizeId=value=>String(value??'').toLowerCase().replace(/[^a-f0-9]/g,'');
 const toDate=value=>{const date=new Date(String(value||'').length===10?`${value}T12:00:00-03:00`:value);return Number.isNaN(date.getTime())?null:date};
 const daysBetween=(from,to)=>{const a=toDate(from),b=toDate(to);if(!a||!b)return null;return Math.max(0,Math.floor((b-a)/DAY_MS))};
 const severityLabel=score=>score>=75?'critical':score>=50?'high':score>=25?'attention':'controlled';
@@ -32,19 +33,27 @@ const gravityNorm=value=>normalizeText(value).replace(/\s+/g,'');
 const maxGravity=errors=>errors.reduce((best,item)=>Math.max(best,GRAVITY_POINTS[gravityNorm(item.gravidade)]||0),0);
 const uniq=items=>[...new Set(items.filter(Boolean))];
 const tokens=value=>new Set(normalizeText(value).split(/\s+/).filter(token=>token.length>=3&&!STOPWORDS.has(token)));
+const allEditalTopics=edital=>edital?.topics?.length?edital.topics:(edital?.priorityTopics||[]);
+function topicProjection(item,extra={}){return{topic:item.topic,risk:item.risk||'unknown',priority:item.priority||'',url:item.url||'',id:item.id||'',...extra}}
 function editorialMatch(group,edital={}){
+ const candidates=allEditalTopics(edital);
+ const byId=new Map(candidates.map(item=>[normalizeId(item.id),item]).filter(([id])=>id));
+ const linkedIds=uniq(group.errors.flatMap(item=>Array.isArray(item.topicoEditalIds)?item.topicoEditalIds:[]).map(normalizeId));
+ const linked=linkedIds.map(id=>byId.get(id)).filter(Boolean).sort((a,b)=>(RISK_POINTS[b.risk||'unknown']||0)-(RISK_POINTS[a.risk||'unknown']||0));
+ if(linked.length)return topicProjection(linked[0],{confidence:1,matchType:'relation'});
  const allowed=SUBJECT_DISCIPLINES[normalizeText(group.materia)]||null;
- const candidates=(edital.topics||edital.priorityTopics||[]).filter(item=>!allowed||allowed.includes(item.discipline));
+ if(!allowed)return null;
+ const scoped=candidates.filter(item=>allowed.includes(item.discipline));
  const source=tokens(`${group.tema} ${group.subtema}`);if(!source.size)return null;
  let best=null;
- for(const item of candidates){
-  const target=tokens(item.topic);const shared=[...source].filter(token=>target.has(token));
+ for(const item of scoped){
+  const target=tokens(item.topic),shared=[...source].filter(token=>target.has(token));
   if(!shared.length)continue;
   const ratio=shared.length/Math.max(1,Math.min(source.size,target.size));
   const uniqueLong=shared.some(token=>token.length>=6);
   if(shared.length<2&&!uniqueLong)continue;
   const confidence=Math.min(1,ratio+(shared.length>=2?.2:0));
-  if(!best||confidence>best.confidence)best={topic:item.topic,risk:item.risk||'unknown',priority:item.priority||'',url:item.url||'',confidence};
+  if(!best||confidence>best.confidence)best=topicProjection(item,{confidence,matchType:'text'});
  }
  return best;
 }
@@ -60,12 +69,18 @@ function trendData(dates,referenceDate){
  if(!recent&&previous)return{label:'sem erro nas últimas 2 semanas',points:1,recent,previous};
  return{label:'sem série recente',points:0,recent,previous};
 }
+function reviewData(latest={}){
+ const signal=normalizeText(latest.precisaRevisar||'');
+ const required=Boolean(signal)&&/(^|\s)(revisar|pendente|sim)(\s|$)/.test(signal)&&!/nao revisar|dispens/.test(signal);
+ return{required,points:required?10:0,signal:latest.precisaRevisar||'',window:latest.janelaReaparecimento||''};
+}
 function actionFor(item){
  const pattern=normalizeText((item.patterns||[]).join(' '));
- if(item.severity==='critical')return pattern.includes('lei seca')||pattern.includes('decoreba')?'Hoje: releitura literal da regra + 8–12 questões dirigidas; refazer o erro em 24h.':'Hoje: revisão conceitual curta + 8–12 questões dirigidas; refazer o erro em 24h.';
- if(item.severity==='high')return pattern.includes('interpretacao')||pattern.includes('atencao')?'Em 24–48h: refazer os erros lentamente + 6–8 questões com foco no comando.':'Em 24–48h: revisar a regra/conceito + 6–8 questões do mesmo subtema.';
- if(item.severity==='attention')return'Fazer o conteúdo reaparecer em até 3 dias ou no próximo PE relacionado; 4–6 questões são suficientes.';
- return'Manter na revisão programada; não gastar bloco extra enquanto não surgir nova evidência.';
+ const suffix=item.review?.window?` Janela registrada: ${item.review.window}.`:'';
+ if(item.severity==='critical')return(pattern.includes('lei seca')||pattern.includes('decoreba')?'Hoje: releitura literal da regra + 8–12 questões dirigidas; refazer o erro em 24h.':'Hoje: revisão conceitual curta + 8–12 questões dirigidas; refazer o erro em 24h.')+suffix;
+ if(item.severity==='high')return(pattern.includes('interpretacao')||pattern.includes('atencao')?'Em 24–48h: refazer os erros lentamente + 6–8 questões com foco no comando.':'Em 24–48h: revisar a regra/conceito + 6–8 questões do mesmo subtema.')+suffix;
+ if(item.severity==='attention')return'Fazer o conteúdo reaparecer em até 3 dias ou no próximo PE relacionado; 4–6 questões são suficientes.'+suffix;
+ return'Manter na revisão programada; não gastar bloco extra enquanto não surgir nova evidência.'+suffix;
 }
 function buildTopicGroups(errors=[],referenceDate,edital){
  const groups=new Map();
@@ -76,16 +91,14 @@ function buildTopicGroups(errors=[],referenceDate,edital){
  }
  return[...groups.values()].map(group=>{
   const sorted=[...group.errors].sort((a,b)=>String(a.data||'').localeCompare(String(b.data||'')));
-  const dates=uniq(sorted.map(item=>item.data)).sort();
-  const lastErrorDate=dates.at(-1)||'',firstErrorDate=dates[0]||'';
+  const dates=uniq(sorted.map(item=>item.data)).sort(),lastErrorDate=dates.at(-1)||'',firstErrorDate=dates[0]||'';
   const recurrence=Math.max(sorted.length-1,...sorted.map(item=>Number(item.reincidencia||0)));
   const recurrenceScore=recurrencePoints(recurrence),daysSinceLast=daysBetween(lastErrorDate,referenceDate),recencyScore=recencyPoints(daysSinceLast),gravityScore=maxGravity(sorted),trend=trendData(dates,referenceDate),match=editorialMatch(group,edital),editalScore=RISK_POINTS[match?.risk||'unknown']||0;
-  const latest=sorted.at(-1)||{},reviewScore=latest.revisado===false?10:0;
+  const latest=sorted.at(-1)||{},review=reviewData(latest),reviewScore=review.points;
   let score=Math.min(100,recurrenceScore+recencyScore+gravityScore+trend.points+editalScore+reviewScore);
   if(sorted.length===1&&recurrence===0)score=Math.min(score,49);
-  const severity=severityLabel(score);
-  const patterns=uniq(sorted.flatMap(item=>item.padraoErro||[]));
-  const result={id:group.id,materia:group.materia,tema:group.tema,subtema:group.subtema,label:group.subtema||group.tema,errorCount:sorted.length,recurrence,dates,firstErrorDate,lastErrorDate,daysSinceLast,patterns,latestReviewed:latest.revisado===true,edital:match,trend,score,severity,breakdown:{recurrence:{points:recurrenceScore,max:25},recency:{points:recencyScore,max:20},gravity:{points:gravityScore,max:15},trend:{points:trend.points,max:15},edital:{points:editalScore,max:15},review:{points:reviewScore,max:10}}};
+  const severity=severityLabel(score),patterns=uniq(sorted.flatMap(item=>item.padraoErro||[]));
+  const result={id:group.id,materia:group.materia,tema:group.tema,subtema:group.subtema,label:group.subtema||group.tema,errorCount:sorted.length,recurrence,dates,firstErrorDate,lastErrorDate,daysSinceLast,patterns,latestReviewed:latest.revisado===true,review,edital:match,trend,score,severity,breakdown:{recurrence:{points:recurrenceScore,max:25},recency:{points:recencyScore,max:20},gravity:{points:gravityScore,max:15},trend:{points:trend.points,max:15},edital:{points:editalScore,max:15},review:{points:reviewScore,max:10}}};
   return{...result,action:actionFor(result)};
  }).sort((a,b)=>b.score-a.score||b.recurrence-a.recurrence||String(b.lastErrorDate).localeCompare(String(a.lastErrorDate)));
 }
@@ -100,7 +113,7 @@ export function buildOfficialMentorAnalysis({errors=[],subjects={},evolution={},
  const priorities=buildTopicGroups(errors,referenceDate,edital),strengths=strengthBlocks(evolution),subjectsRisk=subjectRisk(subjects,referenceDate),daysToExam=exam?daysBetween(referenceDate,exam):null;
  const critical=priorities.filter(item=>item.severity==='critical').length,high=priorities.filter(item=>item.severity==='high').length,attention=priorities.filter(item=>item.severity==='attention').length;
  const timeline=[...errors].filter(item=>item.data).sort((a,b)=>String(b.data).localeCompare(String(a.data))).slice(0,40).map(item=>({date:item.data,materia:item.materia||'Sem matéria',tema:item.tema||'',subtema:item.subtema||'',gravity:item.gravidade||'Sem gravidade',recurrence:Number(item.reincidencia||0),origin:item.origem||'',url:item.url||''}));
- return{schemaVersion:'1.0.0',referenceDate,examDate:exam,daysToExam,methodology:{severity:'0–100 = reincidência 25 + recência 20 + gravidade registrada 15 + tendência 15 + relevância no Edital 15 + revisão pendente 10. Um único erro sem reincidência é limitado a Atenção.',strength:'Ponto forte exige evidência positiva: bloco oficial com pelo menos 5 execuções e aproveitamento ≥94%, ou sinal local com amostra mínima e sequência recente consistente.'},summary:{critical,high,attention,controlled:priorities.filter(item=>item.severity==='controlled').length,strengths:strengths.length,totalTopicGroups:priorities.length,totalErrors:errors.length,topPriority:priorities[0]||null},priorities,strengths,subjects:subjectsRisk,timeline};
+ return{schemaVersion:'1.1.0',referenceDate,examDate:exam,daysToExam,methodology:{severity:'0–100 = reincidência 25 + recência 20 + gravidade registrada 15 + tendência 15 + relevância no Edital 15 + necessidade ativa de revisão 10. O fator de revisão usa “Precisa revisar?”, não o checkbox histórico “Revisado?”. Um único erro sem reincidência é limitado a Atenção.',strength:'Força oficial agregada é exibida como bloco de desempenho forte: exige ao menos 5 execuções e aproveitamento ≥94%. Força temática só é afirmada quando há sinal local com amostra mínima e sequência recente consistente.'},summary:{critical,high,attention,controlled:priorities.filter(item=>item.severity==='controlled').length,strengths:strengths.length,totalTopicGroups:priorities.length,totalErrors:errors.length,topPriority:priorities[0]||null},priorities,strengths,subjects:subjectsRisk,timeline};
 }
 export function buildLocalMentorSignals({state={},causeState={},now=Date.now()}={}){
  const attempts=[...(state.attempts||[])].sort((a,b)=>Number(b.finishedAt||0)-Number(a.finishedAt||0)),groups=new Map();
