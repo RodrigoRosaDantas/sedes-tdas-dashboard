@@ -1,5 +1,6 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import{isValidQuestionStem}from'./question-stem-policy.mjs';
 const ROOT=process.cwd(),read=file=>fs.readFile(path.join(ROOT,file),'utf8'),json=async file=>JSON.parse(await read(file)),exists=file=>fs.access(path.join(ROOT,file)).then(()=>true).catch(()=>false),required=(condition,message)=>{if(!condition)throw new Error(`Conteúdo diário: ${message}`)};
 const[catalog,contract,today]=await Promise.all([json('data/integration/question-catalog.json'),json('data/integration/daily-execution.json'),json('data/today.json')]);
 const pipeline=await read('scripts/notion/daily-content.mjs'),sync=await read('scripts/sync-notion.mjs'),dashboard=await read('assets/integration/module-dashboard.js'),questionPage=await read('assets/integration/daily-question-page.js'),player=await read('assets/integration/module-player.js'),postprocess=await read('scripts/postprocess-v26.mjs'),sw=await read('sw.js');
@@ -38,7 +39,7 @@ if(catalog.mode==='operational-empty'){
  required(JSON.stringify(Object.keys(catalog).sort())===JSON.stringify(allowedCatalogKeys),'catálogo público contém campo não autorizado');
  for(const question of catalog.questions){
   required(JSON.stringify(Object.keys(question).sort())===JSON.stringify(allowedQuestionKeys),`${question.id||'questão'} contém campo não autorizado`);
-  required(question.enunciado?.length>=12,`${question.id} sem enunciado`);
+  required(isValidQuestionStem(question.enunciado),`${question.id} sem enunciado suficiente`);
   const optionKeys=Object.keys(question.alternativas||{}).sort();
   required(optionKeys.length>=2&&optionKeys.length<=5,`${question.id} deve possuir entre duas e cinco alternativas`);
   required(JSON.stringify(optionKeys)===JSON.stringify(['A','B','C','D','E'].slice(0,optionKeys.length)),`${question.id} possui alternativas descontínuas`);
