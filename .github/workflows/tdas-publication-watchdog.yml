@@ -63,7 +63,7 @@ permissions:
   issues: write
 
 concurrency:
-  group: tdas-publication-watchdog
+  group: tdas-publication-watchdog-v2
   cancel-in-progress: true
 
 jobs:
