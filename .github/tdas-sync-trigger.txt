@@ -4,4 +4,4 @@ Atualize este arquivo somente quando for necessário solicitar uma recuperação
 
 Última solicitação:
 - data: 2026-08-13
-- motivo: reexecutar a sincronização oficial após o hotfix do contrato de validação do Mentor, confirmando o pipeline completo antes de nova publicação automática.
+- motivo: reexecutar a sincronização oficial após a integração da Fase 3 de telemetria granular local, confirmando que o pipeline do Notion preserva a instrumentação, os analytics locais e o PWA sem backend externo.
