@@ -1,1 +1,1 @@
-import './module-performance-v4.js?v=4.0.0';
+import './module-performance-v6.js?v=6.0.0';
