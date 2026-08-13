@@ -1,8 +1,15 @@
 {
   "schemaVersion": "1.0.0",
   "release": "20260811.1",
-  "updatedAt": "2026-08-11T13:25:57-03:00",
+  "updatedAt": "2026-08-13T01:21:02-03:00",
   "events": [
+    {
+      "at": "2026-08-13T01:21:02-03:00",
+      "status": "no_changes",
+      "type": "snapshot",
+      "title": "Fontes oficiais revalidadas sem alterações",
+      "detail": "As três views oficiais foram percorridas até has_more=false. Permanecem confirmados 42 Sprints S01–S42, 6 blocos objetivos concluídos, 205 questões, 167 acertos (81,46%), 38 erros acumulados, 31 páginas detalhadas no Caderno e 12 estudos de caso não iniciados. O S08 continua como próxima ação pendente; S18 permanece apenas como Sprint do calendário em 13/08/2026."
+    },
     {
       "at": "2026-08-11T13:25:57-03:00",
       "status": "no_changes",
