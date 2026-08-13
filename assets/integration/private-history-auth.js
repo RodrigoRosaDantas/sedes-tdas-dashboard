@@ -1,14 +1,22 @@
-import {PRIVATE_HISTORY_CONFIG} from './private-history-config.js?v=1.0.0';
-import {AUTH_STORAGE_KEY} from './persistence-contract.js?v=1.0.0';
-const SDK='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.111.0/+esm';
-let clientPromise=null;
-export function privateHistoryEnabled(){return PRIVATE_HISTORY_CONFIG.enabled===true&&/^https:\/\//.test(PRIVATE_HISTORY_CONFIG.projectUrl)&&String(PRIVATE_HISTORY_CONFIG.publishableKey).startsWith('sb_publishable_')}
-export async function privateHistoryClient(){
- if(!privateHistoryEnabled())throw new Error('Persistência privada ainda não configurada.');
- if(!clientPromise)clientPromise=import(SDK).then(({createClient})=>createClient(PRIVATE_HISTORY_CONFIG.projectUrl,PRIVATE_HISTORY_CONFIG.publishableKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,storageKey:AUTH_STORAGE_KEY}}));
- return clientPromise;
+import {PRIVATE_HISTORY_CONFIG} from './private-history-config.js?v=1.1.0';
+const VERSION='12.16.0';
+const APP_SDK=`https://www.gstatic.com/firebasejs/${VERSION}/firebase-app.js`;
+const AUTH_SDK=`https://www.gstatic.com/firebasejs/${VERSION}/firebase-auth.js`;
+let appPromise=null,authPromise=null;
+
+function configured(){const c=PRIVATE_HISTORY_CONFIG.firebaseConfig||{};return PRIVATE_HISTORY_CONFIG.enabled===true&&PRIVATE_HISTORY_CONFIG.provider==='firebase'&&c.apiKey&&c.authDomain&&c.projectId&&c.appId}
+export function privateHistoryEnabled(){return Boolean(configured())}
+export async function privateHistoryApp(){
+ if(!privateHistoryEnabled())throw new Error('Persistência privada Firebase ainda não configurada.');
+ if(!appPromise)appPromise=import(APP_SDK).then(({initializeApp,getApp,getApps})=>getApps().length?getApp():initializeApp(PRIVATE_HISTORY_CONFIG.firebaseConfig));
+ return appPromise;
 }
-export async function getPrivateSession(){const client=await privateHistoryClient(),{data,error}=await client.auth.getSession();if(error)throw error;return data.session||null}
-export async function signInPrivate(email,password){const client=await privateHistoryClient(),{data,error}=await client.auth.signInWithPassword({email:String(email).trim(),password:String(password)});if(error)throw error;return data.session||null}
-export async function signUpPrivate(email,password){const client=await privateHistoryClient(),{data,error}=await client.auth.signUp({email:String(email).trim(),password:String(password)});if(error)throw error;return data.session||null}
-export async function signOutPrivate(){const client=await privateHistoryClient(),{error}=await client.auth.signOut();if(error)throw error;return true}
+export async function privateHistoryAuth(){
+ if(!authPromise)authPromise=Promise.all([privateHistoryApp(),import(AUTH_SDK)]).then(async([app,mod])=>{const auth=mod.getAuth(app);try{await mod.setPersistence(auth,mod.browserLocalPersistence)}catch{}if(typeof auth.authStateReady==='function')await auth.authStateReady();return{auth,mod}});
+ return authPromise;
+}
+const sessionFrom=user=>user?{user:{id:user.uid,email:user.email||null,emailVerified:user.emailVerified===true}}:null;
+export async function getPrivateSession(){const{auth}=await privateHistoryAuth();return sessionFrom(auth.currentUser)}
+export async function signInPrivate(email,password){const{auth,mod}=await privateHistoryAuth();const credential=await mod.signInWithEmailAndPassword(auth,String(email).trim(),String(password));return sessionFrom(credential.user)}
+export async function signUpPrivate(email,password){const{auth,mod}=await privateHistoryAuth();const credential=await mod.createUserWithEmailAndPassword(auth,String(email).trim(),String(password));return sessionFrom(credential.user)}
+export async function signOutPrivate(){const{auth,mod}=await privateHistoryAuth();await mod.signOut(auth);return true}
