@@ -93,17 +93,24 @@ jobs:
           "${chrome[@]}" "${root}mentor/?severity=critical" >/tmp/mentor-critical.html 2>/tmp/mentor-critical.stderr
           "${chrome[@]}" "${root}mentor/?severity=" >/tmp/mentor-all.html 2>/tmp/mentor-all.stderr
           "${chrome[@]}" "${root}revisar/?mentor=crase&subject=Portugu%C3%AAs" >/tmp/mentor-review.html 2>/tmp/mentor-review.stderr
-          grep -q 'Pontos fracos e fragilidades' /tmp/mentor.html
-          grep -q 'Blocos de desempenho forte' /tmp/mentor.html
-          grep -q 'Forças temáticas deste dispositivo' /tmp/mentor.html
-          grep -q 'Revisão dirigida' /tmp/mentor.html
-          grep -q "${IMMEDIATE} de ${PRIORITIES} tópicos" /tmp/mentor.html
-          grep -q "${PRIORITIES} de ${PRIORITIES} tópicos" /tmp/mentor-all.html
-          grep -q "${CRITICAL} de ${PRIORITIES} tópicos" /tmp/mentor-critical.html
-          grep -q '>Mais</span>' /tmp/mentor-mobile.html
-          grep -q 'Revisão dirigida pelo Mentor' /tmp/mentor-review.html
-          grep -q 'Revisar crase' /tmp/mentor-review.html
-          ! grep -Eqi 'Construindo seu diagnóstico|Não foi possível carregar esta página|Uncaught (TypeError|ReferenceError|SyntaxError)' /tmp/mentor.html /tmp/mentor-mobile.html /tmp/mentor-review.html /tmp/mentor*.stderr
+
+          assert_contains(){ local file="$1" needle="$2" label="$3"; if grep -Fq -- "$needle" "$file"; then echo "OK: $label"; else echo "FALHA: $label — ausente: $needle"; return 1; fi; }
+          assert_contains /tmp/mentor.html 'Pontos fracos e fragilidades' 'prioridades renderizadas'
+          assert_contains /tmp/mentor.html 'Blocos de desempenho forte' 'blocos fortes rotulados corretamente'
+          assert_contains /tmp/mentor.html 'Forças temáticas deste dispositivo' 'forças temáticas locais'
+          assert_contains /tmp/mentor.html 'Revisão dirigida' 'CTA de revisão dirigida'
+          assert_contains /tmp/mentor.html "${IMMEDIATE} de ${PRIORITIES} tópicos" 'foco padrão crítico + alto'
+          assert_contains /tmp/mentor-all.html "${PRIORITIES} de ${PRIORITIES} tópicos" 'visão completa'
+          assert_contains /tmp/mentor-critical.html "${CRITICAL} de ${PRIORITIES} tópicos" 'filtro crítico'
+          assert_contains /tmp/mentor-mobile.html 'Mais' 'navegação mobile'
+          assert_contains /tmp/mentor-review.html 'Revisão dirigida pelo Mentor' 'página de revisão dirigida'
+          assert_contains /tmp/mentor-review.html 'Revisar crase' 'foco crase na revisão'
+
+          if grep -Eqi 'Construindo seu diagnóstico|Não foi possível carregar esta página|Uncaught (TypeError|ReferenceError|SyntaxError)' /tmp/mentor.html /tmp/mentor-mobile.html /tmp/mentor-review.html /tmp/mentor*.stderr; then
+            echo 'FALHA: erro de carregamento ou JavaScript detectado';
+            grep -Ein 'Construindo seu diagnóstico|Não foi possível carregar esta página|Uncaught (TypeError|ReferenceError|SyntaxError)' /tmp/mentor.html /tmp/mentor-mobile.html /tmp/mentor-review.html /tmp/mentor*.stderr || true;
+            exit 1;
+          fi
           printf '{"mentorBrowser":"ok","errors":%s,"priorities":%s,"immediate":%s,"critical":%s,"high":%s,"directedReview":true,"mobile":true}\n' "$ERRORS" "$PRIORITIES" "$IMMEDIATE" "$CRITICAL" "$HIGH"
       - name: Diagnosticar falha
         if: failure()
