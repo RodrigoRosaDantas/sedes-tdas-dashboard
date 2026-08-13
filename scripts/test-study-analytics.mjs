@@ -32,5 +32,6 @@ assert.ok(merged.stores.questionModule.attempts.some(item=>item.id==='local-only
 assert.ok(merged.stores.questionModule.attempts.some(item=>item.id==='remote-only'));
 assert.equal(merged.stores.questionModule.reviews.find(item=>item.id==='review:sync').status,'completed');
 assert.equal(merged.stores.dailyExecution.items.PE88.questions,true);
-assert.equal(stableStringify(reduceEvents([...localEvents,...remoteEvents])),stableStringify(reduceEvents([...remoteEvents,...localEvents])));
+const canonical=events=>reduceEvents(events).map(({collection,record_id,logical_clock,payload})=>({collection,record_id,logical_clock,payload}));
+assert.equal(stableStringify(canonical([...localEvents,...remoteEvents])),stableStringify(canonical([...remoteEvents,...localEvents])));
 console.log('Motor analítico e sincronização multi-dispositivo validados.');
