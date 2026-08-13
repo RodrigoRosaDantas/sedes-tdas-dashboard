@@ -4,4 +4,4 @@ Atualize este arquivo somente quando for necessário solicitar uma recuperação
 
 Última solicitação:
 - data: 2026-08-13
-- motivo: reexecutar a sincronização oficial após a integração da Fase 3 de telemetria granular local, confirmando que o pipeline do Notion preserva a instrumentação, os analytics locais e o PWA sem backend externo.
+- motivo: reexecutar a sincronização oficial após a integração da persistência privada Firebase, confirmando que o pipeline Notion preserva autenticação e sincronização privadas, exportação para ChatGPT, Caderno de Erros detalhado, catálogo histórico do PE88 e precache PWA sem alterar o conteúdo oficial.
