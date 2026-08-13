@@ -37,6 +37,7 @@ jobs:
           node --check assets/integration/persistence-queue.js
           node --check assets/integration/persistence-local-v2.js
           node --check assets/integration/private-history-auth.js
+          node --check assets/integration/private-history-page.js
           node --check assets/integration/private-history-materialize.js
           node --check assets/integration/private-history-runtime-v3.js
           node --check assets/integration/private-history-sync-v3.js
@@ -50,6 +51,14 @@ jobs:
           grep -F "request.auth.uid == userId" firestore.rules
           grep -F "'users',String(userId),'attempts'" assets/integration/firebase-history-store.js
           grep -F "writeBatch" assets/integration/firebase-history-store.js
+      - name: Validar semântica da central de histórico
+        run: |
+          grep -F 'Histórico pessoal TDAS' assets/integration/private-history-page.js
+          grep -F 'PEs já concluídos são tratados somente como histórico de resolução' assets/integration/private-history-page.js
+          grep -F "private-history-sync-v3.js?v=3.0.0" assets/integration/private-history-page.js
+          ! grep -F 'PE88 localizado neste navegador' assets/integration/private-history-page.js
+          ! grep -F 'Migração local pronta' assets/integration/private-history-page.js
+          ! grep -Fi 'Supabase' assets/integration/private-history-page.js
       - name: Testar sequência de respostas
         run: node scripts/test-answer-sequence.mjs
       - name: Testar contrato JSON
@@ -60,6 +69,7 @@ jobs:
         run: |
           node scripts/preserve-private-history-pwa.mjs
           grep -F 'assets/integration/private-history-sync-v3.js' sw.js
+          grep -F 'assets/integration/private-history-page.js' sw.js
           grep -F 'data/integration/question-archive/tdas-pe88-339d718d88c1.json' sw.js
           grep -F 'exportar-tentativa/' sw.js
       - name: Executar gate integral TDAS
