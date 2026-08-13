@@ -7,6 +7,7 @@ const[palette,css,shell,sw,postprocess,version]=await Promise.all([
 ]);
 for(const label of ['Faça agora','Resolver questões','Revisões','Caderno de erros','Progresso','Check do Edital','Plano PE01–PE112','Biblioteca','Redações','Bancos de dados','Configurações'])assert.ok(palette.includes(label),`Palette deve indexar ${label}.`);
 for(const marker of ['readSessionDraft','Continuar ${draft.peId','Revisar agora','Tratar ${errors.length','Array.from({length:112},','data/subjects.json','data/agenda.json','data/home.json'])assert.ok(palette.includes(marker),`Palette deve preservar ${marker}.`);
+for(const marker of [':complement:q31-q48','Continuar complemento','&mode=complement'])assert.ok(palette.includes(marker),`Palette deve preservar retomada do complemento: ${marker}.`);
 assert.match(palette,/event\.metaKey\|\|event\.ctrlKey/,'Palette deve aceitar Cmd/Ctrl+K.');
 assert.match(palette,/event\.key==='\/'/,'Palette deve aceitar atalho /.');
 assert.match(palette,/ArrowDown/,'Palette deve navegar por seta para baixo.');
@@ -22,7 +23,7 @@ for(const marker of ['tdas-command-overlay','tdas-command-dialog','tdas-command-
 assert.match(shell,/tdas-command-palette\.css\?v=1/,'Shell deve carregar CSS da palette.');
 assert.match(shell,/tdas-command-palette\.js\?v=1\.0\.0/,'Shell deve importar a palette.');
 for(const item of ['assets/tdas-command-palette.css','assets/tdas-command-palette.js']){assert.ok(sw.includes(item),`PWA deve precachear ${item}.`);assert.ok(postprocess.includes(item),`Pós-processamento deve preservar ${item}.`)}
-assert.match(version.serviceWorkerVersion,/pro5$/,'Manifesto deve usar cache PRO5.');
-assert.match(sw,/pro5/,'Service worker deve usar cache PRO5.');
+assert.match(version.serviceWorkerVersion,/pro6$/,'Manifesto deve usar cache PRO6.');
+assert.match(sw,/pro6/,'Service worker deve usar cache PRO6.');
 assert.ok(!sw.includes('question-keys/'),'Gabarito continua fora do precache inicial.');
-console.log('Command Palette TDAS validada: ações, PE01–PE112, matérias, sessão/revisão local, teclado, foco, PWA PRO5 e blindagem do gabarito.');
+console.log('Command Palette TDAS validada: ações, PE01–PE112, complemento PE87, sessão/revisão local, teclado, foco, PWA PRO6 e blindagem do gabarito.');
