@@ -49,8 +49,10 @@ assert.match(script,/edital-search/,'Página perdeu busca textual.');
 assert.match(more,/\$\{BASE\}edital\//,'Edital não está acessível pela navegação complementar.');
 assert.match(mobileUx,/edital:BASE\+'edital\/'/,'Navegação global não reconhece a rota do Edital.');
 assert.match(mobileUx,/\['edital','Edital'\]/,'Drawer não expõe o Edital em Progresso.');
-assert.match(mobileUx,/\['edital','Edital','Raio-X'\]/,'Navegação desktop não aponta para a página do Edital.');
+assert.match(mobileUx,/\['edital','Check do Edital','Cobertura'\]/,'Navegação desktop não aponta para a página do Edital.');
+assert.match(mobileUx,/\['riscos','Riscos','Pareto'\]/,'Correção do Edital não pode remover Riscos da navegação desktop.');
 assert.match(mobileUx,/active==='edital'\?'edital'/,'Edital não recebe estado ativo correto no desktop.');
+assert.match(mobileUx,/active==='riscos'\?'riscos'/,'Riscos não recebe estado ativo correto no desktop.');
 for(const source of[sw,pwaGenerator]){
  assert.match(source,/"edital\/"/,'Rota do edital está fora do PWA ou de seu gerador.');
  assert.match(source,/"assets\/edital\.js"/,'Script do edital está fora do PWA ou de seu gerador.');
