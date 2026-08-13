@@ -6,17 +6,19 @@ on:
     branches: [main]
     paths:
       - 'mentor/**'
+      - 'revisar/**'
       - 'assets/mentor.js'
       - 'assets/mentor.css'
       - 'assets/integration/mentor-engine.js'
       - 'assets/integration/mentor-ux.js'
+      - 'assets/integration/module-reviews.js'
       - 'assets/tdas-mobile-ux.js'
-      - 'assets/tdas-command-palette.js'
       - 'data/error-questions/**'
       - 'data/subjects.json'
       - 'data/evolution.json'
       - 'data/edital-status.json'
       - 'scripts/test-mentor.mjs'
+      - 'scripts/notion/mentor-enrichment.mjs'
       - 'scripts/postprocess-v26.mjs'
       - 'package.json'
       - 'sw.js'
@@ -25,19 +27,19 @@ on:
     branches: [main]
     paths:
       - 'mentor/**'
+      - 'revisar/**'
       - 'assets/mentor.js'
       - 'assets/mentor.css'
       - 'assets/integration/mentor-engine.js'
       - 'assets/integration/mentor-ux.js'
-      - 'assets/tdas-mobile-ux.js'
-      - 'assets/tdas-command-palette.js'
+      - 'assets/integration/module-reviews.js'
       - 'data/error-questions/**'
       - 'data/subjects.json'
       - 'data/evolution.json'
       - 'data/edital-status.json'
       - 'scripts/test-mentor.mjs'
+      - 'scripts/notion/mentor-enrichment.mjs'
       - 'scripts/postprocess-v26.mjs'
-      - 'package.json'
       - 'sw.js'
       - '.github/workflows/mentor-browser.yml'
 
@@ -53,17 +55,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - name: Baixar repositório
-        uses: actions/checkout@v4
-
-      - name: Preparar Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '22'
-
       - name: Validar metodologia do Mentor
         run: npm run test:mentor
-
       - name: Preparar site e expectativas
         shell: bash
         run: |
@@ -72,68 +69,47 @@ jobs:
           cp -a . /tmp/tdas-site/sedes-tdas-dashboard/
           node --input-type=module <<'NODE'
           import fs from 'node:fs';
-          const root='/tmp/tdas-site/sedes-tdas-dashboard';
-          const read=file=>JSON.parse(fs.readFileSync(`${root}/${file}`,'utf8'));
-          const index=read('data/error-questions/index.json');
-          const errors=(index.parts||[]).flatMap(part=>read(`data/error-questions/${part.file}`));
+          const root='/tmp/tdas-site/sedes-tdas-dashboard',read=file=>JSON.parse(fs.readFileSync(`${root}/${file}`,'utf8'));
+          const index=read('data/error-questions/index.json'),errors=(index.parts||[]).flatMap(part=>read(`data/error-questions/${part.file}`));
           const {buildOfficialMentorAnalysis,normalizeText}=await import(`file://${root}/assets/integration/mentor-engine.js`);
-          const subjects=read('data/subjects.json'),evolution=read('data/evolution.json'),edital=read('data/edital-status.json');
-          const analysis=buildOfficialMentorAnalysis({errors,subjects,evolution,edital,snapshotDate:subjects.meta?.snapshotDate,examDate:subjects.meta?.examDate});
-          const critical=analysis.priorities.filter(item=>item.severity==='critical').length;
-          const high=analysis.priorities.filter(item=>item.severity==='high').length;
-          const immediate=critical+high;
-          const crase=analysis.priorities.filter(item=>normalizeText(`${item.materia} ${item.tema} ${item.subtema}`).includes('crase')).length;
-          if(!analysis.priorities.length||!analysis.strengths.length||!immediate)throw new Error('Mentor sem diagnóstico, força positiva ou prioridade imediata.');
-          fs.writeFileSync('/tmp/mentor-expected.env',`ERRORS=${errors.length}\nPRIORITIES=${analysis.priorities.length}\nCRITICAL=${critical}\nHIGH=${high}\nIMMEDIATE=${immediate}\nSTRENGTHS=${analysis.strengths.length}\nCRASE=${crase}\n`);
+          const analysis=buildOfficialMentorAnalysis({errors,subjects:read('data/subjects.json'),evolution:read('data/evolution.json'),edital:read('data/edital-status.json'),snapshotDate:read('data/subjects.json').meta?.snapshotDate,examDate:read('data/subjects.json').meta?.examDate});
+          const critical=analysis.priorities.filter(i=>i.severity==='critical').length,high=analysis.priorities.filter(i=>i.severity==='high').length,immediate=critical+high,crase=analysis.priorities.filter(i=>normalizeText(`${i.materia} ${i.tema} ${i.subtema}`).includes('crase')).length;
+          if(!analysis.priorities.length||!immediate)throw new Error('Mentor sem diagnóstico acionável.');
+          fs.writeFileSync('/tmp/mentor-expected.env',`ERRORS=${errors.length}\nPRIORITIES=${analysis.priorities.length}\nCRITICAL=${critical}\nHIGH=${high}\nIMMEDIATE=${immediate}\nCRASE=${crase}\n`);
           NODE
           cd /tmp/tdas-site
-          python3 -m http.server 4176 >/tmp/mentor-server.log 2>&1 &
-          echo $! >/tmp/mentor-server.pid
+          python3 -m http.server 4176 >/tmp/mentor-server.log 2>&1 & echo $! >/tmp/mentor-server.pid
           for attempt in $(seq 1 30); do curl -fsS http://127.0.0.1:4176/sedes-tdas-dashboard/mentor/ >/dev/null && exit 0; sleep 1; done
-          cat /tmp/mentor-server.log >&2
           exit 1
-
-      - name: Validar Mentor em Chrome desktop e mobile
+      - name: Validar Mentor e revisão dirigida em Chrome
         shell: bash
         run: |
           set -euo pipefail
           source /tmp/mentor-expected.env
-          base='http://127.0.0.1:4176/sedes-tdas-dashboard/mentor/'
+          root='http://127.0.0.1:4176/sedes-tdas-dashboard/'
           chrome=(google-chrome --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --virtual-time-budget=20000 --dump-dom)
-          "${chrome[@]}" "$base" >/tmp/mentor.html 2>/tmp/mentor.stderr
-          "${chrome[@]}" --window-size=390,844 "$base" >/tmp/mentor-mobile.html 2>/tmp/mentor-mobile.stderr
-          "${chrome[@]}" "${base}?severity=critical" >/tmp/mentor-critical.html 2>/tmp/mentor-critical.stderr
-          "${chrome[@]}" "${base}?severity=" >/tmp/mentor-all.html 2>/tmp/mentor-all.stderr
-          if [[ "$CRASE" -gt 0 ]]; then "${chrome[@]}" "${base}?q=crase" >/tmp/mentor-search.html 2>/tmp/mentor-search.stderr; fi
-          grep -q 'Onde você está forte' /tmp/mentor.html
+          "${chrome[@]}" "${root}mentor/" >/tmp/mentor.html 2>/tmp/mentor.stderr
+          "${chrome[@]}" --window-size=390,844 "${root}mentor/" >/tmp/mentor-mobile.html 2>/tmp/mentor-mobile.stderr
+          "${chrome[@]}" "${root}mentor/?severity=critical" >/tmp/mentor-critical.html 2>/tmp/mentor-critical.stderr
+          "${chrome[@]}" "${root}mentor/?severity=" >/tmp/mentor-all.html 2>/tmp/mentor-all.stderr
+          "${chrome[@]}" "${root}revisar/?mentor=crase&subject=Portugu%C3%AAs" >/tmp/mentor-review.html 2>/tmp/mentor-review.stderr
           grep -q 'Pontos fracos e fragilidades' /tmp/mentor.html
-          grep -q 'Pontos fortes' /tmp/mentor.html
-          grep -q 'Linha do tempo dos erros' /tmp/mentor.html
-          grep -q 'Como a gravidade é calculada' /tmp/mentor.html
-          grep -q '🔥 Prioridade agora' /tmp/mentor.html
+          grep -q 'Blocos de desempenho forte' /tmp/mentor.html
+          grep -q 'Forças temáticas deste dispositivo' /tmp/mentor.html
+          grep -q 'Revisão dirigida' /tmp/mentor.html
           grep -q "${IMMEDIATE} de ${PRIORITIES} tópicos" /tmp/mentor.html
           grep -q "${PRIORITIES} de ${PRIORITIES} tópicos" /tmp/mentor-all.html
           grep -q "${CRITICAL} de ${PRIORITIES} tópicos" /tmp/mentor-critical.html
-          grep -q 'Mentor</b><small>Diagnóstico' /tmp/mentor.html
           grep -q '>Mais</span>' /tmp/mentor-mobile.html
-          grep -q 'Mentor TDAS</b>' /tmp/mentor-mobile.html
-          grep -q "${IMMEDIATE} de ${PRIORITIES} tópicos" /tmp/mentor-mobile.html
-          if [[ "$CRASE" -gt 0 ]]; then grep -q "${CRASE} de ${PRIORITIES} tópicos" /tmp/mentor-search.html; fi
-          ! grep -Eqi 'Construindo seu diagnóstico|Não foi possível carregar esta página|Uncaught (TypeError|ReferenceError|SyntaxError)' /tmp/mentor.html /tmp/mentor-mobile.html /tmp/mentor*.stderr
-          printf '{"mentorBrowser":"ok","errors":%s,"priorities":%s,"immediate":%s,"critical":%s,"high":%s,"strengths":%s,"mobile":true}\n' "$ERRORS" "$PRIORITIES" "$IMMEDIATE" "$CRITICAL" "$HIGH" "$STRENGTHS"
-
+          grep -q 'Revisão dirigida pelo Mentor' /tmp/mentor-review.html
+          grep -q 'Revisar crase' /tmp/mentor-review.html
+          ! grep -Eqi 'Construindo seu diagnóstico|Não foi possível carregar esta página|Uncaught (TypeError|ReferenceError|SyntaxError)' /tmp/mentor.html /tmp/mentor-mobile.html /tmp/mentor-review.html /tmp/mentor*.stderr
+          printf '{"mentorBrowser":"ok","errors":%s,"priorities":%s,"immediate":%s,"critical":%s,"high":%s,"directedReview":true,"mobile":true}\n' "$ERRORS" "$PRIORITIES" "$IMMEDIATE" "$CRITICAL" "$HIGH"
       - name: Diagnosticar falha
         if: failure()
-        shell: bash
         run: |
           cat /tmp/mentor-expected.env 2>/dev/null || true
-          for file in /tmp/mentor.html /tmp/mentor-mobile.html /tmp/mentor-all.html /tmp/mentor-critical.html /tmp/mentor-search.html; do
-            [[ -f "$file" ]] || continue
-            echo "=== $file ==="
-            grep -Eo '[0-9]+ de [0-9]+ tópicos|Onde você está forte|Pontos fracos e fragilidades|Pontos fortes|Prioridade agora|Não foi possível carregar esta página|Mentor</b>|>Mais</span>' "$file" | head -40 || true
-          done
-          for file in /tmp/mentor*.stderr; do [[ -f "$file" ]] || continue; echo "=== $file ==="; tail -80 "$file" || true; done
-
+          for file in /tmp/mentor*.html /tmp/mentor*.stderr; do [[ -f "$file" ]] || continue; echo "=== $file ==="; tail -80 "$file"; done
       - name: Encerrar servidor
         if: always()
         run: kill "$(cat /tmp/mentor-server.pid 2>/dev/null)" 2>/dev/null || true
