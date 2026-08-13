@@ -16,14 +16,26 @@ export function normalizeTimeoutMs(value, fallback = DEFAULT_TIMEOUT_MS) {
 export async function fetchWithTimeout(url, options = {}, { timeoutMs = DEFAULT_TIMEOUT_MS, fetchImpl = globalThis.fetch } = {}) {
   if (typeof fetchImpl !== 'function') throw new Error('Implementação de fetch indisponível para o monitor HTTP.');
   const timeout = normalizeTimeoutMs(timeoutMs);
-  const timeoutSignal = AbortSignal.timeout(timeout);
-  const signal = options.signal ? AbortSignal.any([options.signal, timeoutSignal]) : timeoutSignal;
+  const controller = new AbortController();
+  let timedOut = false;
+  const upstreamSignal = options.signal;
+  const abortFromUpstream = () => controller.abort(upstreamSignal?.reason);
+
+  if (upstreamSignal?.aborted) abortFromUpstream();
+  else upstreamSignal?.addEventListener('abort', abortFromUpstream, { once: true });
+
+  const timer = setTimeout(() => {
+    timedOut = true;
+    controller.abort(new Error(`Timeout HTTP após ${timeout} ms em ${url}.`));
+  }, timeout);
+
   try {
-    return await fetchImpl(url, { ...options, signal });
+    return await fetchImpl(url, { ...options, signal: controller.signal });
   } catch (error) {
-    if (timeoutSignal.aborted) {
-      throw new Error(`Timeout HTTP após ${timeout} ms em ${url}.`, { cause: error });
-    }
+    if (timedOut) throw new Error(`Timeout HTTP após ${timeout} ms em ${url}.`, { cause: error });
     throw error;
+  } finally {
+    clearTimeout(timer);
+    upstreamSignal?.removeEventListener('abort', abortFromUpstream);
   }
 }
