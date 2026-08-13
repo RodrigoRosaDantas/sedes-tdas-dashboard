@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import {buildStudyAnalytics} from '../assets/integration/study-analytics.js';
+import {backupToEvents,mergeBackupWithEvents,reduceEvents,stableStringify} from '../assets/integration/cloud-sync-core.js';
 
 const now=Date.parse('2026-08-13T12:00:00-03:00');
 const attempts=[
@@ -18,4 +19,19 @@ assert.equal(result.review.masteredRate,100);
 assert.equal(result.review.criticalDue,1);
 assert.equal(result.topics[0].riskScore,6);
 assert.ok(result.total.questionsPerHour>20);
-console.log('Motor analítico validado: janelas, sequência, revisão, risco e velocidade.');
+
+const state=(attemptList,reviewList,updatedAt,questions)=>({stores:{questionModule:{attempts:attemptList,errors:[],marked:[],reviews:reviewList,aiQueue:[]},dailyExecution:{items:{PE88:{material:true,questions,registered:false,updatedAt}}}}});
+const pending={id:'review:sync',sourceAttemptId:'sync-source',status:'pending',completedAt:null,outcome:null};
+const completed={...pending,status:'completed',completedAt:3000,outcome:'mastered'};
+const local=state([{id:'sync-source',finishedAt:1000},{id:'local-only',finishedAt:2000}],[pending],'2026-08-13T10:00:00Z',false);
+const remote=state([{id:'sync-source',finishedAt:1000},{id:'remote-only',finishedAt:3000}],[completed],'2026-08-13T12:00:00Z',true);
+const localEvents=backupToEvents(local,'device-a'),remoteEvents=backupToEvents(remote,'device-b');
+assert.equal(stableStringify(localEvents),stableStringify(backupToEvents(local,'device-a')));
+const merged=mergeBackupWithEvents(local,remoteEvents,'device-a');
+assert.ok(merged.stores.questionModule.attempts.some(item=>item.id==='local-only'));
+assert.ok(merged.stores.questionModule.attempts.some(item=>item.id==='remote-only'));
+assert.equal(merged.stores.questionModule.reviews.find(item=>item.id==='review:sync').status,'completed');
+assert.equal(merged.stores.dailyExecution.items.PE88.questions,true);
+const canonical=events=>reduceEvents(events).map(({collection,record_id,logical_clock,payload})=>({collection,record_id,logical_clock,payload}));
+assert.equal(stableStringify(canonical([...localEvents,...remoteEvents])),stableStringify(canonical([...remoteEvents,...localEvents])));
+console.log('Motor analítico e sincronização multi-dispositivo validados.');
