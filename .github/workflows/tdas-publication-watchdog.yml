@@ -24,6 +24,8 @@ on:
       - 'scripts/monitor-tdas-publication.mjs'
       - 'scripts/monitor-live-site.mjs'
       - 'scripts/monitor-tdas-shell.mjs'
+      - 'scripts/http-monitor.mjs'
+      - 'scripts/test-monitor-http-timeout.mjs'
       - 'scripts/test-site-operations.mjs'
       - 'data/platform-version.json'
       - 'data/redactions.json'
@@ -49,6 +51,8 @@ on:
       - 'scripts/monitor-tdas-publication.mjs'
       - 'scripts/monitor-live-site.mjs'
       - 'scripts/monitor-tdas-shell.mjs'
+      - 'scripts/http-monitor.mjs'
+      - 'scripts/test-monitor-http-timeout.mjs'
       - 'scripts/test-site-operations.mjs'
       - 'package.json'
   schedule:
@@ -65,7 +69,7 @@ concurrency:
 jobs:
   monitor:
     runs-on: ubuntu-latest
-    timeout-minutes: 18
+    timeout-minutes: 12
     steps:
       - name: Baixar repositório
         uses: actions/checkout@v4
@@ -79,6 +83,7 @@ jobs:
         if: github.event_name == 'pull_request'
         shell: bash
         run: |
+          npm run test:monitor-http
           npm run check:operations
           MONITOR_SELF_TEST=true npm run monitor:publication
           MONITOR_SELF_TEST=true npm run monitor:live-site
@@ -100,8 +105,9 @@ jobs:
         continue-on-error: true
         env:
           SITE_BASE_URL: https://rodrigorosadantas.github.io/sedes-tdas-dashboard
-          LIVE_SITE_MAX_ATTEMPTS: '12'
-          LIVE_SITE_RETRY_DELAY_MS: '15000'
+          LIVE_SITE_MAX_ATTEMPTS: '10'
+          LIVE_SITE_RETRY_DELAY_MS: '10000'
+          LIVE_SITE_REQUEST_TIMEOUT_MS: '8000'
           LIVE_SITE_REPORT_PATH: /tmp/tdas-live-site-monitor.json
         run: npm run monitor:live-site
 
@@ -111,8 +117,9 @@ jobs:
         continue-on-error: true
         env:
           SITE_BASE_URL: https://rodrigorosadantas.github.io/sedes-tdas-dashboard
-          SHELL_MONITOR_MAX_ATTEMPTS: '12'
+          SHELL_MONITOR_MAX_ATTEMPTS: '10'
           SHELL_MONITOR_RETRY_DELAY_MS: '10000'
+          SHELL_MONITOR_REQUEST_TIMEOUT_MS: '8000'
           SHELL_MONITOR_REPORT_PATH: /tmp/tdas-shell-monitor.json
         run: npm run monitor:shell
 

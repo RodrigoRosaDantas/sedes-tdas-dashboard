@@ -2,10 +2,12 @@ import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { fetchWithTimeout, normalizeTimeoutMs } from './http-monitor.mjs';
 
 const ROOT=process.cwd();
 const DEFAULT_BASE='https://rodrigorosadantas.github.io/sedes-tdas-dashboard';
 const REPORT_PATH=process.env.SHELL_MONITOR_REPORT_PATH||'/tmp/tdas-shell-monitor.json';
+const REQUEST_TIMEOUT_MS=normalizeTimeoutMs(process.env.SHELL_MONITOR_REQUEST_TIMEOUT_MS,8000);
 const FILES=[
  'index.html',
  'assets/tdas-mobile-ux.js',
@@ -30,7 +32,7 @@ export function compareShell(local,live){
 }
 async function fetchLive(base){
  return Object.fromEntries(await Promise.all(FILES.map(async file=>{
-  const response=await fetch(`${base}/${file}?shell=${Date.now()}`,{cache:'no-store',headers:{'cache-control':'no-cache'}});
+  const response=await fetchWithTimeout(`${base}/${file}?shell=${Date.now()}`,{cache:'no-store',headers:{'cache-control':'no-cache'}},{timeoutMs:REQUEST_TIMEOUT_MS});
   if(!response.ok)throw new Error(`${response.status} ${response.statusText} em ${file}`);
   return[file,Buffer.from(await response.arrayBuffer())];
  })));
@@ -39,10 +41,10 @@ function reportFor(result,{attempt=1,attempts=1,baseUrl=DEFAULT_BASE}={}){
  const summary=result.healthy
   ? `Camada TDAS PRO confirmada no GitHub Pages (${result.checked} arquivos críticos idênticos à main).`
   : `Camada TDAS PRO divergente no GitHub Pages: ${[...result.missing,...result.mismatched].join(', ')||'falha não classificada'}.`;
- const lines=['## Paridade da interface TDAS','',`- **Estado:** ${result.healthy?'íntegro':'divergente'}`,`- **Arquivos críticos:** ${result.checked}`,`- **Tentativa:** ${attempt}/${attempts}`,`- **Resumo:** ${summary}`];
+ const lines=['## Paridade da interface TDAS','',`- **Estado:** ${result.healthy?'íntegro':'divergente'}`,`- **Arquivos críticos:** ${result.checked}`,`- **Tentativa:** ${attempt}/${attempts}`,`- **Timeout HTTP:** ${REQUEST_TIMEOUT_MS} ms`,`- **Resumo:** ${summary}`];
  if(result.missing.length)lines.push(`- **Ausentes:** ${result.missing.join(', ')}`);
  if(result.mismatched.length)lines.push(`- **Divergentes:** ${result.mismatched.join(', ')}`);
- return{...result,summary,attempt,attempts,baseUrl,markdown:lines.join('\n')};
+ return{...result,summary,attempt,attempts,baseUrl,requestTimeoutMs:REQUEST_TIMEOUT_MS,markdown:lines.join('\n')};
 }
 async function selfTest(){
  const local=await readLocal();
@@ -50,13 +52,14 @@ async function selfTest(){
  assert.match(index,/assets\/home-mobile-hotfix\.css/,'Home deve referenciar o hotfix mobile.');
  assert.match(sw,/assets\/home-mobile-hotfix\.css/,'Service worker deve precachear o hotfix mobile.');
  assert.ok(!sw.includes('question-keys/'),'Gabarito não pode entrar no shell precacheado.');
+ assert.ok(REQUEST_TIMEOUT_MS>=20&&REQUEST_TIMEOUT_MS<=60000,'Timeout HTTP do shell deve permanecer limitado.');
  const sig=signatures(local),same=compareShell(sig,{...sig});
  assert.equal(same.healthy,true);
  const changed={...sig,'assets/home-mobile-hotfix.css':'divergente'};
  const broken=compareShell(sig,changed);
  assert.equal(broken.healthy,false);
  assert.deepEqual(broken.mismatched,['assets/home-mobile-hotfix.css']);
- console.log(`Monitor do shell validado: ${FILES.length} arquivos críticos, hotfix no PWA e divergência detectável.`);
+ console.log(`Monitor do shell validado: ${FILES.length} arquivos críticos, hotfix no PWA e timeout HTTP de ${REQUEST_TIMEOUT_MS} ms.`);
 }
 
 if(process.env.SHELL_MONITOR_SELF_TEST==='true'){
