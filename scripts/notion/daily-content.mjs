@@ -201,7 +201,12 @@ function questionSection(markdown) {
 }
 
 function questionSegments(markdown) {
-  const source = questionSection(markdown);
+  const scoped = questionSection(markdown);
+  const firstQuestion = scoped.search(/^(?:##\s+Quest(?:ão|ao)\s+\d+\s*|\*\*\d{1,3}\.\*\*)/im);
+  const correctionHeading = firstQuestion >= 0
+    ? scoped.slice(firstQuestion).search(/^#{1,4}\s+(?:\d+(?:\.\d+)*[.)]?\s*)?(?:Gabarito|Resultado|Correção|Correcao)\b[^\n]*$/im)
+    : -1;
+  const source = correctionHeading >= 0 ? scoped.slice(0, firstQuestion + correctionHeading) : scoped;
   const matches = [...source.matchAll(/^(?:##\s+Quest(?:ão|ao)\s+(\d+)\s*|\*\*(\d{1,3})\.\*\*\s*(.*))$/gim)];
   return matches.map((match, index) => {
     const inlineStem = String(match[3] ?? '').trim();
@@ -334,6 +339,8 @@ export function parseDailyQuestions(markdown, {pe, title, expectedCount = 0, sou
     required(optionKeys.length >= 2 && optionKeys.length <= OPTION_KEYS.length, `${pe}: questão ${segment.number} deve possuir entre duas e cinco alternativas.`);
     required(optionKeys.join('') === OPTION_KEYS.slice(0, optionKeys.length).join(''), `${pe}: questão ${segment.number} possui alternativas descontínuas.`);
     for (const option of optionKeys) required(parsed.alternativas[option]?.length > 0, `${pe}: questão ${segment.number} sem conteúdo na alternativa ${option}.`);
+    const publicQuestionText = [parsed.enunciado, ...Object.values(parsed.alternativas)].join(' ');
+    required(!/(?:Gabarito\s+PE\d+|consultar\s+somente\s+ap[oó]s\s+responder|\bQ\s+Resp\.|Meta\s+final:\s*\d+\s+quest)/i.test(publicQuestionText), `${pe}: questão ${segment.number} contém conteúdo reservado de correção.`);
     return {
       id: `${pe}-Q${String(segment.number).padStart(3, '0')}`,
       numeroOriginal: segment.number,
