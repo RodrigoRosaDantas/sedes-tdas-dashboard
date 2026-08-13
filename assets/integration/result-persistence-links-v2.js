@@ -1,4 +1,5 @@
 import {readModuleState} from './module-store.js?v=2.1.0';
+import './answer-history-runtime-v2.js?v=2.0.0';
 import './private-history-runtime-v3.js?v=3.0.0';
 import {dbGet,STORES} from './history-db-core.js?v=1.0.0';
 import {queueId} from './persistence-contract.js?v=1.0.0';
