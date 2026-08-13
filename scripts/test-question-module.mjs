@@ -13,7 +13,7 @@ const catalog = {
   catalogId: 'authorized-test-catalog',
   peId: 'PE88',
   questions: [
-    {id: 'q1', numero_original: 1, assunto: 'Teste', subassunto: 'A', enunciado: 'Q1', alternativas: {A:'a',B:'b',C:'c',D:'d',E:'e'}},
+    {id: 'q1', numeroOriginal: 1, assunto: 'Teste', subassunto: 'A', enunciado: 'Q1', alternativas: {A:'a',B:'b',C:'c',D:'d',E:'e'}},
     {id: 'q2', numero_original: 2, assunto: 'Teste', subassunto: 'B', enunciado: 'Q2', alternativas: {A:'a',B:'b',C:'c',D:'d',E:'e'}},
   ],
 };
@@ -28,6 +28,8 @@ assert.equal(saved.attempt.mode, 'study');
 assert.equal(saved.attempt.peId, 'PE88');
 assert.equal(saved.attempt.localOnly, true);
 assert.equal(saved.attempt.notionWriteback, false);
+assert.equal(saved.attempt.questionResults.find(item=>item.id==='q1').numeroOriginal,1,'Catálogo real em camelCase deve preservar numeroOriginal.');
+assert.equal(saved.attempt.questionResults.find(item=>item.id==='q2').numeroOriginal,2,'Formato legado snake_case deve continuar suportado.');
 assert.equal(saved.state.attempts.length, 1);
 assert.equal(saved.state.errors.length, 1);
 assert.equal(saved.state.marked.length, 1);
@@ -65,4 +67,4 @@ assert.equal(restored.attempts.length,3);
 assert.equal(restored.attempts[0].mode,'review');
 assert.equal(restored.attempts[0].reviewOutcome,REVIEW_OUTCOMES.MASTERED);
 assert.equal(restored.errors[0].questionResults, undefined);
-console.log('Módulo testado: estudo, correção separada, decisão pedagógica, reforço adaptativo e persistência local sem writeback.');
+console.log('Módulo testado: estudo, correção separada, numeroOriginal real, decisão pedagógica, reforço adaptativo e persistência local sem writeback.');

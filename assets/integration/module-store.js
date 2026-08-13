@@ -75,7 +75,7 @@ function questionRecord(attempt, question, result, meta) {
   const classified = classify(result, meta);
   return Object.freeze({
     id: question.id,
-    numeroOriginal: question.numero_original ?? null,
+    numeroOriginal: question.numeroOriginal ?? question.numero_original ?? null,
     assunto: String(question.assunto || 'Sem assunto'),
     subassunto: String(question.subassunto || ''),
     selected: result.selected,
