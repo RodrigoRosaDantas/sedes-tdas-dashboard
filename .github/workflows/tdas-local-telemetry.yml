@@ -1,0 +1,45 @@
+name: Validar telemetria local TDAS
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/tdas-local-telemetry.yml'
+      - 'assets/integration/question-telemetry*.js'
+      - 'assets/integration/module-store.js'
+      - 'assets/integration/study-analytics.js'
+      - 'assets/integration/module-performance*.js'
+      - 'resolver/index.html'
+      - 'scripts/test-question-telemetry.mjs'
+      - 'scripts/test-module-telemetry-integration.mjs'
+      - 'scripts/test-telemetry-analytics.mjs'
+      - 'scripts/validate-local-telemetry.mjs'
+      - 'scripts/preserve-local-telemetry-pwa.mjs'
+      - 'sw.js'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Baixar repositório
+        uses: actions/checkout@v4
+      - name: Preparar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Preservar assets locais no PWA
+        run: node scripts/preserve-local-telemetry-pwa.mjs
+      - name: Testar motor granular
+        run: node scripts/test-question-telemetry.mjs
+      - name: Testar persistência nas tentativas
+        run: node scripts/test-module-telemetry-integration.mjs
+      - name: Testar analytics comportamental
+        run: node scripts/test-telemetry-analytics.mjs
+      - name: Validar contrato da Fase 3
+        run: node scripts/validate-local-telemetry.mjs
+      - name: Executar gate integral TDAS
+        run: npm run check

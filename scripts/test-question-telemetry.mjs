@@ -1,0 +1,28 @@
+import assert from 'node:assert/strict';
+import {consumeCompletedTelemetry,finalizeTelemetrySession,readTelemetryState,setTelemetryActive,startTelemetrySession,syncTelemetrySession} from '../assets/integration/question-telemetry.js';
+class MemoryStorage{constructor(){this.map=new Map()}getItem(key){return this.map.has(key)?this.map.get(key):null}setItem(key,value){this.map.set(key,String(value))}removeItem(key){this.map.delete(key)}}
+const storage=new MemoryStorage(),base={catalogId:'daily:PE88',startedAt:1000,questionIds:['q1','q2'],currentIndex:0,answers:{}};
+startTelemetrySession(base,storage,1000);
+syncTelemetrySession({...base,answers:{q1:'A'}},storage,6000);
+syncTelemetrySession({...base,answers:{q1:'B'}},storage,9000);
+syncTelemetrySession({...base,currentIndex:1,answers:{q1:'B',q2:'C'}},storage,11000);
+setTelemetryActive(false,storage,15000);
+setTelemetryActive(true,storage,25000);
+syncTelemetrySession({...base,currentIndex:0,answers:{q1:'B',q2:'C'}},storage,30000);
+const summary=finalizeTelemetrySession({catalogId:base.catalogId,startedAt:base.startedAt},storage,35000);
+assert.equal(summary.activeElapsedMs,24000);
+assert.equal(summary.measuredQuestions,2);
+assert.equal(summary.revisitedQuestions,1);
+assert.equal(summary.revisitEvents,1);
+assert.equal(summary.changedAnswerQuestions,1);
+assert.equal(summary.answerChanges,1);
+assert.equal(summary.questions.q1.visits,2);
+assert.equal(summary.questions.q1.firstAnswer,'A');
+assert.equal(summary.questions.q1.lastAnswer,'B');
+assert.equal(summary.questions.q1.activeMs,15000);
+assert.equal(summary.questions.q2.activeMs,9000);
+assert.equal(readTelemetryState(storage).completed.length,1);
+const consumed=consumeCompletedTelemetry({catalogId:base.catalogId,startedAt:base.startedAt},storage);
+assert.equal(consumed.activeElapsedMs,24000);
+assert.equal(readTelemetryState(storage).completed.length,0);
+console.log('Telemetria local validada: tempo ativo, pausa em segundo plano, revisitas, primeira resposta e trocas de alternativa.');
