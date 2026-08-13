@@ -167,11 +167,22 @@ for (const part of errorIndex.parts || []) {
 }
 required(errorRecords.length === errorIndex.total, 'Total contado nas partes não fecha com o índice.');
 required(!duplicates(errorRecords.map(item => item.url)).length, 'URL duplicada nas questões erradas.');
-const allowedErrorKeys = ['questaoErro', 'materia', 'origem', 'data', 'gravidade', 'reincidencia', 'padraoErro', 'tema', 'subtema', 'flashcard', 'revisado', 'url', 'resumo'].sort();
+const baseErrorKeys = ['questaoErro', 'materia', 'origem', 'data', 'gravidade', 'reincidencia', 'padraoErro', 'tema', 'subtema', 'flashcard', 'revisado', 'url', 'resumo'].sort();
+const mentorErrorKeys = [...baseErrorKeys, 'precisaRevisar', 'janelaReaparecimento', 'topicoEditalIds'].sort();
+const mentorEnriched = errorIndex.mentorEnrichment != null;
+if (mentorEnriched) required(Number(errorIndex.mentorEnrichment.records) === errorIndex.total, 'Enriquecimento do Mentor não cobre todo o Caderno de Erros.');
 for (const item of errorRecords) {
   required(item.questaoErro && item.url, 'Questão errada sem chave textual ou URL.');
-  required(JSON.stringify(Object.keys(item).sort()) === JSON.stringify(allowedErrorKeys), `Questão errada publicou campos não autorizados: ${Object.keys(item).join(', ')}.`);
+  const expectedKeys = mentorEnriched ? mentorErrorKeys : baseErrorKeys;
+  required(JSON.stringify(Object.keys(item).sort()) === JSON.stringify(expectedKeys), `Questão errada publicou campos não autorizados: ${Object.keys(item).join(', ')}.`);
   required(!('observations' in item) && !('id' in item), 'Questão errada contém campo técnico proibido.');
+  if (mentorEnriched) {
+    required(typeof item.precisaRevisar === 'string', 'Questão errada possui Precisa revisar? em formato inválido.');
+    required(typeof item.janelaReaparecimento === 'string', 'Questão errada possui Janela de reaparecimento em formato inválido.');
+    required(Array.isArray(item.topicoEditalIds), 'Questão errada possui relação com Tópico do edital em formato inválido.');
+    required(!duplicates(item.topicoEditalIds).length, 'Questão errada possui Tópico do edital duplicado.');
+    required(item.topicoEditalIds.every(id => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(id))), 'Questão errada possui identificador inválido em Tópico do edital.');
+  }
 }
 
 required(!(await exists('data/notion/control.json')) && !(await exists('data/notion/errors.json')) && !(await exists('data/notion/redactions.json')), 'Arquivos técnicos legados ainda estão publicados.');
