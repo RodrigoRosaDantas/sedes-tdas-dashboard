@@ -80,9 +80,11 @@ jobs:
           const subjects=read('data/subjects.json'),evolution=read('data/evolution.json'),edital=read('data/edital-status.json');
           const analysis=buildOfficialMentorAnalysis({errors,subjects,evolution,edital,snapshotDate:subjects.meta?.snapshotDate,examDate:subjects.meta?.examDate});
           const critical=analysis.priorities.filter(item=>item.severity==='critical').length;
+          const high=analysis.priorities.filter(item=>item.severity==='high').length;
+          const immediate=critical+high;
           const crase=analysis.priorities.filter(item=>normalizeText(`${item.materia} ${item.tema} ${item.subtema}`).includes('crase')).length;
-          if(!analysis.priorities.length||!analysis.strengths.length)throw new Error('Mentor sem diagnóstico ou força positiva.');
-          fs.writeFileSync('/tmp/mentor-expected.env',`ERRORS=${errors.length}\nPRIORITIES=${analysis.priorities.length}\nCRITICAL=${critical}\nSTRENGTHS=${analysis.strengths.length}\nCRASE=${crase}\n`);
+          if(!analysis.priorities.length||!analysis.strengths.length||!immediate)throw new Error('Mentor sem diagnóstico, força positiva ou prioridade imediata.');
+          fs.writeFileSync('/tmp/mentor-expected.env',`ERRORS=${errors.length}\nPRIORITIES=${analysis.priorities.length}\nCRITICAL=${critical}\nHIGH=${high}\nIMMEDIATE=${immediate}\nSTRENGTHS=${analysis.strengths.length}\nCRASE=${crase}\n`);
           NODE
           cd /tmp/tdas-site
           python3 -m http.server 4176 >/tmp/mentor-server.log 2>&1 &
@@ -101,30 +103,34 @@ jobs:
           "${chrome[@]}" "$base" >/tmp/mentor.html 2>/tmp/mentor.stderr
           "${chrome[@]}" --window-size=390,844 "$base" >/tmp/mentor-mobile.html 2>/tmp/mentor-mobile.stderr
           "${chrome[@]}" "${base}?severity=critical" >/tmp/mentor-critical.html 2>/tmp/mentor-critical.stderr
+          "${chrome[@]}" "${base}?severity=" >/tmp/mentor-all.html 2>/tmp/mentor-all.stderr
           if [[ "$CRASE" -gt 0 ]]; then "${chrome[@]}" "${base}?q=crase" >/tmp/mentor-search.html 2>/tmp/mentor-search.stderr; fi
           grep -q 'Onde você está forte' /tmp/mentor.html
           grep -q 'Pontos fracos e fragilidades' /tmp/mentor.html
           grep -q 'Pontos fortes' /tmp/mentor.html
           grep -q 'Linha do tempo dos erros' /tmp/mentor.html
           grep -q 'Como a gravidade é calculada' /tmp/mentor.html
-          grep -q "${PRIORITIES} de ${PRIORITIES} tópicos" /tmp/mentor.html
+          grep -q '🔥 Prioridade agora' /tmp/mentor.html
+          grep -q "${IMMEDIATE} de ${PRIORITIES} tópicos" /tmp/mentor.html
+          grep -q "${PRIORITIES} de ${PRIORITIES} tópicos" /tmp/mentor-all.html
           grep -q "${CRITICAL} de ${PRIORITIES} tópicos" /tmp/mentor-critical.html
           grep -q 'Mentor</b><small>Diagnóstico' /tmp/mentor.html
           grep -q '>Mais</span>' /tmp/mentor-mobile.html
           grep -q 'Mentor TDAS</b>' /tmp/mentor-mobile.html
+          grep -q "${IMMEDIATE} de ${PRIORITIES} tópicos" /tmp/mentor-mobile.html
           if [[ "$CRASE" -gt 0 ]]; then grep -q "${CRASE} de ${PRIORITIES} tópicos" /tmp/mentor-search.html; fi
           ! grep -Eqi 'Construindo seu diagnóstico|Não foi possível carregar esta página|Uncaught (TypeError|ReferenceError|SyntaxError)' /tmp/mentor.html /tmp/mentor-mobile.html /tmp/mentor*.stderr
-          printf '{"mentorBrowser":"ok","errors":%s,"priorities":%s,"critical":%s,"strengths":%s,"mobile":true}\n' "$ERRORS" "$PRIORITIES" "$CRITICAL" "$STRENGTHS"
+          printf '{"mentorBrowser":"ok","errors":%s,"priorities":%s,"immediate":%s,"critical":%s,"high":%s,"strengths":%s,"mobile":true}\n' "$ERRORS" "$PRIORITIES" "$IMMEDIATE" "$CRITICAL" "$HIGH" "$STRENGTHS"
 
       - name: Diagnosticar falha
         if: failure()
         shell: bash
         run: |
           cat /tmp/mentor-expected.env 2>/dev/null || true
-          for file in /tmp/mentor.html /tmp/mentor-mobile.html /tmp/mentor-critical.html /tmp/mentor-search.html; do
+          for file in /tmp/mentor.html /tmp/mentor-mobile.html /tmp/mentor-all.html /tmp/mentor-critical.html /tmp/mentor-search.html; do
             [[ -f "$file" ]] || continue
             echo "=== $file ==="
-            grep -Eo '[0-9]+ de [0-9]+ tópicos|Onde você está forte|Pontos fracos e fragilidades|Pontos fortes|Não foi possível carregar esta página|Mentor</b>|>Mais</span>' "$file" | head -40 || true
+            grep -Eo '[0-9]+ de [0-9]+ tópicos|Onde você está forte|Pontos fracos e fragilidades|Pontos fortes|Prioridade agora|Não foi possível carregar esta página|Mentor</b>|>Mais</span>' "$file" | head -40 || true
           done
           for file in /tmp/mentor*.stderr; do [[ -f "$file" ]] || continue; echo "=== $file ==="; tail -80 "$file" || true; done
 
