@@ -9,11 +9,11 @@ export function validatePe87EditorialContract({catalog,key}={}){
   if(String(catalog?.peId||'').toUpperCase()!=='PE87')return{applicable:false,reason:'PE diferente'};
   const q20=(catalog.questions||[]).find(question=>Number(question?.numeroOriginal)===20);
   if(!q20)return{applicable:false,reason:'Q20 ausente'};
-  const stem=normalize(q20.enunciado),optionB=normalize(q20.alternativas?.B);
-  const currentPratoCheio=stem.includes('cartao prato cheio')&&optionB.includes('40.783/2020')&&optionB.includes('portaria')&&optionB.includes('40/2020');
+  const stem=normalize(q20.enunciado),optionA=normalize(q20.alternativas?.A);
+  const currentPratoCheio=stem.includes('cartao prato cheio')&&optionA.includes('7.009/2021')&&optionA.includes('42.873/2021');
   if(!currentPratoCheio)return{applicable:false,reason:'Q20 não corresponde ao contrato editorial vigente'};
   const answer=(key?.answers||[]).find(item=>item.id===q20.id)?.gabarito;
-  required(answer==='B',`PE87: Q20 do Cartão Prato Cheio exige gabarito B para a alternativa Decreto 40.783/2020 + Portaria 40/2020; recebido ${answer||'ausente'}. Publicação bloqueada.`);
+  required(answer==='A',`PE87: Q20 do Cartão Prato Cheio exige gabarito A para a associação Lei 7.009/2021 + Decreto 42.873/2021; recebido ${answer||'ausente'}. Publicação bloqueada.`);
   return{applicable:true,questionId:q20.id,answer};
 }
 
