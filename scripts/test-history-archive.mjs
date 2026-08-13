@@ -1,0 +1,2 @@
+import assert from'node:assert/strict';import fs from'node:fs/promises';
+const c=JSON.parse(await fs.readFile('data/integration/question-archive/tdas-pe88-339d718d88c1.json'));assert.equal(c.catalogId,'tdas-pe88-339d718d88c1');assert.equal(c.questions.length,53);assert.equal(new Set(c.questions.map(x=>x.id)).size,53);assert.ok(c.questions.every(x=>x.enunciado&&Object.keys(x.alternativas||{}).length===5));console.log('Catálogo histórico validado.');
