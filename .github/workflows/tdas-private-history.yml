@@ -1,5 +1,8 @@
 name: Validar persistência privada TDAS
 on:
+  push:
+    branches:
+      - 'fix/historico-tdas-sem-pe88-especial-20260813'
   pull_request:
     paths:
       - 'assets/integration/**'
