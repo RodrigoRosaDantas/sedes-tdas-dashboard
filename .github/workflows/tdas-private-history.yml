@@ -37,6 +37,7 @@ jobs:
           node --check assets/integration/persistence-queue.js
           node --check assets/integration/persistence-local-v2.js
           node --check assets/integration/private-history-auth.js
+          node --check assets/integration/private-history-login.js
           node --check assets/integration/private-history-page.js
           node --check assets/integration/private-history-materialize.js
           node --check assets/integration/private-history-runtime-v3.js
@@ -56,6 +57,8 @@ jobs:
           grep -F 'Histórico pessoal TDAS' assets/integration/private-history-page.js
           grep -F 'PEs já concluídos são tratados somente como histórico de resolução' assets/integration/private-history-page.js
           grep -F "private-history-sync-v3.js?v=3.0.0" assets/integration/private-history-page.js
+          grep -F "private-history-sync-v3.js?v=3.0.0" assets/integration/private-history-login.js
+          ! grep -F 'private-history-sync-v2' assets/integration/private-history-login.js
           ! grep -F 'PE88 localizado neste navegador' assets/integration/private-history-page.js
           ! grep -F 'Migração local pronta' assets/integration/private-history-page.js
           ! grep -Fi 'Supabase' assets/integration/private-history-page.js
