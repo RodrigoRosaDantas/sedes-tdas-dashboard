@@ -9,6 +9,7 @@ const html=await read('edital/index.html');
 const script=await read('assets/edital.js');
 const more=await read('assets/more.js');
 const sw=await read('sw.js');
+const pwaGenerator=await read('scripts/postprocess-v26.mjs');
 
 assert.ok(Number(data?.summary?.total)>=80,'Checklist do edital retornou menos de 80 tópicos.');
 assert.ok(Array.isArray(data?.topics),'Feed do edital não contém lista de tópicos.');
@@ -30,10 +31,12 @@ assert.match(script,/Sem aferição/,'Página perdeu a distinção de tópicos s
 assert.match(script,/edital-discipline/,'Página perdeu filtro por disciplina.');
 assert.match(script,/edital-risk/,'Página perdeu filtro por risco.');
 assert.match(more,/\$\{BASE\}edital\//,'Edital não está acessível pela navegação complementar.');
-assert.match(sw,/"edital\/"/,'Rota do edital está fora do precache PWA.');
-assert.match(sw,/"assets\/edital\.js"/,'Script do edital está fora do precache PWA.');
-assert.match(sw,/"assets\/edital\.css"/,'CSS do edital está fora do precache PWA.');
-assert.match(sw,/"data\/edital-status\.json"/,'Feed do edital está fora do precache PWA.');
-assert.doesNotMatch(sw,/question-keys\//,'Gabaritos individuais não podem entrar no precache ao adicionar a página do edital.');
+for(const source of[sw,pwaGenerator]){
+ assert.match(source,/"edital\/"/,'Rota do edital está fora do PWA ou de seu gerador.');
+ assert.match(source,/"assets\/edital\.js"/,'Script do edital está fora do PWA ou de seu gerador.');
+ assert.match(source,/"assets\/edital\.css"/,'CSS do edital está fora do PWA ou de seu gerador.');
+ assert.match(source,/"data\/edital-status\.json"/,'Feed do edital está fora do PWA ou de seu gerador.');
+ assert.doesNotMatch(source,/question-keys\//,'Gabaritos individuais não podem entrar no precache ao adicionar a página do edital.');
+}
 
 console.log(`Página do Edital validada: ${data.summary.total} tópicos; ${data.summary.risk.critical||0} críticos; ${data.summary.risk.attention||0} em atenção; ${data.summary.risk.no_evidence||0} sem aferição.`);
