@@ -13,10 +13,10 @@ const catalog={
     }
   }]
 };
-const valid={answers:[{id:'PE87-Q020',gabarito:'B'}]};
-const invalid={answers:[{id:'PE87-Q020',gabarito:'A'}]};
-assert.deepEqual(validatePe87EditorialContract({catalog,key:valid}),{applicable:true,questionId:'PE87-Q020',answer:'B'});
-assert.throws(()=>validatePe87EditorialContract({catalog,key:invalid}),/Q20 do Cartão Prato Cheio exige gabarito B/);
+const valid={answers:[{id:'PE87-Q020',gabarito:'A'}]};
+const invalid={answers:[{id:'PE87-Q020',gabarito:'B'}]};
+assert.deepEqual(validatePe87EditorialContract({catalog,key:valid}),{applicable:true,questionId:'PE87-Q020',answer:'A'});
+assert.throws(()=>validatePe87EditorialContract({catalog,key:invalid}),/Q20 do Cartão Prato Cheio exige gabarito A/);
 assert.equal(validatePe87EditorialContract({catalog:{...catalog,peId:'PE88'},key:invalid}).applicable,false);
 assert.equal(validatePe87EditorialContract({catalog:{...catalog,questions:[{...catalog.questions[0],enunciado:'Outra questão'}]},key:invalid}).applicable,false,'Contrato não deve bloquear uma futura Q20 editorialmente diferente.');
-console.log('Contrato editorial PE87 validado: Q20 atual do Prato Cheio exige B e futuras versões diferentes não ficam hardcoded.');
+console.log('Contrato editorial PE87 validado: Q20 atual do Prato Cheio exige A e futuras versões diferentes não ficam hardcoded.');
