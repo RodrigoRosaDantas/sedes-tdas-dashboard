@@ -94,7 +94,7 @@ jobs:
           "${chrome[@]}" "${root}mentor/?severity=" >/tmp/mentor-all.html 2>/tmp/mentor-all.stderr
           "${chrome[@]}" "${root}revisar/?mentor=crase&subject=Portugu%C3%AAs" >/tmp/mentor-review.html 2>/tmp/mentor-review.stderr
 
-          assert_contains(){ local file="$1" needle="$2" label="$3"; if grep -Fq -- "$needle" "$file"; then echo "OK: $label"; else echo "FALHA: $label — ausente: $needle"; return 1; fi; }
+          assert_contains(){ local file="$1" needle="$2" label="$3"; if grep -Fq -- "$needle" "$file"; then echo "OK: $label"; else echo "::error title=Mentor smoke::$label — ausente: $needle"; return 1; fi; }
           assert_contains /tmp/mentor.html 'Pontos fracos e fragilidades' 'prioridades renderizadas'
           assert_contains /tmp/mentor.html 'Blocos de desempenho forte' 'blocos fortes rotulados corretamente'
           assert_contains /tmp/mentor.html 'Forças temáticas deste dispositivo' 'forças temáticas locais'
@@ -107,7 +107,7 @@ jobs:
           assert_contains /tmp/mentor-review.html 'Revisar crase' 'foco crase na revisão'
 
           if grep -Eqi 'Construindo seu diagnóstico|Não foi possível carregar esta página|Uncaught (TypeError|ReferenceError|SyntaxError)' /tmp/mentor.html /tmp/mentor-mobile.html /tmp/mentor-review.html /tmp/mentor*.stderr; then
-            echo 'FALHA: erro de carregamento ou JavaScript detectado';
+            echo '::error title=Mentor smoke::erro de carregamento ou JavaScript detectado';
             grep -Ein 'Construindo seu diagnóstico|Não foi possível carregar esta página|Uncaught (TypeError|ReferenceError|SyntaxError)' /tmp/mentor.html /tmp/mentor-mobile.html /tmp/mentor-review.html /tmp/mentor*.stderr || true;
             exit 1;
           fi
