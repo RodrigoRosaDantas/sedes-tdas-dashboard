@@ -10,7 +10,11 @@ on:
       - 'assets/edital.css'
       - 'assets/common.js'
       - 'assets/more.js'
+      - 'assets/tdas-mobile-ux.js'
       - 'data/edital-status.json'
+      - 'scripts/notion/edital-status.mjs'
+      - 'scripts/notion/source-manifest.mjs'
+      - 'scripts/postprocess-v26.mjs'
       - 'scripts/test-edital-page.mjs'
       - 'package.json'
       - 'sw.js'
@@ -23,7 +27,11 @@ on:
       - 'assets/edital.css'
       - 'assets/common.js'
       - 'assets/more.js'
+      - 'assets/tdas-mobile-ux.js'
       - 'data/edital-status.json'
+      - 'scripts/notion/edital-status.mjs'
+      - 'scripts/notion/source-manifest.mjs'
+      - 'scripts/postprocess-v26.mjs'
       - 'scripts/test-edital-page.mjs'
       - 'package.json'
       - 'sw.js'
@@ -62,11 +70,17 @@ jobs:
           import fs from 'node:fs';
           const root='/tmp/tdas-site/sedes-tdas-dashboard';
           const data=JSON.parse(fs.readFileSync(`${root}/data/edital-status.json`,'utf8'));
+          const {TDAS_SOURCE_MANIFEST}=await import(`file://${root}/scripts/notion/source-manifest.mjs`);
+          const expected=Number(TDAS_SOURCE_MANIFEST.editalChecklist.expectedItems||0);
           const total=Number(data.summary.total||0);
           const critical=Number(data.summary.risk?.critical||0);
           const portuguese=data.topics.filter(item=>item.discipline==='Português').length;
-          if(total<80)throw new Error(`Total inesperado do edital: ${total}`);
-          fs.writeFileSync('/tmp/edital-expected.env',`TOTAL=${total}\nCRITICAL=${critical}\nPORTUGUESE=${portuguese}\n`);
+          const block=data.topics.filter(item=>item.block==='Específico Cargo 202').length;
+          const norm=value=>String(value??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+          const searchCrase=data.topics.filter(item=>norm(`${item.code} ${item.topic} ${item.discipline} ${item.block} ${item.evidence} ${item.nextAction}`).includes('crase')).length;
+          if(!expected||total!==expected)throw new Error(`Total inesperado do edital: ${total}; esperado ${expected}`);
+          if(!block||!searchCrase)throw new Error('Smoke exige resultados para bloco Cargo 202 e busca por crase.');
+          fs.writeFileSync('/tmp/edital-expected.env',`TOTAL=${total}\nCRITICAL=${critical}\nPORTUGUESE=${portuguese}\nBLOCK=${block}\nSEARCH_CRASE=${searchCrase}\n`);
           NODE
           cd /tmp/tdas-site
           python3 -m http.server 4175 >/tmp/edital-server.log 2>&1 &
@@ -75,7 +89,7 @@ jobs:
           cat /tmp/edital-server.log >&2
           exit 1
 
-      - name: Validar página e filtros em Chrome
+      - name: Validar página, mobile e filtros em Chrome
         shell: bash
         run: |
           set -euo pipefail
@@ -83,30 +97,38 @@ jobs:
           base='http://127.0.0.1:4175/sedes-tdas-dashboard/edital/'
           chrome=(google-chrome --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --virtual-time-budget=15000 --dump-dom)
           "${chrome[@]}" "$base" >/tmp/edital.html 2>/tmp/edital.stderr
+          "${chrome[@]}" --window-size=390,844 "$base" >/tmp/edital-mobile.html 2>/tmp/edital-mobile.stderr
           "${chrome[@]}" "${base}?risk=critical" >/tmp/edital-critical.html 2>/tmp/edital-critical.stderr
           "${chrome[@]}" "${base}?discipline=Portugu%C3%AAs" >/tmp/edital-portugues.html 2>/tmp/edital-portugues.stderr
+          "${chrome[@]}" "${base}?block=Espec%C3%ADfico%20Cargo%20202" >/tmp/edital-block.html 2>/tmp/edital-block.stderr
+          "${chrome[@]}" "${base}?q=crase" >/tmp/edital-search.html 2>/tmp/edital-search.stderr
           grep -q 'O que já foi coberto' /tmp/edital.html
           grep -q 'Checklist completo do edital' /tmp/edital.html
           grep -q "${TOTAL} tópicos" /tmp/edital.html
           grep -q "${TOTAL} de ${TOTAL} itens" /tmp/edital.html
           grep -q "${CRITICAL} de ${TOTAL} itens" /tmp/edital-critical.html
           grep -q "${PORTUGUESE} de ${TOTAL} itens" /tmp/edital-portugues.html
+          grep -q "${BLOCK} de ${TOTAL} itens" /tmp/edital-block.html
+          grep -q "${SEARCH_CRASE} de ${TOTAL} itens" /tmp/edital-search.html
           grep -q 'Sem aferição' /tmp/edital.html
           grep -q 'Abrir análise no Notion' /tmp/edital.html
           grep -q 'Abrir banco' /tmp/edital.html
-          ! grep -Eqi 'Carregando o edital|Não foi possível carregar esta página|Snapshot parcial' /tmp/edital.html
+          grep -q 'Check do Edital</b><small>Cobertura' /tmp/edital.html
+          grep -q '>Mais</span>' /tmp/edital-mobile.html
+          grep -q 'Edital</b>' /tmp/edital-mobile.html
+          ! grep -Eqi 'Carregando o edital|Não foi possível carregar esta página|Snapshot parcial' /tmp/edital.html /tmp/edital-mobile.html
           ! grep -Eqi 'Uncaught (TypeError|ReferenceError|SyntaxError)' /tmp/edital*.stderr
-          printf '{"editalBrowser":"ok","total":%s,"critical":%s,"portuguese":%s,"filters":true}\n' "$TOTAL" "$CRITICAL" "$PORTUGUESE"
+          printf '{"editalBrowser":"ok","total":%s,"critical":%s,"portuguese":%s,"block":%s,"searchCrase":%s,"mobile":true,"filters":true}\n' "$TOTAL" "$CRITICAL" "$PORTUGUESE" "$BLOCK" "$SEARCH_CRASE"
 
       - name: Diagnosticar falha
         if: failure()
         shell: bash
         run: |
           cat /tmp/edital-expected.env 2>/dev/null || true
-          for file in /tmp/edital.html /tmp/edital-critical.html /tmp/edital-portugues.html; do
+          for file in /tmp/edital.html /tmp/edital-mobile.html /tmp/edital-critical.html /tmp/edital-portugues.html /tmp/edital-block.html /tmp/edital-search.html; do
             [[ -f "$file" ]] || continue
             echo "=== $file ==="
-            grep -Eo '[0-9]+ de [0-9]+ itens|Não foi possível carregar esta página|Snapshot parcial|O que já foi coberto' "$file" | head -30 || true
+            grep -Eo '[0-9]+ de [0-9]+ itens|Não foi possível carregar esta página|Snapshot parcial|O que já foi coberto|Check do Edital</b>|Edital</b>|>Mais</span>' "$file" | head -30 || true
           done
           for file in /tmp/edital*.stderr; do
             [[ -f "$file" ]] || continue

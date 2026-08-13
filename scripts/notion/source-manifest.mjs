@@ -7,7 +7,7 @@ export const TDAS_SOURCE_MANIFEST=Object.freeze({
  cargo:'202',
  root:page('363cf5a26731816ea702c9a8c6ea11dc','Dashboard PRO'),
  editalCheck:page('3b8cf5a2673181c4a724c9e4afc7d49d','Check do Edital — Cargo 202'),
- editalChecklist:dataSource('24c1299f-10a5-4125-b7f6-c19846d8aa52','c14d2d3f70624fbc9b6694997501f503','Checklist do Edital — Cargo 202'),
+ editalChecklist:Object.freeze({...dataSource('24c1299f-10a5-4125-b7f6-c19846d8aa52','c14d2d3f70624fbc9b6694997501f503','Checklist do Edital — Cargo 202'),expectedItems:82,viewUrl:'https://app.notion.com/p/c14d2d3f70624fbc9b6694997501f503?v=a358acb16705463aba60838c24c3c80e'}),
  planningRoot:page('366cf5a26731819f8f43f82bd74fda2d','Macro oficial + Micros semanais'),
  macro:page('363cf5a2673181eb923ac2c7015dbad6','Macro completo PE01–PE112'),
  micros:Object.freeze([
