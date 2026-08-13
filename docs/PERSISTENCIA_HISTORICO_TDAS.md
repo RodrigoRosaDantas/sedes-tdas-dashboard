@@ -1,106 +1,81 @@
 # Persistência privada do histórico TDAS — Cargo 202
 
-## Objetivo
+## Arquitetura
 
-Transformar a execução de questões em histórico pessoal estruturado, recuperável e exportável sem substituir o funcionamento offline existente e sem escrever no Notion.
+O conteúdo oficial continua em **Notion → GitHub → site**. Respostas pessoais seguem outro fluxo, sem writeback no Notion:
 
-## Fontes e responsabilidades
+`Resolver → localStorage/IndexedDB → fila idempotente → Firebase Authentication → Cloud Firestore`.
 
-1. **Notion:** conteúdo e acompanhamento oficial do projeto.
-2. **GitHub Pages:** aplicação pública e catálogo autorizado; nunca armazena respostas pessoais.
-3. **localStorage:** cache operacional compatível com o módulo existente.
-4. **IndexedDB `tdas-202-history-v1`:** arquivo local detalhado, rascunhos e fila de sincronização.
-5. **Banco privado dedicado:** persistência autenticada entre dispositivos. Não pode reutilizar o projeto Supabase de outra aplicação.
+O projeto Firebase dedicado é `tdas-68014`, no plano Spark. O GitHub Pages hospeda somente a aplicação e catálogos autorizados; respostas pessoais ficam sob `/users/{uid}/...` no Firestore.
 
-## Armazenamentos locais auditados
+## Armazenamento local preservado
 
-### Estado atual
+A migração é não destrutiva. Chaves atuais:
 - `tdas.202.question-module.v2.state`
 - `tdas.202.question-module.v2.draft`
 - `tdas.202.question-module.v2.telemetry`
+- `tdas.202.question-module.v2.answer-history`
 - `tdas.202.daily-execution.v1`
 - `tdas.202.error-causes.v1`
 
-### Namespace anterior
-Prefixo `tdas.202.study.v1.`:
-- `profile`
-- `attempts`
-- `session`
-- `answers`
-- `errors`
-- `marked`
-- `reviews`
-- `aiQueue`
-- `peProgress`
-- `meta`
-
-### Legado
-- `sedes.questoes.activeProfile.v3`
-- `sedes.questoes.profiles.v3`
-- `sedes.questoes.rodrigo.history.v3`
-- `sedes.questoes.rodrigo.errors.v3`
-- `sedes.questoes.rodrigo.marked.v3`
-
-A migração é **não destrutiva**: nenhuma dessas chaves é removida durante a captura.
+Também permanecem legíveis o namespace anterior `tdas.202.study.v1.*` e as chaves legadas `sedes.questoes.*` já auditadas. Nenhuma rotina de migração apaga essas fontes.
 
 ## IndexedDB
 
-Banco: `tdas-202-history-v1`, versão 1.
+Banco `tdas-202-history-v1`, versão 1:
+- `attemptDetails`: tentativas completas exportáveis;
+- `remoteAttempts`: cópias autenticadas baixadas do Firestore;
+- `queue`: operações com IDs idempotentes e retry;
+- `drafts`: sessões incompletas;
+- `meta`: auditoria e estados auxiliares remotos.
 
-Object stores:
-- `attemptDetails`: exportações completas das tentativas;
-- `remoteAttempts`: cópias autenticadas recuperadas do banco central;
-- `queue`: operações idempotentes aguardando sincronização;
-- `drafts`: rascunhos/sessões incompletas arquivadas;
-- `meta`: auditoria de migração e estado da sincronização.
+O salvamento local antecede a rede. Falha de conexão mantém a operação em fila; reconexão tenta novamente com backoff.
 
-## Exportação estável
+## Firestore
 
-Schema: `1.0.0`.
+Estrutura privada:
+- `/users/{uid}/attempts/{attemptId}`
+- `/users/{uid}/attempts/{attemptId}/questions/{questionId}`
+- `/users/{uid}/drafts/{draftId}`
+- `/users/{uid}/state/{recordId}`
 
-Cada arquivo contém:
-- identidade lógica da tentativa;
-- PE, modo, início/fim, tempo total e ativo;
-- total, acertos, erros e percentual;
-- revisitas e trocas;
-- todas as respostas questão por questão;
-- matéria, assunto, subassunto, enunciado e alternativas quando o catálogo autorizado estiver disponível;
-- resposta escolhida, gabarito, resultado, confiança, marcação e classificação;
-- telemetria por questão;
-- fundamento/comentário somente quando existir na fonte; nunca é inventado;
-- fonte/catálogo que permitiu reconstruir o conteúdo.
+Tentativa e respostas são gravadas em `writeBatch`. IDs determinísticos evitam documentos duplicados em reenvios.
+
+As regras publicadas exigem `request.auth != null && request.auth.uid == userId`. A configuração Web do Firebase é pública por natureza; nenhuma conta de serviço, chave privada administrativa ou segredo do Notion é usado no navegador.
+
+## Sincronização e conflito
+
+Estados de UX:
+- `Salvando`
+- `Salvo`
+- `Pendente`
+- `Sincronizado`
+- `Falha ao sincronizar`
+
+Tentativas concluídas são identificadas por `attemptId` e tratadas de forma idempotente. Rascunhos e estados mutáveis usam a data do cliente; uma versão remota não substitui silenciosamente uma versão local mais nova. Ao autenticar em outro dispositivo, tentativas, erros, marcações, revisões, causas de erro e progresso sincronizados são materializados no contrato local existente para manter compatibilidade com Desempenho e Caderno de Erros.
+
+## Exportação
+
+Schema de tentativa: `1.0.0`.
+
+O JSON contém tentativa e dados questão por questão: PE, número, matéria, assunto, subassunto, enunciado, alternativas, resposta escolhida, gabarito, resultado, confiança, marcação, classificação, fundamento quando existente, fonte, tempo ativo, visitas, primeira/final resposta e histórico de trocas quando disponível.
+
+Sessões novas registram a sequência de mudanças em `tdas.202.question-module.v2.answer-history`. Em histórico legado, uma única troca pode ser reconstruída inequivocamente por primeira/final resposta; quando existiram múltiplas mudanças e os estados intermediários nunca foram armazenados, `historyComplete` fica `false` em vez de inventar eventos.
+
+O Caderno de Erros usa a mesma tentativa de origem e permite `Ver questão`, exportação das ocorrências selecionadas e resumo estruturado para ChatGPT.
 
 ## PE88
 
-O código de migração não contém números de desempenho hardcoded. Ele procura no armazenamento real uma tentativa com `peId === "PE88"` e `total === 53` e registra os valores encontrados naquele navegador. Em seguida, associa o conteúdo canônico de `data/integration/question-catalog.json` pelos IDs reais `PE88-Qxxx`.
+O código não contém os resultados pessoais do PE88 hardcoded. A migração procura a tentativa real com `peId === "PE88"` e `total === 53` no navegador e conserva exatamente seus `questionResults`.
 
-Enquanto o site atualizado não executar no navegador que possui a tentativa, não é correto afirmar que o PE88 já foi copiado para o arquivo detalhado ou para a nuvem.
+Como o conteúdo oficial do PE88 foi posteriormente regenerado no Notion, a associação não usa apenas o número do PE. O catálogo exato que estava publicado durante a resolução foi preservado por `catalogId` em:
 
-## Telemetria
+`data/integration/question-archive/tdas-pe88-339d718d88c1.json`
 
-A versão 1.1 é compatível com 1.0 e adiciona `answerHistory` e `historyComplete`. Sessões novas podem preservar a sequência integral das mudanças. Sessões antigas preservam `firstAnswer`, `lastAnswer` e `answerChanges`; quando os estados intermediários nunca foram armazenados, a sequência integral é marcada como incompleta em vez de ser inventada.
+Esse arquivo veio do commit histórico `ae278b0eacb5316051ffc3c0c8678e8a9cdfb744` e contém as 53 questões daquele catálogo. Assim, a tentativa real pode ser enriquecida sem reconstruir enunciados manualmente.
 
-## Segurança do backend
+Ainda não é correto afirmar que o PE88 pessoal já está no Firestore: essa confirmação só ocorre quando a versão publicada executar no navegador que possui o `localStorage` original, o usuário entrar na conta TDAS e a sincronização retornar sucesso.
 
-O backend dedicado deve:
-- exigir Supabase Auth ou autenticação equivalente;
-- habilitar RLS em todas as tabelas expostas;
-- permitir acesso somente quando `auth.uid() = user_id`;
-- não conceder acesso pessoal ao papel `anon`;
-- usar no navegador somente chave **publishable**;
-- nunca incluir `service_role`, secret key ou segredo Notion no repositório;
-- usar chaves compostas/idempotentes para impedir duplicação;
-- manter conteúdo pessoal fora do GitHub Pages.
+## PWA
 
-## Estado de sincronização
-
-Valores de UX previstos:
-- `Salvando` — gravando cache/arquivo local ou enviando lote;
-- `Salvo` — gravação local confirmada;
-- `Pendente` — salvo localmente, aguardando rede/autenticação;
-- `Sincronizado` — confirmado no banco central;
-- `Falha ao sincronizar` — dados continuam locais e a operação entra em retry.
-
-## Regra de conflito
-
-Tentativas concluídas são imutáveis por `attempt_id`; reenvio é idempotente. Rascunhos e estados mutáveis usam `client_updated_at` e nunca apagam uma versão local mais nova silenciosamente.
+`localStorage` e IndexedDB continuam sendo a camada de segurança offline. O workflow pós-sincronização preserva no Service Worker os módulos de histórico privado, rotas de sincronização/exportação e o catálogo histórico necessário, evitando que uma regeneração Notion remova a capacidade offline.
