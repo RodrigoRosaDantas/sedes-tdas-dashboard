@@ -100,7 +100,7 @@ jobs:
           "${chrome[@]}" --window-size=390,844 "$base" >/tmp/edital-mobile.html 2>/tmp/edital-mobile.stderr
           "${chrome[@]}" "${base}?risk=critical" >/tmp/edital-critical.html 2>/tmp/edital-critical.stderr
           "${chrome[@]}" "${base}?discipline=Portugu%C3%AAs" >/tmp/edital-portugues.html 2>/tmp/edital-portugues.stderr
-          "${chrome[@]}" "${base}?block=Espec%C3%ADfico%20Cargo%202" >/tmp/edital-block.html 2>/tmp/edital-block.stderr
+          "${chrome[@]}" "${base}?block=Espec%C3%ADfico%20Cargo%20202" >/tmp/edital-block.html 2>/tmp/edital-block.stderr
           "${chrome[@]}" "${base}?q=crase" >/tmp/edital-search.html 2>/tmp/edital-search.stderr
           grep -q 'O que já foi coberto' /tmp/edital.html
           grep -q 'Checklist completo do edital' /tmp/edital.html
