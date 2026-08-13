@@ -4,11 +4,11 @@
   "dataVersion": "20260811.1",
   "catalogVersion": "edas-400-s12-20260807",
   "serviceWorkerVersion": "edas-20260809.1",
-  "sourceCommit": "79237d7126153b69238322aad8929f84692b1804",
-  "syncDate": "2026-08-11",
-  "syncAt": "2026-08-11T13:25:57-03:00",
+  "sourceCommit": "882fd029bdb518315b854f9ab3a541777dc557d6",
+  "syncDate": "2026-08-13",
+  "syncAt": "2026-08-13T01:21:02-03:00",
   "releaseAt": "2026-08-09T14:00:21-03:00",
   "sprintId": "S08",
-  "publicationId": "20260809.1|20260811.1|edas-400-s12-20260807|2026-08-11T13:25:57-03:00|79237d712615",
-  "note": "Revalidação oficial em 11/08/2026: as três views EDAS foram percorridas integralmente até has_more=false e não apresentaram alterações semânticas. Permanecem confirmados 42 Sprints, 6 blocos concluídos, 205 questões, 167 acertos (81,46%), 38 erros acumulados, 31 páginas detalhadas no Caderno e 12 estudos de caso não iniciados. O S08 continua como próxima ação pendente; S16 permanece apenas como Sprint do calendário."
+  "publicationId": "20260809.1|20260811.1|edas-400-s12-20260807|2026-08-13T01:21:02-03:00|882fd029bdb5",
+  "note": "Revalidação oficial em 13/08/2026: as três views EDAS foram percorridas integralmente até has_more=false e não apresentaram alterações de execução ou planejamento. Permanecem confirmados 42 Sprints, 6 blocos concluídos, 205 questões, 167 acertos (81,46%), 38 erros acumulados, 31 páginas detalhadas no Caderno e 12 estudos de caso não iniciados. O S08 continua como próxima ação pendente; S18 é apenas o Sprint do calendário."
 }
