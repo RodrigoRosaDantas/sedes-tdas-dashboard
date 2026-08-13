@@ -4,4 +4,4 @@ Atualize este arquivo somente quando for necessário solicitar uma recuperação
 
 Última solicitação:
 - data: 2026-08-12
-- motivo: revalidar a publicação após reposicionar Q31–Q48 do PE87 dentro da bateria oficial, antes do primeiro gabarito computável. A tentativa histórica 23/30 permanece preservada; a meta oficial permanece 48. Manter monitoramento recorrente e isolamento do Cargo 400.
+- motivo: revalidar e republicar o PE87 após a fonte oficial anular a bateria anterior de 30 questões e substituí-la por uma nova bateria integral de 48 questões. A nova fonte foi saneada, o gabarito operacional de 48 itens foi restaurado para correção separada e a auditoria PE79–PE112 confirmou 34/34 dias prontos. Não preservar nem consolidar o histórico 23/30 como execução válida do PE87 atual. Manter isolamento do Cargo 400.
