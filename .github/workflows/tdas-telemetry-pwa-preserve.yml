@@ -28,8 +28,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Restaurar assets locais no PWA
+      - name: Restaurar telemetria local no PWA
         run: node scripts/preserve-local-telemetry-pwa.mjs
+      - name: Restaurar histórico privado no PWA
+        run: node scripts/preserve-private-history-pwa.mjs
       - name: Validar contrato local
         run: node scripts/validate-local-telemetry.mjs
       - name: Publicar somente se o gerador removeu o precache
@@ -37,11 +39,11 @@ jobs:
         run: |
           set -euo pipefail
           if git diff --quiet -- sw.js; then
-            echo 'PWA já preserva a telemetria local.'
+            echo 'PWA já preserva telemetria e histórico privado.'
             exit 0
           fi
           git config user.name 'tdas-telemetry-guard[bot]'
           git config user.email 'tdas-telemetry-guard[bot]@users.noreply.github.com'
           git add sw.js
-          git commit -m 'Preservar telemetria local no PWA após sync'
+          git commit -m 'Preservar telemetria e histórico privado no PWA após sync'
           git push origin HEAD:main
