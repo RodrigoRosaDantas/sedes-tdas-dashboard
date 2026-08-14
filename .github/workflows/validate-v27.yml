@@ -1,0 +1,52 @@
+name: Validar TDAS v27
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'index.html'
+      - 'resolver/**'
+      - 'sw.js'
+      - 'assets/v27.css'
+      - 'assets/more.js'
+      - 'assets/integration/home-notion-mirror.js'
+      - 'assets/integration/question-bank.js'
+      - 'assets/integration/question-bank-player.js'
+      - 'assets/integration/bank-draft-guard.js'
+      - 'assets/integration/question-catalog-archive.js'
+      - 'assets/integration/review-catalog-bridge.js'
+      - 'assets/integration/resolver-bootstrap.js'
+      - 'assets/integration/continuity-engine.js'
+      - 'assets/integration/home-v27.js'
+      - 'scripts/test-v27-*.mjs'
+      - 'scripts/diagnose-check.mjs'
+      - 'scripts/preserve-private-history-pwa.mjs'
+      - 'scripts/preserve-local-telemetry-pwa.mjs'
+      - 'scripts/preserve-notion-mirror-pwa.mjs'
+      - 'scripts/preserve-v27-pwa.mjs'
+      - '.github/workflows/notion-sync.yml'
+      - '.github/workflows/validate-v27.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Baixar branch
+        uses: actions/checkout@v4
+      - name: Preparar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validar contratos v27
+        run: |
+          set -euo pipefail
+          node scripts/test-v27-question-bank.mjs
+          node scripts/test-v27-continuity.mjs
+          node scripts/test-v27-contract.mjs
+      - name: Executar gate integral existente
+        run: node scripts/diagnose-check.mjs
