@@ -1,6 +1,6 @@
 import {BASE,escapeHTML} from '../common.js?v=26.17.0';
 
-const countLabel=data=>`${Number(data.pageCount||0).toLocaleString('pt-BR')} páginas · ${Number(data.databaseCount||0).toLocaleString('pt-BR')} bancos · ${Number(data.recordCount||0).toLocaleString('pt-BR')} registros`;
+const countLabel=data=>`${Number(data.pageCount||0).toLocaleString('pt-BR')} páginas no mapa · ${Number(data.protectedPageCount||0).toLocaleString('pt-BR')} áreas protegidas · ${Number(data.databaseCount||0).toLocaleString('pt-BR')} bancos referenciados`;
 
 function addHeroAction(main){
  const actions=main.querySelector('.tdas-home-actions');
@@ -19,7 +19,7 @@ async function loadHomeMirror(){
  const legacy=await fetch(BASE+'data/notion-mirror/index.json',{cache:'no-store'}).catch(()=>null);
  if(!legacy?.ok)return null;
  const data=await legacy.json();
- return{...data,rootChildren:(data.pages||[]).filter(p=>p.parentId===data.rootId).map(p=>({id:p.id,title:p.title,icon:p.icon,childCount:(p.children||[]).length,databaseCount:(p.databases||[]).length}))};
+ return{...data,rootChildren:(data.pages||[]).filter(p=>p.parentId===data.rootId).map(p=>({id:p.id,title:p.title,icon:p.icon,protected:Boolean(p.protected),childCount:(p.children||[]).length,databaseCount:(p.databases||[]).length}))};
 }
 
 async function addMirror(){
@@ -33,7 +33,7 @@ async function addMirror(){
  const s=document.createElement('section');
  s.className='tdas-dashboard-section notion-home-entry';
  s.dataset.notionHome='1';
- s.innerHTML=`<div class="section-head"><div><span class="kicker">Fonte oficial espelhada</span><h2>Meu Notion dentro do TDAS</h2><p>${escapeHTML(countLabel(data))}. Navegue pelas páginas e bancos sem sair da plataforma.</p></div><a class="btn primary" href="${BASE}notion/">Abrir meu Notion</a></div>${children.length?`<div class="grid two">${children.map(p=>`<a class="card panel" href="${BASE}notion/?id=${encodeURIComponent(p.id)}"><strong>${escapeHTML(p.icon||'📄')} ${escapeHTML(p.title)}</strong><p>${Number(p.childCount||0)} subpágina(s) · ${Number(p.databaseCount||0)} banco(s)</p></a>`).join('')}</div>`:''}`;
+ s.innerHTML=`<div class="section-head"><div><span class="kicker">Mapa seguro da fonte oficial</span><h2>Meu Notion dentro do TDAS</h2><p>${escapeHTML(countLabel(data))}. O site mostra a estrutura útil, mas mantém respostas, gabaritos, redações reservadas, bancos operacionais e acervos privados somente no Notion.</p></div><a class="btn primary" href="${BASE}notion/">Abrir mapa do Notion</a></div>${children.length?`<div class="grid two">${children.map(p=>`<a class="card panel" href="${BASE}notion/?id=${encodeURIComponent(p.id)}"><strong>${escapeHTML(p.protected?'🔒':p.icon||'📄')} ${escapeHTML(p.title)}</strong><p>${p.protected?'Conteúdo reservado · abrir referência':`${Number(p.childCount||0)} subpágina(s) · ${Number(p.databaseCount||0)} banco(s)`}</p></a>`).join('')}</div>`:''}`;
  const hero=main.querySelector('.tdas-home-focus'),continuity=main.querySelector('[data-v27-continuity]');
  if(continuity)continuity.after(s);else if(hero)hero.after(s);else main.prepend(s);
  return true;
