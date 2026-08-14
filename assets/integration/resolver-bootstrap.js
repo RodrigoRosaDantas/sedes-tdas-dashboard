@@ -16,7 +16,7 @@ if(reviewId){
 }else if(bankMode){
  document.documentElement.dataset.questionMode='bank';
  await import('./bank-draft-guard.js?v=1.0.0');
- await import('./question-bank-player.js?v=1.1.0');
+ await import('./question-bank-player.js?v=1.0.0');
  await import('./master-bank-ui.js?v=1.0.0');
  await import('./question-telemetry-runtime.js?v=1.0.0');
 }else{
