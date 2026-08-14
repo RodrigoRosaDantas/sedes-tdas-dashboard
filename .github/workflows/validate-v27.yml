@@ -20,6 +20,7 @@ on:
       - 'assets/integration/continuity-engine.js'
       - 'assets/integration/home-v27.js'
       - 'scripts/test-v27-*.mjs'
+      - 'scripts/diagnose-check.mjs'
       - '.github/workflows/validate-v27.yml'
 
 permissions:
@@ -43,4 +44,4 @@ jobs:
           node scripts/test-v27-continuity.mjs
           node scripts/test-v27-contract.mjs
       - name: Executar gate integral existente
-        run: npm run check
+        run: node scripts/diagnose-check.mjs
