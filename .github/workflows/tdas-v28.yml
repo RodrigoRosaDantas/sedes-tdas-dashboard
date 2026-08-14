@@ -1,0 +1,81 @@
+name: Validar TDAS v28 — Banco Mestre
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/tdas-v28.yml'
+      - '.github/workflows/notion-sync.yml'
+      - 'assets/integration/question-bank.js'
+      - 'assets/integration/question-bank-player.js'
+      - 'assets/integration/master-bank-ui.js'
+      - 'assets/integration/resolver-bootstrap.js'
+      - 'assets/integration/review-catalog-bridge.js'
+      - 'scripts/sync-tdas-master-question-bank.mjs'
+      - 'scripts/test-master-question-bank.mjs'
+      - 'scripts/test-master-bank-runtime.mjs'
+      - 'scripts/test-master-bank-operational.mjs'
+      - 'scripts/validate-master-question-bank.mjs'
+      - 'scripts/preserve-v27-pwa.mjs'
+      - 'sw.js'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/tdas-v28.yml'
+      - '.github/workflows/notion-sync.yml'
+      - 'assets/integration/question-bank.js'
+      - 'assets/integration/question-bank-player.js'
+      - 'assets/integration/master-bank-ui.js'
+      - 'assets/integration/resolver-bootstrap.js'
+      - 'assets/integration/review-catalog-bridge.js'
+      - 'scripts/sync-tdas-master-question-bank.mjs'
+      - 'scripts/test-master-question-bank.mjs'
+      - 'scripts/test-master-bank-runtime.mjs'
+      - 'scripts/test-master-bank-operational.mjs'
+      - 'scripts/validate-master-question-bank.mjs'
+      - 'scripts/preserve-v27-pwa.mjs'
+      - 'sw.js'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tdas-v28-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Baixar branch
+        uses: actions/checkout@v4
+
+      - name: Preparar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Validar transformação em fixture
+        run: node scripts/test-master-question-bank.mjs
+
+      - name: Validar contrato operacional
+        run: node scripts/test-master-bank-operational.mjs
+
+      - name: Materializar release TDAS real
+        env:
+          MASTER_BANK_STRICT: '1'
+        run: node scripts/sync-tdas-master-question-bank.mjs
+
+      - name: Preservar catálogo público no PWA
+        run: node scripts/preserve-v27-pwa.mjs
+
+      - name: Validar snapshot real
+        run: node scripts/validate-master-question-bank.mjs
+
+      - name: Validar runtime com o lote real
+        run: node scripts/test-master-bank-runtime.mjs
+
+      - name: Executar gate integral existente
+        run: npm run check

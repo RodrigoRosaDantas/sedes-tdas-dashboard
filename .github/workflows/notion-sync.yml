@@ -8,6 +8,9 @@ on:
       - '.github/workflows/notion-sync.yml'
       - '.github/tdas-sync-trigger.txt'
       - 'scripts/sync-notion.mjs'
+      - 'scripts/sync-tdas-master-question-bank.mjs'
+      - 'scripts/validate-master-question-bank.mjs'
+      - 'scripts/test-master-question-bank.mjs'
       - 'scripts/postprocess-v23.mjs'
       - 'scripts/postprocess-v24.mjs'
       - 'scripts/postprocess-v26.mjs'
@@ -137,6 +140,10 @@ jobs:
             sync_status=${PIPESTATUS[0]}
           fi
           if [[ $sync_status -eq 0 ]]; then
+            node scripts/sync-tdas-master-question-bank.mjs 2>&1 | tee -a /tmp/tdas-sync.log
+            sync_status=${PIPESTATUS[0]}
+          fi
+          if [[ $sync_status -eq 0 ]]; then
             node scripts/preserve-private-history-pwa.mjs 2>&1 | tee -a /tmp/tdas-sync.log
             sync_status=${PIPESTATUS[0]}
           fi
@@ -150,6 +157,10 @@ jobs:
           fi
           if [[ $sync_status -eq 0 ]]; then
             node scripts/preserve-v27-pwa.mjs 2>&1 | tee -a /tmp/tdas-sync.log
+            sync_status=${PIPESTATUS[0]}
+          fi
+          if [[ $sync_status -eq 0 ]]; then
+            node scripts/validate-master-question-bank.mjs 2>&1 | tee -a /tmp/tdas-sync.log
             sync_status=${PIPESTATUS[0]}
           fi
           if [[ $sync_status -eq 0 ]]; then

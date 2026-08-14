@@ -5,11 +5,11 @@
   "basePath": "/sedes-tdas-dashboard/",
   "routes": [
     {"key":"estudar","path":"/sedes-tdas-dashboard/estudar/","title":"Estudar","description":"Material Premium Diário trazido da página filha oficial do PE vigente.","status":"Sincronizado do Notion"},
-    {"key":"resolver","path":"/sedes-tdas-dashboard/resolver/","title":"Questões do dia","description":"Enunciados e alternativas da página filha oficial, com correção separada até a finalização.","status":"Sincronizado do Notion"},
+    {"key":"resolver","path":"/sedes-tdas-dashboard/resolver/","title":"Questões e Banco","description":"Questões do dia e snapshot local publicado do Banco Mestre TDAS, sempre com correção separada até a finalização.","status":"Notion → GitHub → site"},
     {"key":"revisar","path":"/sedes-tdas-dashboard/revisar/","title":"Revisar","description":"Agenda local D+1, D+7 e D+20 gerada pelas sessões concluídas.","status":"Operacional"},
     {"key":"caderno-erros","path":"/sedes-tdas-dashboard/caderno-erros/","title":"Caderno de erros","description":"Erros confirmados e marcações produzidos pelas sessões locais.","status":"Operacional"},
     {"key":"desempenho","path":"/sedes-tdas-dashboard/desempenho/","title":"Desempenho","description":"Métricas locais de tentativas, acertos, tempo, confiança e revisões.","status":"Operacional"},
     {"key":"fila-ia","path":"/sedes-tdas-dashboard/fila-ia/","title":"Fila de IA","description":"Ressalvas de possível anulação ou erro de fonte que exigem análise.","status":"Operacional"}
   ],
-  "invariants": ["daily-execution-pe-links","children-discovered-from-official-roots","theory-and-questions-separated","question-content-authorized-by-user","answer-key-loaded-after-finish","no-example-question-bank","no-master-bank-runtime-read","local-storage-v2-only","no-notion-writeback","single-dashboard-service-worker"]
+  "invariants": ["daily-execution-pe-links","children-discovered-from-official-roots","theory-and-questions-separated","question-content-authorized-by-user","answer-key-loaded-after-finish","no-example-question-bank","master-bank-local-snapshot-only","no-master-bank-remote-runtime-read","local-storage-v2-only","no-notion-writeback","single-dashboard-service-worker"]
 }
