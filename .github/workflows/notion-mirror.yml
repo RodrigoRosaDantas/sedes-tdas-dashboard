@@ -1,0 +1,43 @@
+name: Validar espelho completo do Notion
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/notion/mirror.mjs'
+      - 'scripts/sync-notion-mirror.mjs'
+      - 'scripts/test-notion-mirror-contract.mjs'
+      - 'assets/notion-mirror.js'
+      - 'assets/notion-mirror.css'
+      - 'assets/integration/home-notion-mirror.js'
+      - 'notion/**'
+      - 'data/notion-mirror/**'
+      - 'sw.js'
+      - '.github/workflows/notion-sync.yml'
+      - '.github/workflows/notion-mirror.yml'
+      - '.github/workflows/tdas-telemetry-pwa-preserve.yml'
+      - 'scripts/preserve-notion-mirror-pwa.mjs'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validar sintaxe
+        run: |
+          node --check scripts/notion/mirror.mjs
+          node --check scripts/sync-notion-mirror.mjs
+          node --check assets/notion-mirror.js
+          node --check assets/integration/home-notion-mirror.js
+          node --check scripts/preserve-notion-mirror-pwa.mjs
+      - name: Validar contrato do espelho
+        run: node scripts/test-notion-mirror-contract.mjs
+      - name: Garantir que funções atuais continuam íntegras
+        run: npm run check
