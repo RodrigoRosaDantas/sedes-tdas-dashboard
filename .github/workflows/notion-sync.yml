@@ -12,6 +12,10 @@ on:
       - 'scripts/postprocess-v24.mjs'
       - 'scripts/postprocess-v26.mjs'
       - 'scripts/postprocess-redactions.mjs'
+      - 'scripts/preserve-private-history-pwa.mjs'
+      - 'scripts/preserve-local-telemetry-pwa.mjs'
+      - 'scripts/preserve-notion-mirror-pwa.mjs'
+      - 'scripts/preserve-v27-pwa.mjs'
       - 'scripts/record-sync-error.mjs'
       - 'scripts/notion/**'
       - 'scripts/prepare-calendar-refresh.mjs'
@@ -130,6 +134,22 @@ jobs:
           fi
           if [[ $sync_status -eq 0 ]]; then
             node scripts/sync-platform-version.mjs 2>&1 | tee -a /tmp/tdas-sync.log
+            sync_status=${PIPESTATUS[0]}
+          fi
+          if [[ $sync_status -eq 0 ]]; then
+            node scripts/preserve-private-history-pwa.mjs 2>&1 | tee -a /tmp/tdas-sync.log
+            sync_status=${PIPESTATUS[0]}
+          fi
+          if [[ $sync_status -eq 0 ]]; then
+            node scripts/preserve-local-telemetry-pwa.mjs 2>&1 | tee -a /tmp/tdas-sync.log
+            sync_status=${PIPESTATUS[0]}
+          fi
+          if [[ $sync_status -eq 0 ]]; then
+            node scripts/preserve-notion-mirror-pwa.mjs 2>&1 | tee -a /tmp/tdas-sync.log
+            sync_status=${PIPESTATUS[0]}
+          fi
+          if [[ $sync_status -eq 0 ]]; then
+            node scripts/preserve-v27-pwa.mjs 2>&1 | tee -a /tmp/tdas-sync.log
             sync_status=${PIPESTATUS[0]}
           fi
           if [[ $sync_status -eq 0 ]]; then
