@@ -61,7 +61,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          today="$(TZ=America/Sao_Paulo date +%F)"
+          reference_now="$(TZ=America/Sao_Paulo date --iso-8601=seconds)"
+          today="${reference_now%%T*}"
+          echo "reference_now=$reference_now" >> "$GITHUB_OUTPUT"
+          echo "reference_date=$today" >> "$GITHUB_OUTPUT"
+          echo "Data de referência fixada para toda a execução: $reference_now"
           if [[ "${GITHUB_EVENT_NAME}" == 'schedule' && "$today" > '2026-09-06' ]]; then
             echo 'run=false' >> "$GITHUB_OUTPUT"
             echo "Ciclo encerrado em 2026-09-06; sincronização agendada dispensada e último snapshot preservado."
@@ -91,6 +95,7 @@ jobs:
         env:
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
           SYNC_KIND: ${{ github.event_name }}
+          NOW: ${{ steps.cycle.outputs.reference_now }}
           TZ: America/Sao_Paulo
         shell: bash
         run: |

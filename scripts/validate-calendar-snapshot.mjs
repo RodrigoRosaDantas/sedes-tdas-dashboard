@@ -41,10 +41,12 @@ if (strictProgress && pendingStatus(today.current?.status)) {
 }
 
 if (process.env.REQUIRE_CURRENT_SNAPSHOT === 'true') {
+  const fixedReference = Boolean(process.env.NOW);
   const currentDate = dateInTimeZone(process.env.NOW || new Date());
-  required(snapshotDate === currentDate, `Snapshot vencido: ${snapshotDate}; data atual em Brasília: ${currentDate}.`);
+  const dateLabel = fixedReference ? 'data de referência da execução' : 'data atual em Brasília';
+  required(snapshotDate === currentDate, `Snapshot vencido: ${snapshotDate}; ${dateLabel}: ${currentDate}.`);
   const currentScheduled = controls.find(item => item.date === currentDate);
   if (currentScheduled) required(today.current?.pe === currentScheduled.pe, `Virada diária incompleta: esperado ${currentScheduled.pe}, publicado ${today.current?.pe}.`);
 }
 
-console.log(`Snapshot diário validado: ${snapshotDate}, ${today.current?.pe}, fontes públicas consistentes${process.env.REQUIRE_CURRENT_SNAPSHOT === 'true' ? ' e data atual confirmada' : ''}${strictProgress ? ' com integridade de progresso' : ''}.`);
+console.log(`Snapshot diário validado: ${snapshotDate}, ${today.current?.pe}, fontes públicas consistentes${process.env.REQUIRE_CURRENT_SNAPSHOT === 'true' ? ' e data de referência confirmada' : ''}${strictProgress ? ' com integridade de progresso' : ''}.`);
