@@ -8,7 +8,6 @@ on:
       - '.github/workflows/notion-sync.yml'
       - '.github/tdas-sync-trigger.txt'
       - 'scripts/sync-notion.mjs'
-      - 'scripts/sync-notion-mirror.mjs'
       - 'scripts/postprocess-v23.mjs'
       - 'scripts/postprocess-v24.mjs'
       - 'scripts/postprocess-v26.mjs'
@@ -102,10 +101,6 @@ jobs:
           sync_status=${PIPESTATUS[0]}
           if [[ $sync_status -eq 0 ]]; then
             node scripts/sync-notion.mjs 2>&1 | tee -a /tmp/tdas-sync.log
-            sync_status=${PIPESTATUS[0]}
-          fi
-          if [[ $sync_status -eq 0 ]]; then
-            node scripts/sync-notion-mirror.mjs 2>&1 | tee -a /tmp/tdas-sync.log
             sync_status=${PIPESTATUS[0]}
           fi
           if [[ $sync_status -eq 0 ]]; then
