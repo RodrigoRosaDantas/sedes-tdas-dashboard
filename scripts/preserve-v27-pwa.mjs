@@ -5,6 +5,7 @@ const REQUIRED=[
  'assets/v27.css',
  'assets/integration/question-bank.js',
  'assets/integration/question-bank-player.js',
+ 'assets/integration/master-bank-ui.js',
  'assets/integration/bank-draft-guard.js',
  'assets/integration/review-catalog-bridge.js',
  'assets/integration/resolver-bootstrap.js',
