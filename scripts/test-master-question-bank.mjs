@@ -5,7 +5,11 @@ const question=(n,gabarito='A')=>({id:`legacy-${n}`,codigo:`TDAS-Q${n}`,numero_o
 const tdas={id:'tdas-material',tipo_material:'simulado',fonte:'Instituto Quadrix',nome:'TDAS material',ano:2026,orgao:'SEDES/DF',cargo:'TDAS — Técnico Administrativo',codigo_cargo:'202',disciplina:'Português',status:'publicado',quantidade_questoes:2,questoes:[question(1,'B'),question(2,'E')]};
 const catalog={release_version:'x',exported_at:'2026-08-14T00:00:00Z',source:{notion_url:'https://app.notion.com/p/source'},materials:[{...tdas,questoes:undefined,file:'./data/release/materials/tdas.json'},{id:'wrong-code',cargo:'TDAS — Técnico Administrativo',codigo_cargo:'999',status:'publicado'},{id:'wrong-cargo',cargo:'Outro cargo',codigo_cargo:'202',status:'publicado'},{id:'draft',cargo:'TDAS — Técnico Administrativo',codigo_cargo:'202',status:'rascunho'}]};
 assert.deepEqual(selectTdasMaterials(catalog).map(item=>item.id),['tdas-material'],'O recorte deve exigir cargo e código simultaneamente.');
-const {publicSnapshot,keySnapshot}=buildTdasSnapshot(catalog,[tdas],{sourceSha:'a'.repeat(40)});
+const first=buildTdasSnapshot(catalog,[tdas],{sourceSha:'a'.repeat(40)});
+const second=buildTdasSnapshot(catalog,[tdas],{sourceSha:'a'.repeat(40)});
+const {publicSnapshot,keySnapshot}=first;
+assert.deepEqual(second,first,'Mesma release e mesmo conteúdo devem produzir snapshot determinístico.');
+assert.equal(publicSnapshot.generatedAt,catalog.exported_at,'O carimbo deve derivar da release, não do relógio da execução.');
 assert.equal(publicSnapshot.questionCount,2);
 assert.equal(publicSnapshot.materialCount,1);
 assert.equal(publicSnapshot.questions[0].sourcePe,'Banco Mestre');
@@ -18,4 +22,4 @@ assert.deepEqual(new Set(keySnapshot.answers.map(item=>item.gabarito)),new Set([
 assert.equal(keySnapshot.answers.length,publicSnapshot.questionCount);
 assert.throws(()=>buildTdasSnapshot(catalog,[{...tdas,questoes:[question(1,'X'),question(2,'E')]}],{sourceSha:'b'.repeat(40)}),/Gabarito inválido/);
 assert.throws(()=>buildTdasSnapshot(catalog,[{...tdas,quantidade_questoes:2,questoes:[question(1,'A')]}],{sourceSha:'b'.repeat(40)}),/Quantidade divergente/);
-console.log('Banco Mestre TDAS testado: identidade cargo+202, catálogo cego, chave separada e validações de integridade ativas.');
+console.log('Banco Mestre TDAS testado: identidade cargo+202, catálogo cego, idempotência, chave separada e validações de integridade ativas.');
