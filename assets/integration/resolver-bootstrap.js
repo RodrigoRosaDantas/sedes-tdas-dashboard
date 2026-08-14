@@ -9,7 +9,7 @@ const addBankSwitch=()=>{
 };
 if(reviewId){
  document.documentElement.dataset.questionMode='review';
- const{installReviewCatalogBridge}=await import('./review-catalog-bridge.js?v=1.0.0');
+ const{installReviewCatalogBridge}=await import('./review-catalog-bridge.js?v=1.1.0');
  await installReviewCatalogBridge(reviewId);
  await import('./module-player.js?v=2.1.0');
  await import('./question-telemetry-runtime.js?v=1.0.0');
@@ -17,6 +17,7 @@ if(reviewId){
  document.documentElement.dataset.questionMode='bank';
  await import('./bank-draft-guard.js?v=1.0.0');
  await import('./question-bank-player.js?v=1.0.0');
+ await import('./master-bank-ui.js?v=1.0.0');
  await import('./question-telemetry-runtime.js?v=1.0.0');
 }else{
  document.documentElement.dataset.questionMode='daily';
