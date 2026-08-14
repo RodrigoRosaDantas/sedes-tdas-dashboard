@@ -69,7 +69,7 @@ jobs:
         run: |
           set -o pipefail
           node scripts/sync-tdas-master-question-bank.mjs 2>&1 | tee /tmp/tdas-master-bank.log || {
-            message="$(tail -n 1 /tmp/tdas-master-bank.log | sed 's/%/%25/g; s/\r/%0D/g; s/\n/%0A/g')"
+            message="$(head -n 1 /tmp/tdas-master-bank.log | sed 's/%/%25/g; s/\r/%0D/g; s/\n/%0A/g')"
             echo "::error title=Materialização do Banco publicado::${message}"
             exit 1
           }
