@@ -16,8 +16,11 @@ assert.ok(validatePos>preservePos,'O snapshot materializado deve ser validado de
 assert.ok(gatePos>validatePos,'O gate integral deve rodar depois da validação do Banco Mestre.');
 for(const dependency of ['scripts/sync-tdas-master-question-bank.mjs','scripts/validate-master-question-bank.mjs','scripts/test-master-question-bank.mjs'])assert.ok(workflow.includes(`- '${dependency}'`),`Workflow não reage a ${dependency}.`);
 assert.match(workflow,/git add -A data pe materias sw\.js/,'Snapshot e chave separados precisam participar da publicação atômica.');
-assert.match(preserve,/data\/integration\/master-question-bank\.json/,'Catálogo público mestre deve ser preservado no PWA.');
-assert.doesNotMatch(preserve,/OPTIONAL_DATA=.*question-keys/s,'A chave do Banco Mestre não pode ser adicionada ao PWA.');
+const optionalMatch=preserve.match(/const OPTIONAL_DATA=(\[[^;]*\]);/);
+assert.ok(optionalMatch,'Lista OPTIONAL_DATA ausente no preservador PWA.');
+const optionalData=JSON.parse(optionalMatch[1].replace(/'/g,'"'));
+assert.ok(optionalData.includes('data/integration/master-question-bank.json'),'Catálogo público mestre deve ser preservado no PWA.');
+assert.ok(optionalData.every(item=>!String(item).includes('question-keys/')),'A chave do Banco Mestre não pode ser adicionada ao PWA.');
 assert.match(bank,/master-question-bank\.json/,'Runtime do Banco deve carregar o snapshot mestre local.');
 assert.match(bank,/sourceKind:'master-bank'/,'Runtime deve identificar questões do Banco Mestre.');
 assert.match(review,/loadMasterQuestionBank/,'Revisões devem recuperar questões do Banco Mestre.');
