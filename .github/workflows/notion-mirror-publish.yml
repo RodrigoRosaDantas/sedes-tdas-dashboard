@@ -1,4 +1,4 @@
-name: Publicar espelho completo do Notion
+name: Publicar mapa seguro do Notion
 
 on:
   workflow_dispatch:
@@ -30,13 +30,13 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Gerar espelho completo do Notion
+      - name: Gerar mapa seguro do Notion
         env:
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
           TZ: America/Sao_Paulo
         run: node scripts/sync-notion-mirror.mjs
 
-      - name: Validar espelho gerado
+      - name: Validar escopo público seguro
         shell: bash
         run: |
           set -euo pipefail
@@ -44,15 +44,18 @@ jobs:
           node --input-type=module <<'NODE'
           import fs from 'node:fs/promises';
           const index=JSON.parse(await fs.readFile('data/notion-mirror/index.json','utf8'));
-          if(index.bootstrap) throw new Error('Espelho permaneceu em bootstrap.');
+          if(index.bootstrap) throw new Error('Mapa permaneceu em bootstrap.');
+          if(index.publicScope!=='safe') throw new Error(`Escopo público inválido: ${index.publicScope}`);
           if(!Number.isInteger(index.pageCount)||index.pageCount<=1) throw new Error(`Quantidade de páginas inválida: ${index.pageCount}`);
-          if(!Number.isInteger(index.databaseCount)||index.databaseCount<1) throw new Error(`Nenhum banco foi espelhado: ${index.databaseCount}`);
-          if(!index.hash||index.hash==='bootstrap') throw new Error('Hash real do espelho não foi gerado.');
-          console.log(`Espelho real validado: ${index.pageCount} páginas, ${index.databaseCount} bancos, ${index.recordCount} registros.`);
+          if(!Number.isInteger(index.protectedPageCount)||index.protectedPageCount<1) throw new Error('Nenhuma área protegida foi registrada.');
+          if(index.recordCount!==0) throw new Error(`Linhas de banco não podem ser públicas: ${index.recordCount}`);
+          if((index.databases||[]).some(db=>(db.shards||[]).length)) throw new Error('Banco com shard público detectado.');
+          if(!index.hash||index.hash==='bootstrap'||index.hash==='quarantine') throw new Error('Hash real do mapa seguro não foi gerado.');
+          console.log(`Mapa seguro validado: ${index.pageCount} páginas de navegação, ${index.protectedPageCount} áreas protegidas e ${index.databaseCount} bancos sem linhas públicas.`);
           NODE
           npm run check
 
-      - name: Publicar snapshot somente se houver mudança
+      - name: Publicar snapshot seguro somente se houver mudança
         shell: bash
         run: |
           set -euo pipefail
@@ -60,10 +63,10 @@ jobs:
           git config user.email 'tdas-notion-mirror[bot]@users.noreply.github.com'
           git add -A data/notion-mirror
           if git diff --cached --quiet; then
-            echo 'Espelho já está atualizado; nenhuma publicação necessária.'
+            echo 'Mapa seguro já está atualizado; nenhuma publicação necessária.'
             exit 0
           fi
-          git commit -m 'Atualizar espelho completo do Notion'
+          git commit -m 'Atualizar mapa seguro do Notion'
           git fetch origin main
           git rebase origin/main
           git push origin HEAD:main
