@@ -25,6 +25,6 @@ required(key.questionCount===catalog.questionCount&&key.answers.length===catalog
 const answers=new Map(key.answers.map(item=>[item.id,item.gabarito]));
 for(const id of ids)required(['A','B','C','D','E'].includes(answers.get(id)),`gabarito inválido/ausente em ${id}.`);
 const sw=await fs.readFile('sw.js','utf8');
+required(sw.includes(publicPath),'catálogo público não foi preservado no PWA.');
 required(!sw.includes(keyPath),'gabarito entrou no service worker.');
-if(sw.includes(publicPath))required(sw.includes('master-question-bank.json'),'referência PWA inconsistente.');
-console.log(`Banco Mestre TDAS validado: ${catalog.questionCount} questões, ${catalog.materialCount} materiais, catálogo cego e chave fora do precache.`);
+console.log(`Banco Mestre TDAS validado: ${catalog.questionCount} questões, ${catalog.materialCount} materiais, catálogo cego no PWA e chave fora do precache.`);
