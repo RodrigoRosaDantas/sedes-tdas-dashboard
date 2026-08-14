@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 
 const read=file=>fs.readFile(file,'utf8');
-const [engine,runner,front,home,html,syncWorkflow,publishWorkflow,guard,sw,indexRaw]=await Promise.all([
+const [engine,runner,front,home,html,syncWorkflow,publishWorkflow,guard,pwaPreserver,sw,indexRaw]=await Promise.all([
   'scripts/notion/mirror.mjs',
   'scripts/sync-notion-mirror.mjs',
   'assets/notion-mirror.js',
@@ -11,6 +11,7 @@ const [engine,runner,front,home,html,syncWorkflow,publishWorkflow,guard,sw,index
   '.github/workflows/notion-sync.yml',
   '.github/workflows/notion-mirror-publish.yml',
   '.github/workflows/tdas-telemetry-pwa-preserve.yml',
+  'scripts/preserve-notion-mirror-pwa.mjs',
   'sw.js',
   'data/notion-mirror/index.json'
 ].map(read));
@@ -25,8 +26,14 @@ assert.ok(publishWorkflow.includes("workflows: ['Sincronizar Plataforma TDAS v26
 assert.ok(publishWorkflow.includes('timeout-minutes: 60'),'Espelho precisa ter janela própria de execução.');
 assert.ok(publishWorkflow.includes('index.bootstrap'),'Publicação precisa bloquear snapshot bootstrap.');
 assert.ok(guard.includes('preserve-notion-mirror-pwa.mjs'),'Guard pós-sync não preserva o espelho.');
-assert.ok(sw.includes('"notion/"')&&sw.includes('assets/notion-mirror.js')&&sw.includes('data/notion-mirror/index.json'));
+assert.ok(pwaPreserver.includes("const ROUTE = 'notion/'"),'Preservador PWA precisa manter a rota do espelho.');
+assert.ok(pwaPreserver.includes("const ASSET = 'assets/notion-mirror.js'"),'Preservador PWA precisa manter o JS do espelho.');
+assert.ok(pwaPreserver.includes("'assets/notion-mirror.css'"),'Preservador PWA precisa manter o CSS do espelho.');
+assert.ok(pwaPreserver.includes("'assets/integration/home-notion-mirror.js'"),'Preservador PWA precisa manter a integração da Home.');
+assert.ok(pwaPreserver.includes("const DATA_FILE = 'data/notion-mirror/index.json'"),'Preservador PWA precisa manter o índice do espelho.');
+assert.ok(pwaPreserver.includes("fs.writeFile('sw.js'"),'Preservador PWA precisa efetivamente atualizar o Service Worker.');
+assert.ok(sw.includes('const CORE_ROUTES=')&&sw.includes('const ASSETS=')&&sw.includes('const DATA='),'Service Worker precisa expor as listas preserváveis pelo guard.');
 assert.ok(html.includes('assets/notion-mirror.js')&&home.includes('Explorar meu Notion'));
 assert.ok(front.includes('data/notion-mirror/index.json')&&front.includes('notion/?id=')&&front.includes('notion/?db='));
 assert.ok(!/NOTION_TOKEN|api\.notion\.com/i.test(front+home+html),'O navegador não pode conter token nem chamar a API do Notion.');
-console.log('Espelho Notion validado: pipeline desacoplado, leitura server-side, árvore recursiva, bancos, busca, Home e PWA.');
+console.log('Espelho Notion validado: pipeline desacoplado, preservação PWA determinística, leitura server-side, árvore recursiva, bancos, busca e Home.');
