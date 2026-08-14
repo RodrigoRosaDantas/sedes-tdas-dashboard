@@ -3,11 +3,22 @@ import path from 'node:path';
 import { ROOT, hash, localIso, writeJson } from './config.mjs';
 import { request, mapLimit } from './api.mjs';
 
-export const MIRROR_SCHEMA='1.1.0';
+export const MIRROR_SCHEMA='1.2.0';
 export const DEFAULT_ROOT_ID='363cf5a2-6731-816e-a702-c9a8c6ea11dc';
-const SHARD_SIZE=150;
 const MAX_DEPTH=14;
 const PRIVATE_PROPERTY_TYPES=new Set(['email','phone_number','people']);
+const PROTECTED_SUBTREES=new Map([
+ ['366cf5a2-6731-819d-acd6-d7e5b51b1339','Bancos operacionais contêm histórico pessoal, respostas, erros, redações e controles reservados.'],
+ ['3accf5a2-6731-81a9-9a56-dd47d059919f','Questões que errei pertencem ao histórico pessoal de estudo.'],
+ ['366cf5a2-6731-8162-a05e-d2e8b04631fc','Comandos e protocolos são material operacional interno.'],
+ ['366cf5a2-6731-8121-a56f-c55de1a55efd','PDFs, apostilas e acervos podem conter material licenciado ou destinado ao workspace privado.'],
+ ['366cf5a2-6731-81f9-96ce-f270b905b224','Painéis detalhados podem conter histórico pessoal de desempenho.'],
+ ['366cf5a2-6731-8184-8b4d-c697645626cc','Arquivo contém versões históricas e material que não deve ser republicado automaticamente.'],
+ ['364cf5a2-6731-813c-a00e-d9ba45ab6d51','Materiais Premium diários permanecem no workspace de estudo.'],
+ ['364cf5a2-6731-8105-abdb-ce6966704b5d','Questões Diárias permanecem reservadas para não expor aplicação cega, respostas ou gabaritos.'],
+ ['36acf5a2-6731-81fa-8fff-c8d1d4236d53','Lei Seca e Banco de Leis permanecem no workspace de estudo.'],
+ ['396cf5a2-6731-810f-a8c4-f7e14c4588b4','Cadernos de prova e redação permanecem no workspace de estudo.']
+]);
 const SECRET_PATTERNS=[
  ['Notion token',/\b(?:secret_|ntn_)[A-Za-z0-9_-]{20,}\b/],
  ['GitHub token',/\b(?:gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,})\b/],
@@ -18,6 +29,7 @@ const SECRET_PATTERNS=[
 const cleanId=value=>String(value||'').replace(/-/g,'');
 const plain=items=>(items||[]).map(item=>item?.plain_text??item?.text?.content??'').join('');
 const safeUrl=value=>/^https?:\/\//i.test(String(value||''))?String(value):null;
+const protectedReason=id=>PROTECTED_SUBTREES.get(String(id||''))||null;
 
 function rich(items=[]){
  return items.map(item=>({
@@ -35,7 +47,7 @@ function propertyValue(property){
  if(type==='multi_select')return(v||[]).map(x=>x.name);
  if(type==='date')return v?{start:v.start||null,end:v.end||null,time_zone:v.time_zone||null}:null;
  if(type==='relation')return(v||[]).map(x=>x.id);
- if(type==='files')return(v||[]).map(file=>({name:file.name||'Arquivo',type:file.type||null,url:file.type==='external'?safeUrl(file.external?.url):null,notionHosted:file.type==='file'}));
+ if(type==='files')return(v||[]).filter(file=>file.type==='external').map(file=>({name:file.name||'Arquivo',type:'external',url:safeUrl(file.external?.url)}));
  if(type==='formula')return v?{type:v.type,value:v.type==='date'?v.date:v[v.type]??null}:null;
  if(type==='rollup')return v?{type:v.type,value:v[v.type]??null}:null;
  if(type==='unique_id')return v?`${v.prefix||''}${v.number??''}`:null;
@@ -49,8 +61,9 @@ function normalizeProperties(properties={}){
 }
 
 function media(block,type){
- const item=block?.[type]||{},source=item.type==='external'?item.external?.url:item.file?.url;
- return{caption:rich(item.caption),url:safeUrl(source),external:item.type==='external',notionHosted:item.type==='file'};
+ const item=block?.[type]||{};
+ if(item.type!=='external')return{caption:rich(item.caption),url:null,external:false,notionHosted:true};
+ return{caption:rich(item.caption),url:safeUrl(item.external?.url),external:true,notionHosted:false};
 }
 
 async function allChildren(id){
@@ -79,35 +92,27 @@ async function serializeBlock(block,ctx,depth=0){
  return base;
 }
 
-function titleOf(page){
- const entry=Object.values(page.properties||{}).find(p=>p.type==='title');return plain(entry?.title)||'Página sem título';
-}
+function titleOf(page){const entry=Object.values(page.properties||{}).find(p=>p.type==='title');return plain(entry?.title)||'Página sem título';}
 function iconOf(page){return page?.icon?.type==='emoji'?page.icon.emoji:null;}
 function blockSearchText(blocks=[]){const out=[];const visit=block=>{if(block?.text)out.push(block.text);for(const child of block?.children||[])visit(child)};for(const block of blocks)visit(block);return out.join(' ');}
-function assertPublicSafe(file,value){const text=JSON.stringify(value);for(const[label,pattern]of SECRET_PATTERNS)if(pattern.test(text))throw new Error(`Espelho Notion: ${label} detectado em ${file}; publicação bloqueada.`);}
-
-async function queryDataSource(dataSourceId){
- const rows=[];let cursor=null,rounds=0;
- do{if(++rounds>1000)throw new Error(`Espelho Notion: paginação excessiva no data source ${dataSourceId}.`);const body={page_size:100,...(cursor?{start_cursor:cursor}:{})};const data=await request(`/data_sources/${dataSourceId}/query`,{method:'POST',body:JSON.stringify(body)});if(!Array.isArray(data?.results))throw new Error(`Espelho Notion: data source ${dataSourceId} sem results.`);rows.push(...data.results.filter(x=>x.object==='page'));cursor=data.has_more?data.next_cursor:null;}while(cursor);
- return rows;
-}
+function assertPublicSafe(file,value){const text=JSON.stringify(value);for(const[label,pattern]of SECRET_PATTERNS)if(pattern.test(text))throw new Error(`Espelho Notion: ${label} detectado em ${file}; publicação bloqueada.`);if(/(?:Gabarito correto|Você marcou:|Resposta correta:)/i.test(text))throw new Error(`Espelho Notion: resposta/gabarito detectado em ${file}; publicação bloqueada.`);}
 
 async function mirrorDatabase(ref,parentPageId,ctx){
  if(ctx.databases.has(ref.id))return;let database;
  try{database=await request(`/databases/${ref.id}`);}catch(error){ctx.warnings.push(`Banco ${ref.title}: ${error.message}`);return;}
- const sources=database.data_sources||[];const schemas=[];const records=[];
- for(const source of sources){
-  try{const schema=await request(`/data_sources/${source.id}`);schemas.push({id:source.id,name:source.name||schema.name||ref.title,properties:Object.fromEntries(Object.entries(schema.properties||{}).filter(([,p])=>!PRIVATE_PROPERTY_TYPES.has(p?.type)).map(([name,p])=>[name,{id:p.id,type:p.type,name:p.name||name}]))});const pages=await queryDataSource(source.id);for(const page of pages)records.push({id:page.id,title:titleOf(page),url:page.url,createdAt:page.created_time,lastEditedAt:page.last_edited_time,properties:normalizeProperties(page.properties)});
-  }catch(error){ctx.warnings.push(`Data source ${source.name||source.id}: ${error.message}`);}
- }
- const db={schemaVersion:MIRROR_SCHEMA,id:ref.id,title:database.title?plain(database.title):ref.title,description:rich(database.description),url:database.url||null,parentPageId,recordCount:records.length,dataSources:schemas,shards:[]};
- const seen=new Map(records.map(row=>[row.id,row]));const unique=[...seen.values()];for(let i=0;i<unique.length;i+=SHARD_SIZE){const part=unique.slice(i,i+SHARD_SIZE),file=`databases/${cleanId(ref.id)}/part-${String(Math.floor(i/SHARD_SIZE)+1).padStart(3,'0')}.json`;db.shards.push({file:`data/notion-mirror/${file}`,count:part.length});ctx.files.set(file,{schemaVersion:MIRROR_SCHEMA,databaseId:ref.id,records:part});}
+ const db={schemaVersion:MIRROR_SCHEMA,id:ref.id,title:database.title?plain(database.title):ref.title,url:database.url||null,parentPageId,protected:true,visibility:'metadata-only',protectionReason:'Linhas de bancos do Notion não são publicadas em GitHub Pages.',recordCount:null,dataSources:(database.data_sources||[]).map(source=>({id:source.id,name:source.name||ref.title})),shards:[]};
  ctx.databases.set(ref.id,db);ctx.files.set(`databases/${cleanId(ref.id)}/index.json`,db);
 }
 
 async function mirrorPage(pageId,parentId,ctx,depth=0){
- if(ctx.pages.has(pageId)||depth>MAX_DEPTH)return;const page=await request(`/pages/${pageId}`),pageRefs=new Map(),databaseRefs=new Map(),blockCtx={pageRefs,databaseRefs},raw=await allChildren(pageId),blocks=[];for(const block of raw)blocks.push(await serializeBlock(block,blockCtx));
- const snapshot={schemaVersion:MIRROR_SCHEMA,id:page.id,title:titleOf(page),icon:iconOf(page),url:page.url,parentId,createdAt:page.created_time,lastEditedAt:page.last_edited_time,properties:normalizeProperties(page.properties),blocks,children:[...pageRefs.values()].map(x=>x.id),databases:[...databaseRefs.values()].map(x=>x.id)};ctx.pages.set(page.id,snapshot);ctx.files.set(`pages/${cleanId(page.id)}.json`,snapshot);
+ if(ctx.pages.has(pageId)||depth>MAX_DEPTH)return;
+ const page=await request(`/pages/${pageId}`),reason=protectedReason(page.id);
+ if(reason){
+  const snapshot={schemaVersion:MIRROR_SCHEMA,id:page.id,title:titleOf(page),icon:iconOf(page),url:page.url,parentId,createdAt:page.created_time,lastEditedAt:page.last_edited_time,protected:true,visibility:'metadata-only',protectionReason:reason,properties:{},blocks:[],children:[],databases:[]};
+  ctx.pages.set(page.id,snapshot);ctx.files.set(`pages/${cleanId(page.id)}.json`,snapshot);return;
+ }
+ const pageRefs=new Map(),databaseRefs=new Map(),blockCtx={pageRefs,databaseRefs},raw=await allChildren(pageId),blocks=[];for(const block of raw)blocks.push(await serializeBlock(block,blockCtx));
+ const snapshot={schemaVersion:MIRROR_SCHEMA,id:page.id,title:titleOf(page),icon:iconOf(page),url:page.url,parentId,createdAt:page.created_time,lastEditedAt:page.last_edited_time,protected:false,properties:normalizeProperties(page.properties),blocks,children:[...pageRefs.values()].map(x=>x.id),databases:[...databaseRefs.values()].map(x=>x.id)};ctx.pages.set(page.id,snapshot);ctx.files.set(`pages/${cleanId(page.id)}.json`,snapshot);
  for(const ref of databaseRefs.values())await mirrorDatabase(ref,page.id,ctx);
  await mapLimit([...pageRefs.values()],3,ref=>mirrorPage(ref.id,page.id,ctx,depth+1));
 }
@@ -118,15 +123,15 @@ export async function buildNotionMirror({rootId=process.env.NOTION_DASHBOARD_ID|
  const ctx={pages:new Map(),databases:new Map(),files:new Map(),warnings:[]};await mirrorPage(rootId,null,ctx);
  if(!ctx.pages.has(rootId))throw new Error('Espelho Notion: página raiz não foi coletada.');
  const generatedAt=localIso(),root=ctx.pages.get(rootId);
- const pageIndex=[...ctx.pages.values()].map(page=>({id:page.id,title:page.title,icon:page.icon,parentId:page.parentId,url:page.url,lastEditedAt:page.lastEditedAt,children:page.children,databases:page.databases,breadcrumbs:ancestors(page.id,ctx.pages)}));
- const searchPages=[...ctx.pages.values()].map(page=>({id:page.id,title:page.title,icon:page.icon,breadcrumbs:ancestors(page.id,ctx.pages),searchText:[page.title,blockSearchText(page.blocks)].join(' ').slice(0,12000)}));
- const databaseIndex=[...ctx.databases.values()].map(db=>({id:db.id,title:db.title,parentPageId:db.parentPageId,url:db.url,recordCount:db.recordCount,shards:db.shards}));
- const recordCount=databaseIndex.reduce((sum,x)=>sum+x.recordCount,0);
- const semantic={rootId,pages:pageIndex,databases:databaseIndex,warnings:ctx.warnings};const mirrorHash=hash(semantic);
- const index={schemaVersion:MIRROR_SCHEMA,generatedAt,rootId,rootTitle:root.title,pageCount:pageIndex.length,databaseCount:databaseIndex.length,recordCount,hash:mirrorHash,pages:pageIndex,databases:databaseIndex,warnings:ctx.warnings};
+ const pageIndex=[...ctx.pages.values()].map(page=>({id:page.id,title:page.title,icon:page.icon,parentId:page.parentId,url:page.url,lastEditedAt:page.lastEditedAt,protected:Boolean(page.protected),protectionReason:page.protectionReason||null,children:page.children,databases:page.databases,breadcrumbs:ancestors(page.id,ctx.pages)}));
+ const searchPages=[...ctx.pages.values()].map(page=>({id:page.id,title:page.title,icon:page.icon,protected:Boolean(page.protected),breadcrumbs:ancestors(page.id,ctx.pages),searchText:page.protected?page.title:[page.title,blockSearchText(page.blocks)].join(' ').slice(0,12000)}));
+ const databaseIndex=[...ctx.databases.values()].map(db=>({id:db.id,title:db.title,parentPageId:db.parentPageId,url:db.url,protected:true,recordCount:null,shards:[]}));
+ const protectedPageCount=pageIndex.filter(page=>page.protected).length,protectedDatabaseCount=databaseIndex.length;
+ const semantic={rootId,publicScope:'safe',pages:pageIndex,databases:databaseIndex,warnings:ctx.warnings};const mirrorHash=hash(semantic);
+ const index={schemaVersion:MIRROR_SCHEMA,generatedAt,publicScope:'safe',rootId,rootTitle:root.title,pageCount:pageIndex.length,protectedPageCount,databaseCount:databaseIndex.length,protectedDatabaseCount,recordCount:0,hash:mirrorHash,pages:pageIndex,databases:databaseIndex,warnings:ctx.warnings};
  const byId=new Map(pageIndex.map(page=>[page.id,page]));
- const summary={schemaVersion:MIRROR_SCHEMA,generatedAt,rootId,rootTitle:root.title,rootUrl:root.url,pageCount:pageIndex.length,databaseCount:databaseIndex.length,recordCount,hash:mirrorHash,warningCount:ctx.warnings.length,rootChildren:root.children.map(id=>byId.get(id)).filter(Boolean).map(page=>({id:page.id,title:page.title,icon:page.icon,childCount:page.children.length,databaseCount:page.databases.length}))};
- const search={schemaVersion:MIRROR_SCHEMA,generatedAt,rootId,pages:searchPages};
+ const summary={schemaVersion:MIRROR_SCHEMA,generatedAt,publicScope:'safe',rootId,rootTitle:root.title,rootUrl:root.url,pageCount:pageIndex.length,protectedPageCount,databaseCount:databaseIndex.length,protectedDatabaseCount,recordCount:0,hash:mirrorHash,warningCount:ctx.warnings.length,rootChildren:root.children.map(id=>byId.get(id)).filter(Boolean).map(page=>({id:page.id,title:page.title,icon:page.icon,protected:page.protected,childCount:page.children.length,databaseCount:page.databases.length}))};
+ const search={schemaVersion:MIRROR_SCHEMA,generatedAt,publicScope:'safe',rootId,pages:searchPages};
  ctx.files.set('index.json',index);ctx.files.set('summary.json',summary);ctx.files.set('search.json',search);
  return{index,summary,search,files:ctx.files,hash:mirrorHash};
 }
