@@ -10,9 +10,9 @@ export function buildContinuity({draft=null,moduleState={},fallback=null,now=Dat
  if(due.length){
   queue.push({kind:'review',priority:80,label:`Revisar ${due.length} ${due.length===1?'questão pendente':'questões pendentes'}`,detail:'Fila vencida de revisão espaçada · D+1, D+7, D+20 e reforços',href:`${BASE}revisar/`});
  }
+ if(fallback?.href&&fallback?.label)queue.push({kind:'plan',priority:60,label:String(fallback.label),detail:String(fallback.detail||'Próxima ação do ciclo oficial'),href:String(fallback.href)});
  const errors=(moduleState.errors||[]).length;
- if(errors)queue.push({kind:'errors',priority:40,label:'Tratar caderno de erros',detail:`${errors} erro${errors===1?'':'s'} registrado${errors===1?'':'s'} no histórico local`,href:`${BASE}caderno-erros/`});
- if(fallback?.href&&fallback?.label)queue.push({kind:'plan',priority:20,label:String(fallback.label),detail:String(fallback.detail||'Próxima ação do ciclo oficial'),href:String(fallback.href)});
+ if(errors)queue.push({kind:'errors',priority:20,label:'Tratar caderno de erros',detail:`${errors} erro${errors===1?'':'s'} registrado${errors===1?'':'s'} no histórico local`,href:`${BASE}caderno-erros/`});
  queue.sort((a,b)=>b.priority-a.priority);
  const primary=queue[0]||null;
  return{primary,queue:queue.slice(0,3),dueReviews:due.length,hasActiveSession:queue.some(item=>item.kind==='session')};
