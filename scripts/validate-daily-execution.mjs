@@ -5,6 +5,7 @@ const contract=JSON.parse(await read('data/integration/daily-execution.json'));
 const catalog=JSON.parse(await read('data/integration/question-catalog.json'));
 const material=JSON.parse(await read('data/integration/daily-material.json'));
 const todayPage=await read('hoje/index.html'),resolverPage=await read('resolver/index.html'),studyPage=await read('estudar/index.html');
+const resolverBootstrap=await read('assets/integration/resolver-bootstrap.js');
 const dashboard=await read('assets/integration/module-dashboard.js'),todayOverlay=await read('assets/integration/today-execution.js');
 const questionPage=await read('assets/integration/daily-question-page.js'),helper=await read('assets/integration/daily-execution.js');
 const lawLayer=await read('assets/integration/daily-law.js'),enhance=await read('assets/enhance-v20.js'),pipeline=await read('scripts/notion/daily-content.mjs'),sync=await read('scripts/sync-notion.mjs'),packageData=JSON.parse(await read('package.json'));
@@ -15,7 +16,8 @@ required(contract.questionPageIds[26]==='364cf5a2673181acb6f1fc9bc54e7a65','PE27
 required(contract.questionPageIds[75]==='364cf5a26731810e929fe919d7d5b37b','PE76 não usa a página principal de questões.');
 required(!JSON.stringify(contract).match(/enunciado|alternativas|gabarito|resposta/i),'Contrato contém conteúdo de questão.');
 required(todayPage.includes('today-execution.js'),'Hoje não carrega a integração diária.');
-required(resolverPage.includes('daily-question-page.js'),'Resolver não carrega a página diária.');
+required(resolverPage.includes('resolver-bootstrap.js?v=1.0.0'),'Resolver não carrega o roteador de questões v27.');
+required(resolverBootstrap.includes("document.documentElement.dataset.questionMode='daily'")&&resolverBootstrap.includes('daily-question-page.js?v=1.0.2'),'Modo diário do Resolver não carrega a página diária.');
 required(studyPage.includes('daily-content.css')&&dashboard.includes('daily-material.json'),'Estudar não carrega o material incorporado.');
 required(dashboard.includes('resolver/?pe=')&&dashboard.includes('material.html'),'Estudar não liga material e questões.');
 required(todayOverlay.includes('Lei Seca e Banco de Leis')&&todayOverlay.includes('Registrar execução')&&todayOverlay.includes('sem correção antecipada'),'Hoje não exibe material, Lei Seca, questões e registro com separação da correção.');
@@ -32,4 +34,4 @@ required(enhance.includes('dailyPeExecution')&&enhance.includes('estudar/?pe=')&
 if(catalog.mode==='operational-empty')required(material.mode==='operational-empty','Estado de preparação diário incoerente.');
 else required(/^PE\d+$/.test(catalog.peId||'')&&['notion-daily','notion-daily-empty'].includes(catalog.mode),'Conteúdo diário ativo inválido.');
 required(packageData.scripts?.check?.includes('validate-daily-content.mjs')&&packageData.scripts?.check?.includes('validate-daily-execution.mjs'),'Validadores diários fora do gate principal.');
-console.log(`Execução diária validada: PE01–PE112 descobertos nas árvores oficiais, material incorporado, Lei Seca condicionada e questões com correção separada.`);
+console.log(`Execução diária validada: PE01–PE112 descobertos nas árvores oficiais, material incorporado, Lei Seca condicionada, roteador v27 e questões com correção separada.`);
