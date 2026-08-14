@@ -2,102 +2,15 @@ import fs from 'node:fs/promises';
 import crypto from 'node:crypto';
 import path from 'node:path';
 import {pathToFileURL} from 'node:url';
-
-const ROOT=process.cwd();
-const SOURCE_REPO='RodrigoRosaDantas/sedes-df-questoes';
-const SOURCE_API=`https://api.github.com/repos/${SOURCE_REPO}`;
-const CARGO_CODE='202';
-const CARGO_NAME='TDAS — Técnico Administrativo';
-const PUBLIC_PATH=path.join(ROOT,'data/integration/master-question-bank.json');
-const KEY_PATH=path.join(ROOT,'data/integration/question-keys/master-tdas-202.json');
-const PUBLIC_WEB_PATH='data/integration/master-question-bank.json';
-const KEY_WEB_PATH='data/integration/question-keys/master-tdas-202.json';
-const FETCH_TIMEOUT_MS=20000;
-
-const clean=value=>String(value??'').trim();
-const hash=value=>crypto.createHash('sha256').update(value).digest('hex');
-const letter=value=>clean(value).toUpperCase();
-
-async function fetchJson(url,{retries=2}={}){
- let lastError;
- for(let attempt=0;attempt<=retries;attempt++){
-  const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),FETCH_TIMEOUT_MS);
-  try{
-   const response=await fetch(url,{headers:{accept:'application/vnd.github+json','user-agent':'tdas-dashboard-master-bank-sync'},signal:controller.signal,cache:'no-store'});
-   if(!response.ok)throw new Error(`HTTP ${response.status} em ${url}`);
-   return await response.json();
-  }catch(error){lastError=error;if(attempt<retries)await new Promise(resolve=>setTimeout(resolve,400*(attempt+1)))}finally{clearTimeout(timer)}
- }
- throw lastError;
-}
-
-export function selectTdasMaterials(catalog){
- const materials=Array.isArray(catalog?.materials)?catalog.materials:[];
- return materials.filter(item=>clean(item?.codigo_cargo)===CARGO_CODE&&clean(item?.cargo)===CARGO_NAME&&/^publicad/i.test(clean(item?.status)));
-}
-
-export function buildTdasSnapshot(catalog,materialPayloads,{sourceSha='fixture'}={}){
- const selected=selectTdasMaterials(catalog);
- const payloadById=new Map(materialPayloads.map(item=>[clean(item?.id),item]));
- const questions=[],answers=[],seen=new Set(),materials=[];
- for(const descriptor of selected){
-  const payload=payloadById.get(clean(descriptor.id));if(!payload)throw new Error(`Material TDAS ausente: ${descriptor.id}`);
-  if(clean(payload.codigo_cargo)!==CARGO_CODE||clean(payload.cargo)!==CARGO_NAME)throw new Error(`Identidade de cargo divergente em ${descriptor.id}.`);
-  const rows=Array.isArray(payload.questoes)?payload.questoes:[];
-  if(Number(descriptor.quantidade_questoes)!==rows.length)throw new Error(`Quantidade divergente em ${descriptor.id}: catálogo=${descriptor.quantidade_questoes}, arquivo=${rows.length}.`);
-  materials.push({id:clean(payload.id),nome:clean(payload.nome),tipoMaterial:clean(payload.tipo_material),materia:clean(payload.disciplina),banca:clean(payload.fonte),ano:Number(payload.ano)||null,orgao:clean(payload.orgao),questionCount:rows.length});
-  for(const item of rows){
-   const id=clean(item.codigo||item.id);if(!id||seen.has(id))throw new Error(`Código de questão vazio ou duplicado em ${descriptor.id}.`);seen.add(id);
-   const alternativas={};for(const option of ['A','B','C','D','E']){const value=clean(item?.alternativas?.[option]);if(!value)throw new Error(`Alternativa ${option} ausente em ${id}.`);alternativas[option]=value}
-   const gabarito=letter(item.gabarito);if(!['A','B','C','D','E'].includes(gabarito))throw new Error(`Gabarito inválido em ${id}: ${item.gabarito}`);
-   questions.push({
-    id,codigo:id,numeroOriginal:Number(item.numero_original)||null,materia:clean(item.disciplina||payload.disciplina),assunto:clean(item.assunto),subassunto:clean(item.subassunto),texto_base:clean(item.texto_base)||null,enunciado:clean(item.enunciado),alternativas,
-    sourceCatalogId:`master:${clean(payload.id)}`,sourcePe:'Banco Mestre',sourceTitle:clean(payload.nome),sourceKeyPath:KEY_WEB_PATH,sourceKind:'master-bank',materialId:clean(payload.id),materialName:clean(payload.nome),tipoMaterial:clean(payload.tipo_material),banca:clean(payload.fonte),ano:Number(payload.ano)||null,orgao:clean(payload.orgao),cargo:CARGO_NAME,codigoCargo:CARGO_CODE,dificuldade:clean(item.dificuldade)
-   });
-   answers.push({id,gabarito});
-  }
- }
- if(!questions.length)throw new Error('Nenhuma questão TDAS publicada foi encontrada na release técnica.');
- questions.sort((a,b)=>a.materialName.localeCompare(b.materialName,'pt-BR',{numeric:true,sensitivity:'base'})||(a.numeroOriginal??0)-(b.numeroOriginal??0)||a.id.localeCompare(b.id));
- answers.sort((a,b)=>a.id.localeCompare(b.id));
- materials.sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR',{numeric:true,sensitivity:'base'}));
- const generatedAt=clean(catalog.exported_at)||null;
- const fingerprint=hash(JSON.stringify(questions.map(item=>[item.id,item.enunciado,item.alternativas]))).slice(0,16);
- const publicSnapshot={schemaVersion:'1.0.0',mode:'tdas-master-question-bank',generatedAt,source:{repository:SOURCE_REPO,commit:sourceSha,releaseVersion:clean(catalog.release_version),exportedAt:clean(catalog.exported_at),notion:catalog?.source?.notion_url||null},cargo:{code:CARGO_CODE,name:CARGO_NAME},materialCount:materials.length,questionCount:questions.length,keyPath:KEY_WEB_PATH,fingerprint,materials,questions};
- const keySnapshot={schemaVersion:'1.0.0',material_id:`tdas-master-202-${fingerprint}`,sourceCommit:sourceSha,questionCount:answers.length,answers};
- return{publicSnapshot,keySnapshot};
-}
-
-export async function syncTdasMasterQuestionBank(){
- const commit=await fetchJson(`${SOURCE_API}/commits/main`);const sourceSha=clean(commit?.sha);if(!/^[0-9a-f]{40}$/i.test(sourceSha))throw new Error('SHA da release de questões não pôde ser resolvido.');
- const rawBase=`https://raw.githubusercontent.com/${SOURCE_REPO}/${sourceSha}/`;
- const catalog=await fetchJson(rawBase+'data/release/catalogo.json');const selected=selectTdasMaterials(catalog);
- if(!selected.length)throw new Error('A release técnica não contém materiais publicados do TDAS cargo 202.');
- const payloads=[];
- for(const descriptor of selected){const relative=clean(descriptor.file).replace(/^\.\//,'');if(!/^data\/release\/materials\/[a-z0-9._-]+\.json$/i.test(relative))throw new Error(`Caminho de material inválido: ${descriptor.file}`);payloads.push(await fetchJson(rawBase+relative));}
- const{publicSnapshot,keySnapshot}=buildTdasSnapshot(catalog,payloads,{sourceSha});
- if(publicSnapshot.questionCount<570)throw new Error(`Release TDAS regressiva: ${publicSnapshot.questionCount} questões; mínimo histórico esperado 570.`);
- await fs.mkdir(path.dirname(PUBLIC_PATH),{recursive:true});await fs.mkdir(path.dirname(KEY_PATH),{recursive:true});
- const publicContent=JSON.stringify(publicSnapshot)+'\n',keyContent=JSON.stringify(keySnapshot)+'\n';
- const previousPublic=await fs.readFile(PUBLIC_PATH,'utf8').catch(()=>null),previousKey=await fs.readFile(KEY_PATH,'utf8').catch(()=>null);
- if(previousPublic!==publicContent)await fs.writeFile(PUBLIC_PATH,publicContent,'utf8');
- if(previousKey!==keyContent)await fs.writeFile(KEY_PATH,keyContent,'utf8');
- const changed=previousPublic!==publicContent||previousKey!==keyContent;
- console.log(`Banco Mestre TDAS sincronizado: ${publicSnapshot.questionCount} questões em ${publicSnapshot.materialCount} materiais · fonte ${sourceSha.slice(0,12)} · ${changed?'snapshot atualizado':'sem mudanças'}.`);
- return publicSnapshot;
-}
-
-async function main(){
- try{await syncTdasMasterQuestionBank()}
- catch(error){
-  const strict=process.env.MASTER_BANK_STRICT==='1';
-  const existing=await fs.access(PUBLIC_PATH).then(()=>true).catch(()=>false);
-  if(existing&&!strict){console.warn(`Banco Mestre TDAS: fonte temporariamente indisponível; snapshot anterior preservado. ${error.message}`);return}
-  throw error;
- }
-}
-
-if(import.meta.url===pathToFileURL(process.argv[1]||'').href)main().catch(error=>{console.error(error);process.exit(1)});
-
-export const MASTER_BANK_PUBLIC_PATH=PUBLIC_WEB_PATH;
-export const MASTER_BANK_KEY_PATH=KEY_WEB_PATH;
+const ROOT=process.cwd(),SOURCE_REPO='RodrigoRosaDantas/sedes-df-questoes',SOURCE_API=`https://api.github.com/repos/${SOURCE_REPO}`,TARGET_CARGO_CODE='202',TARGET_CARGO_NAME='TDAS — Técnico Administrativo',INDEX_PATH=path.join(ROOT,'data/integration/master-question-bank.json'),PUBLIC_DIR=path.join(ROOT,'data/integration/master-question-bank'),KEY_DIR=path.join(ROOT,'data/integration/question-keys/master'),PUBLIC_WEB_ROOT='data/integration/master-question-bank',KEY_WEB_ROOT='data/integration/question-keys/master',FETCH_TIMEOUT_MS=30000;
+const clean=value=>String(value??'').trim(),hash=value=>crypto.createHash('sha256').update(value).digest('hex'),answer=value=>{const raw=clean(value);if(/^(certo|errado)$/i.test(raw))return raw[0].toUpperCase()+raw.slice(1).toLowerCase();return raw.toUpperCase()},safeName=value=>clean(value).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9._-]+/g,'-').replace(/^-+|-+$/g,'').slice(0,140),publicPathFor=id=>`${PUBLIC_WEB_ROOT}/${safeName(id)}.json`,keyPathFor=id=>`${KEY_WEB_ROOT}/${safeName(id)}.json`;
+async function fetchJson(url,{retries=2}={}){let lastError;for(let attempt=0;attempt<=retries;attempt++){const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),FETCH_TIMEOUT_MS);try{const response=await fetch(url,{headers:{accept:'application/vnd.github+json','user-agent':'tdas-dashboard-master-bank-sync'},signal:controller.signal,cache:'no-store'});if(!response.ok)throw new Error(`HTTP ${response.status} em ${url}`);return await response.json()}catch(error){lastError=error;if(attempt<retries)await new Promise(resolve=>setTimeout(resolve,500*(attempt+1)))}finally{clearTimeout(timer)}}throw lastError}
+export function selectPublishedMaterials(catalog){const materials=Array.isArray(catalog?.materials)?catalog.materials:[];return materials.filter(item=>/^publicad/i.test(clean(item?.status))&&clean(item?.file))}export const selectTdasMaterials=selectPublishedMaterials;
+function alternativesOf(item){const source=item?.alternativas||{},pairs=Object.entries(source).map(([key,value])=>[clean(key),clean(value)]).filter(([,value])=>value);if(pairs.length>=2)return Object.fromEntries(pairs);const gabarito=answer(item?.gabarito);if(['Certo','Errado'].includes(gabarito))return{Certo:'Certo',Errado:'Errado'};return Object.fromEntries(['A','B','C','D','E'].map(key=>[key,clean(source[key])]).filter(([,value])=>value))}
+function correctionOf(item,id){return{id,gabarito:answer(item.gabarito),comentario:clean(item.comentario)||null,fundamento:clean(item.fundamento)||null,pegadinha:clean(item.pegadinha)||null,comentariosAlternativas:item.comentarios_alternativas&&typeof item.comentarios_alternativas==='object'?item.comentarios_alternativas:null,observacoes:clean(item.observacoes)||null,fonteOficial:clean(item.fonte_oficial)||null,notionUrl:clean(item.notion_url)||null}}
+function publicQuestion(item,payload){const id=clean(item.codigo||item.id),alternativas=alternativesOf(item),gabarito=answer(item.gabarito),keys=Object.keys(alternativas);if(!id)throw new Error(`Questão sem código em ${payload.id}.`);if(keys.length<2)throw new Error(`Alternativas insuficientes em ${id}.`);if(!keys.includes(gabarito))throw new Error(`Gabarito ${gabarito||'vazio'} incompatível com as alternativas em ${id}.`);const materialId=clean(payload.id),sourcePublicPath=publicPathFor(materialId),sourceKeyPath=keyPathFor(materialId),enunciado=clean(item.enunciado);if(!enunciado)throw new Error(`Enunciado ausente em ${id}.`);return{id,codigo:id,numeroOriginal:Number(item.numero_original??item.numero)||null,materia:clean(item.disciplina||payload.disciplina),assunto:clean(item.assunto),subassunto:clean(item.subassunto),texto_base:clean(item.texto_base)||null,enunciado,alternativas,sourceCatalogId:`master:${materialId}`,sourcePe:'Banco Mestre',sourceTitle:clean(payload.nome),sourceKeyPath,sourcePublicPath,sourceKind:'master-bank',materialId,materialName:clean(payload.nome),tipoMaterial:clean(payload.tipo_material),banca:clean(payload.fonte),ano:Number(payload.ano)||null,orgao:clean(payload.orgao),cargo:clean(payload.cargo),codigoCargo:clean(payload.codigo_cargo),dificuldade:clean(item.dificuldade),formatoQuestao:clean(item.formato_questao||payload.formato_questao),bloco:clean(item.bloco),fonteConsolidada:clean(item.fonte_consolidada)||null}}
+export function buildTdasSnapshot(catalog,materialPayloads,{sourceSha='fixture'}={}){const selected=selectPublishedMaterials(catalog),payloadById=new Map(materialPayloads.map(item=>[clean(item?.id),item])),questionIndex=[],materials=[],publicChunks=new Map(),keyChunks=new Map(),seen=new Set();for(const descriptor of selected){const payload=payloadById.get(clean(descriptor.id));if(!payload)throw new Error(`Material publicado ausente: ${descriptor.id}`);const rows=Array.isArray(payload.questoes)?payload.questoes:[];if(Number(descriptor.quantidade_questoes)!==rows.length)throw new Error(`Quantidade divergente em ${descriptor.id}: catálogo=${descriptor.quantidade_questoes}, arquivo=${rows.length}.`);const publicQuestions=[],answers=[];for(const item of rows){const q=publicQuestion(item,payload);if(seen.has(q.id))throw new Error(`Código de questão duplicado: ${q.id}.`);seen.add(q.id);publicQuestions.push(q);answers.push(correctionOf(item,q.id));questionIndex.push({id:q.id,codigo:q.codigo,numeroOriginal:q.numeroOriginal,materia:q.materia,assunto:q.assunto,subassunto:q.subassunto,enunciadoPreview:q.enunciado.slice(0,220),sourcePe:q.sourcePe,sourceKind:q.sourceKind,sourceKeyPath:q.sourceKeyPath,sourcePublicPath:q.sourcePublicPath,materialId:q.materialId,materialName:q.materialName,tipoMaterial:q.tipoMaterial,banca:q.banca,ano:q.ano,orgao:q.orgao,cargo:q.cargo,codigoCargo:q.codigoCargo,dificuldade:q.dificuldade,formatoQuestao:q.formatoQuestao,bloco:q.bloco,lazy:true})}const material={id:clean(payload.id),nome:clean(payload.nome),tipoMaterial:clean(payload.tipo_material),materia:clean(payload.disciplina),banca:clean(payload.fonte),ano:Number(payload.ano)||null,orgao:clean(payload.orgao),cargo:clean(payload.cargo),codigoCargo:clean(payload.codigo_cargo),questionCount:publicQuestions.length,publicPath:publicPathFor(payload.id),keyPath:keyPathFor(payload.id)};materials.push(material);publicChunks.set(material.publicPath,{schemaVersion:'1.0.0',mode:'master-question-chunk',material,questions:publicQuestions});keyChunks.set(material.keyPath,{schemaVersion:'1.1.0',material_id:`master:${material.id}`,sourceCommit:sourceSha,questionCount:answers.length,answers})}if(!questionIndex.length)throw new Error('Nenhuma questão publicada foi encontrada na release técnica.');questionIndex.sort((a,b)=>a.materia.localeCompare(b.materia,'pt-BR',{numeric:true,sensitivity:'base'})||a.materialName.localeCompare(b.materialName,'pt-BR',{numeric:true,sensitivity:'base'})||(a.numeroOriginal??0)-(b.numeroOriginal??0)||a.id.localeCompare(b.id));materials.sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR',{numeric:true,sensitivity:'base'}));const generatedAt=clean(catalog.exported_at)||null,fingerprint=hash(JSON.stringify(questionIndex.map(item=>[item.id,item.sourcePublicPath]))).slice(0,16),targetCount=questionIndex.filter(item=>item.codigoCargo===TARGET_CARGO_CODE&&item.cargo===TARGET_CARGO_NAME).length;return{publicSnapshot:{schemaVersion:'2.0.0',mode:'tdas-master-question-bank',generatedAt,source:{repository:SOURCE_REPO,commit:sourceSha,releaseVersion:clean(catalog.release_version),exportedAt:clean(catalog.exported_at),notion:catalog?.source?.notion_url||null,releaseSummary:catalog?.summary||null},targetCargo:{code:TARGET_CARGO_CODE,name:TARGET_CARGO_NAME,questionCount:targetCount},scope:'full-published-release',materialCount:materials.length,questionCount:questionIndex.length,fingerprint,materials,questionIndex},publicChunks,keyChunks}}
+async function writeMap(root,map){await fs.rm(root,{recursive:true,force:true});await fs.mkdir(root,{recursive:true});for(const[webPath,payload]of map){const relative=webPath.split('/').at(-1);await fs.writeFile(path.join(root,relative),JSON.stringify(payload)+'\n','utf8')}}
+export async function syncTdasMasterQuestionBank(){const commit=await fetchJson(`${SOURCE_API}/commits/main`),sourceSha=clean(commit?.sha);if(!/^[0-9a-f]{40}$/i.test(sourceSha))throw new Error('SHA da release de questões não pôde ser resolvido.');const rawBase=`https://raw.githubusercontent.com/${SOURCE_REPO}/${sourceSha}/`,catalog=await fetchJson(rawBase+'data/release/catalogo.json'),selected=selectPublishedMaterials(catalog);if(!selected.length)throw new Error('A release técnica não contém materiais publicados.');const payloads=[];for(const descriptor of selected){const relative=clean(descriptor.file).replace(/^\.\//,'');if(!/^data\/release\/materials\/[a-z0-9._-]+\.json$/i.test(relative))throw new Error(`Caminho de material inválido: ${descriptor.file}`);payloads.push(await fetchJson(rawBase+relative))}const{publicSnapshot,publicChunks,keyChunks}=buildTdasSnapshot(catalog,payloads,{sourceSha});if(publicSnapshot.questionCount<3447)throw new Error(`Release publicada regressiva: ${publicSnapshot.questionCount} questões; piso técnico esperado 3447.`);await fs.mkdir(path.dirname(INDEX_PATH),{recursive:true});await fs.writeFile(INDEX_PATH,JSON.stringify(publicSnapshot)+'\n','utf8');await writeMap(PUBLIC_DIR,publicChunks);await writeMap(KEY_DIR,keyChunks);console.log(`Banco publicado sincronizado: ${publicSnapshot.questionCount} questões em ${publicSnapshot.materialCount} materiais · ${publicSnapshot.targetCargo.questionCount} do cargo 202 · fonte ${sourceSha.slice(0,12)}.`);return publicSnapshot}
+async function main(){try{await syncTdasMasterQuestionBank()}catch(error){const strict=process.env.MASTER_BANK_STRICT==='1',existing=await fs.access(INDEX_PATH).then(()=>true).catch(()=>false);if(existing&&!strict){console.warn(`Banco publicado: fonte temporariamente indisponível; snapshot anterior preservado. ${error.message}`);return}throw error}}
+if(import.meta.url===pathToFileURL(process.argv[1]||'').href)main().catch(error=>{console.error(error);process.exit(1)});export const MASTER_BANK_PUBLIC_PATH='data/integration/master-question-bank.json';export const MASTER_BANK_KEY_PATH='data/integration/question-keys/master';
