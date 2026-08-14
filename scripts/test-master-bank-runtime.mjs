@@ -1,0 +1,33 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs/promises';
+import {bankFacets,buildBankCatalog,buildMergedBankKey,filterBankQuestions,flattenMasterSnapshot} from '../assets/integration/question-bank.js';
+
+const publicPath='data/integration/master-question-bank.json';
+const keyPath='data/integration/question-keys/master-tdas-202.json';
+const exists=await fs.access(publicPath).then(()=>true).catch(()=>false);
+if(!exists){console.log('Runtime do Banco Mestre: snapshot ainda não materializado neste checkout; teste real roda após o sync dedicado.');process.exit(0)}
+const snapshot=JSON.parse(await fs.readFile(publicPath,'utf8'));
+const key=JSON.parse(await fs.readFile(keyPath,'utf8'));
+const rows=flattenMasterSnapshot(snapshot);
+assert.equal(rows.length,snapshot.questionCount,'Todas as questões públicas devem entrar no runtime.');
+assert.ok(rows.length>=570,'O runtime deve receber ao menos o piso histórico de 570 questões TDAS.');
+assert.ok(rows.every(item=>item.sourcePe==='Banco Mestre'&&item.sourceKind==='master-bank'),'Toda questão mestre deve preservar sua origem.');
+assert.ok(rows.every(item=>!('gabarito'in item)),'O runtime não pode receber gabarito junto do enunciado.');
+const facets=bankFacets(rows);
+assert.ok(facets.pes.includes('Banco Mestre'),'Filtro de origem deve expor Banco Mestre.');
+assert.ok(facets.materias.length>0,'Banco Mestre deve fornecer matéria para filtros.');
+assert.ok(facets.materiais.length>0,'Banco Mestre deve fornecer materiais para filtros.');
+const first=rows[0];
+assert.ok(filterBankQuestions(rows,{pe:'Banco Mestre'}).length===rows.length,'Filtro por origem Banco Mestre deve manter todo o lote mestre.');
+if(first.materia)assert.ok(filterBankQuestions(rows,{materia:first.materia}).every(item=>item.materia===first.materia),'Filtro por matéria deve ser exato.');
+if(first.assunto)assert.ok(filterBankQuestions(rows,{assunto:first.assunto}).every(item=>item.assunto===first.assunto),'Filtro por assunto deve ser exato.');
+const queryToken=String(first.enunciado).split(/\s+/).find(token=>token.length>=5)?.replace(/[^\p{L}\p{N}-]/gu,'')||first.id;
+assert.ok(filterBankQuestions(rows,{query:queryToken}).some(item=>item.id===first.id),'Busca textual deve localizar questão mestre.');
+const selected=rows.slice(0,Math.min(10,rows.length));
+const virtual=buildBankCatalog(selected);
+assert.equal(virtual.questionCount,selected.length);
+assert.ok(virtual.catalogId.startsWith('tdas-bank-'));
+const merged=buildMergedBankKey(virtual,[key]);
+assert.equal(merged.answers.length,selected.length,'Correção da bateria deve ser montada somente com as questões selecionadas.');
+assert.ok(merged.answers.every(item=>['A','B','C','D','E'].includes(item.gabarito)),'Gabaritos selecionados devem ser válidos.');
+console.log(`Runtime do Banco Mestre validado: ${rows.length} questões pesquisáveis, filtros ativos e correção separada no fechamento.`);
