@@ -7,10 +7,13 @@ on:
     paths:
       - 'index.html'
       - 'resolver/**'
+      - 'sw.js'
       - 'assets/v27.css'
       - 'assets/more.js'
+      - 'assets/integration/home-notion-mirror.js'
       - 'assets/integration/question-bank.js'
       - 'assets/integration/question-bank-player.js'
+      - 'assets/integration/bank-draft-guard.js'
       - 'assets/integration/question-catalog-archive.js'
       - 'assets/integration/review-catalog-bridge.js'
       - 'assets/integration/resolver-bootstrap.js'
