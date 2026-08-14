@@ -8,6 +8,7 @@ const review=fs.readFileSync('assets/integration/review-catalog-bridge.js','utf8
 const player=fs.readFileSync('assets/integration/question-bank-player.js','utf8');
 const bootstrap=fs.readFileSync('assets/integration/resolver-bootstrap.js','utf8');
 const masterUi=fs.readFileSync('assets/integration/master-bank-ui.js','utf8');
+const css=fs.readFileSync('assets/v27.css','utf8');
 const syncPos=workflow.indexOf('node scripts/sync-tdas-master-question-bank.mjs');
 const preservePos=workflow.indexOf('node scripts/preserve-v27-pwa.mjs');
 const validatePos=workflow.indexOf('node scripts/validate-master-question-bank.mjs');
@@ -32,7 +33,14 @@ assert.match(bootstrap,/master-bank-ui\.js\?v=1\.0\.0/,'Modo Banco deve carregar
 assert.match(masterUi,/data-master-bank-summary/,'Resumo visual deve ter marcador estável.');
 assert.match(masterUi,/snapshot\.questionCount/,'Resumo visual deve usar a quantidade publicada, não um número fixo.');
 assert.match(masterUi,/snapshot\.materialCount/,'Resumo visual deve usar a quantidade real de materiais.');
+for(const token of ['data-bank-material','data-bank-banca','data-bank-tipo','data-bank-size="10"','data-bank-size="20"','data-bank-size="30"','data-bank-size="50"','data-bank-size="all"'])assert.ok(player.includes(token),`Construtor do Banco sem ${token}.`);
+assert.match(player,/function syncFilterOptions\(/,'Filtros do Banco não estão encadeados.');
+assert.match(player,/facetValues\(next,definition\)/,'Opções de filtro não são recalculadas pelo recorte atual.');
+assert.match(player,/filterBankQuestions\(state\.allQuestions,filters\)/,'Contagem e prévia não são recalculadas em tempo real.');
+assert.match(player,/question\.materialName/,'Prévia e sessão devem exibir o material de origem quando disponível.');
+assert.match(css,/\.bank-size-presets/,'Atalhos de quantidade não possuem layout dedicado.');
+assert.match(css,/\.bank-search-wide/,'Busca do Banco não possui layout responsivo dedicado.');
 const finish=player.indexOf('async function finishSession');
 const keyLoad=player.indexOf('loadMergedBankKey',finish);
 assert.ok(finish>=0&&keyLoad>finish,'O player do Banco deve continuar buscando a correção somente no fechamento.');
-console.log('Operação do Banco Mestre blindada: sync → PWA público → validação → gate integral, com resumo visual, chave fora do precache e revisão recuperável.');
+console.log('Operação do Banco Mestre blindada: sync, filtros encadeados, tamanhos rápidos, PWA público, chave fora do precache e revisão recuperável.');
