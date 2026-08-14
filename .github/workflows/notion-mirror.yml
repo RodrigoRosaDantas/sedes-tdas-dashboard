@@ -6,6 +6,7 @@ on:
       - 'scripts/notion/mirror.mjs'
       - 'scripts/sync-notion-mirror.mjs'
       - 'scripts/test-notion-mirror-contract.mjs'
+      - 'scripts/validate-notion-mirror-live.mjs'
       - 'assets/notion-mirror.js'
       - 'assets/notion-mirror.css'
       - 'assets/integration/home-notion-mirror.js'
@@ -24,7 +25,7 @@ permissions:
 jobs:
   validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -39,5 +40,12 @@ jobs:
           node --check scripts/preserve-notion-mirror-pwa.mjs
       - name: Validar contrato do espelho
         run: node scripts/test-notion-mirror-contract.mjs
+      - name: Gerar espelho temporário contra o Notion real
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          TZ: America/Sao_Paulo
+        run: |
+          node scripts/sync-notion-mirror.mjs
+          node scripts/validate-notion-mirror-live.mjs
       - name: Garantir que funções atuais continuam íntegras
         run: npm run check
