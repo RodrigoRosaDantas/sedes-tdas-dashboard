@@ -17,26 +17,26 @@ function classify(result,meta={}){const confidence=['secure','doubt','guess'].in
 function telemetryRecord(value){if(!value)return null;return Object.freeze({activeMs:Math.max(0,Number(value.activeMs)||0),visits:Math.max(0,Number(value.visits)||0),answerChanges:Math.max(0,Number(value.answerChanges)||0),firstAnswer:value.firstAnswer||null,lastAnswer:value.lastAnswer||null,firstAnsweredAt:value.firstAnsweredAt??null,lastAnsweredAt:value.lastAnsweredAt??null})}
 const plain=value=>value==null?null:String(value);
 const copy=value=>value&&typeof value==='object'?JSON.parse(JSON.stringify(value)):value;
-function questionSnapshot(question,result){
+function questionSnapshot(question,result,catalog={}){
  const alternativas=copy(question.alternativas||null),selected=result.selected??null,correctAnswer=result.correctAnswer??null;
  return Object.freeze({
   codigo:plain(question.codigo||question.id),numeroOriginal:question.numeroOriginal??question.numero_original??question.numero??null,
   materia:plain(question.materia||question.disciplina||''),assunto:plain(question.assunto||'Sem assunto'),subassunto:plain(question.subassunto||''),
   textoBase:plain(question.texto_base??question.textoBase),enunciado:plain(question.enunciado),alternativas,
   selectedText:alternativas?.[selected]??null,correctText:alternativas?.[correctAnswer]??null,
-  sourcePe:plain(question.sourcePe),sourceTitle:plain(question.sourceTitle),sourceKind:plain(question.sourceKind),sourceKeyPath:plain(question.sourceKeyPath),sourcePublicPath:plain(question.sourcePublicPath),
+  sourcePe:plain(question.sourcePe||catalog.peId),sourceTitle:plain(question.sourceTitle||catalog.title),sourceKind:plain(question.sourceKind||catalog.authorizedSource?.type),sourceKeyPath:plain(question.sourceKeyPath||catalog.keyPath),sourcePublicPath:plain(question.sourcePublicPath),
   materialId:plain(question.materialId),materialName:plain(question.materialName),tipoMaterial:plain(question.tipoMaterial||question.tipo_material),
   banca:plain(question.banca||question.fonte),ano:Number(question.ano)||null,orgao:plain(question.orgao),cargo:plain(question.cargo),codigoCargo:plain(question.codigoCargo||question.codigo_cargo),
   dificuldade:plain(question.dificuldade),formatoQuestao:plain(question.formatoQuestao||question.formato_questao)
  });
 }
-function questionRecord(question,result,meta,telemetry){const classified=classify(result,meta),snapshot=questionSnapshot(question,result);return Object.freeze({id:question.id,...snapshot,selected:result.selected,correctAnswer:result.correctAnswer,correct:result.correct,...classified,telemetry:telemetryRecord(telemetry)})}
+function questionRecord(question,result,meta,telemetry,catalog){const classified=classify(result,meta),snapshot=questionSnapshot(question,result,catalog);return Object.freeze({id:question.id,...snapshot,selected:result.selected,correctAnswer:result.correctAnswer,correct:result.correct,...classified,telemetry:telemetryRecord(telemetry)})}
 function findTelemetry(catalog,evaluation,storage){const store=readTelemetryState(storage),startedAt=Number(evaluation.session.startedAt)||0,catalogId=String(catalog.catalogId),match=(store.completed||[]).filter(item=>item.catalogId===catalogId&&Math.abs(Number(item.startedAt)-startedAt)<=2500).sort((a,b)=>Math.abs(Number(a.startedAt)-startedAt)-Math.abs(Number(b.startedAt)-startedAt))[0];return match?summarizeTelemetry(match):null}
 
 export function saveCompletedAttempt({catalog,evaluation,responseMeta={},mode='study',reviewId=null,reviewOutcome=null},storage){
  if(!catalog||!evaluation||!['study','review'].includes(mode))throw new TypeError('Conclusão inválida.');if(mode==='review'&&!reviewId)throw new TypeError('Revisão de origem obrigatória.');
  const target=resolveStorage(storage),before=target.getItem(STORAGE_KEY),state=readModuleState(target),telemetry=findTelemetry(catalog,evaluation,target),telemetryById=new Map(Object.entries(telemetry?.questions||{})),byId=new Map(catalog.questions.map(question=>[question.id,question]));
- const results=evaluation.results.map(result=>{const question=byId.get(result.id);if(!question)throw new Error(`Questão ausente do catálogo: ${result.id}.`);return questionRecord(question,result,responseMeta[result.id],telemetryById.get(result.id))});
+ const results=evaluation.results.map(result=>{const question=byId.get(result.id);if(!question)throw new Error(`Questão ausente do catálogo: ${result.id}.`);return questionRecord(question,result,responseMeta[result.id],telemetryById.get(result.id),catalog)});
  const resolvedReviewOutcome=mode==='review'?normalizeReviewOutcome(reviewOutcome,results[0]):null;
  const attempt=Object.freeze({schemaVersion:'2.0.0',id:`attempt:${mode}:${catalog.catalogId}:${evaluation.session.startedAt}`,mode,reviewId:mode==='review'?String(reviewId):null,reviewOutcome:resolvedReviewOutcome,catalogId:catalog.catalogId,peId:catalog.peId||null,startedAt:evaluation.session.startedAt,finishedAt:evaluation.session.finishedAt,elapsedMs:evaluation.elapsedMs,activeElapsedMs:telemetry?.activeElapsedMs??null,telemetryVersion:telemetry?.schemaVersion??null,telemetryQuestionCount:telemetry?.measuredQuestions??0,revisitCount:telemetry?.revisitEvents??0,answerChangeCount:telemetry?.answerChanges??0,correct:evaluation.correct,incorrect:evaluation.incorrect,total:evaluation.total,percent:evaluation.percent,localOnly:true,notionWriteback:false,questionResults:Object.freeze(results)});
  const errors=results.filter(item=>item.classification==='incorrect_confirmed').map(item=>({...item,id:`error:${attempt.id}:${item.id}`,attemptId:attempt.id,peId:attempt.peId,createdAt:attempt.finishedAt}));
