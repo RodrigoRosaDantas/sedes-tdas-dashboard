@@ -66,7 +66,13 @@ jobs:
       - name: Materializar release TDAS real
         env:
           MASTER_BANK_STRICT: '1'
-        run: node scripts/sync-tdas-master-question-bank.mjs
+        run: |
+          set -o pipefail
+          node scripts/sync-tdas-master-question-bank.mjs 2>&1 | tee /tmp/tdas-master-bank.log || {
+            message="$(head -n 1 /tmp/tdas-master-bank.log | sed 's/%/%25/g; s/\r/%0D/g; s/\n/%0A/g')"
+            echo "::error title=Materialização do Banco publicado::${message}"
+            exit 1
+          }
 
       - name: Preservar catálogo público no PWA
         run: node scripts/preserve-v27-pwa.mjs

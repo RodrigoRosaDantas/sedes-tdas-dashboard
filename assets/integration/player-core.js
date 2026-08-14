@@ -1,88 +1,14 @@
-export const ANSWER_OPTIONS = Object.freeze(['A', 'B', 'C', 'D', 'E']);
+export const ANSWER_OPTIONS = Object.freeze(['A', 'B', 'C', 'D', 'E', 'Certo', 'Errado']);
 
 function assertCatalog(catalog) {
-  if (!catalog || !Array.isArray(catalog.questoes) || !catalog.questoes.length) {
-    throw new TypeError('Catálogo de questões inválido.');
-  }
+  if (!catalog || !Array.isArray(catalog.questoes) || !catalog.questoes.length) throw new TypeError('Catálogo de questões inválido.');
   const ids = catalog.questoes.map(question => question.id);
   if (new Set(ids).size !== ids.length) throw new TypeError('O catálogo contém IDs duplicados.');
 }
-
-export function createSession(catalog, startedAt = Date.now()) {
-  assertCatalog(catalog);
-  return Object.freeze({
-    schemaVersion: '1.0.0',
-    materialId: catalog.id,
-    questionIds: Object.freeze(catalog.questoes.map(question => question.id)),
-    answers: Object.freeze({}),
-    currentIndex: 0,
-    startedAt: Number(startedAt),
-    updatedAt: Number(startedAt),
-    finishedAt: null,
-  });
-}
-
-export function selectAnswer(session, questionId, option, updatedAt = Date.now()) {
-  if (!session.questionIds.includes(questionId)) throw new RangeError('Questão ausente da sessão.');
-  if (!ANSWER_OPTIONS.includes(option)) throw new RangeError('Alternativa inválida.');
-  if (session.finishedAt !== null) throw new Error('A sessão já foi finalizada.');
-  return Object.freeze({
-    ...session,
-    answers: Object.freeze({...session.answers, [questionId]: option}),
-    updatedAt: Number(updatedAt),
-  });
-}
-
-export function moveToQuestion(session, index, updatedAt = Date.now()) {
-  const target = Number(index);
-  if (!Number.isInteger(target) || target < 0 || target >= session.questionIds.length) {
-    throw new RangeError('Índice de questão inválido.');
-  }
-  return Object.freeze({...session, currentIndex: target, updatedAt: Number(updatedAt)});
-}
-
-export function sessionProgress(session) {
-  const answered = session.questionIds.filter(id => ANSWER_OPTIONS.includes(session.answers[id])).length;
-  const total = session.questionIds.length;
-  return Object.freeze({answered, total, remaining: total - answered, percent: total ? answered / total * 100 : 0});
-}
-
-export function canFinish(session) {
-  return sessionProgress(session).remaining === 0 && session.finishedAt === null;
-}
-
-export function evaluateSession(session, key, finishedAt = Date.now()) {
-  if (!canFinish(session)) throw new Error('Todas as questões devem ser respondidas antes da finalização.');
-  if (!key || key.material_id !== session.materialId || !Array.isArray(key.answers)) {
-    throw new TypeError('Gabarito incompatível com a sessão.');
-  }
-  const answerMap = new Map(key.answers.map(item => [item.id, item.gabarito]));
-  const results = session.questionIds.map(id => {
-    const selected = session.answers[id];
-    const correctAnswer = answerMap.get(id);
-    if (!ANSWER_OPTIONS.includes(correctAnswer)) throw new TypeError(`Gabarito ausente ou inválido para ${id}.`);
-    return Object.freeze({id, selected, correctAnswer, correct: selected === correctAnswer});
-  });
-  const correct = results.filter(result => result.correct).length;
-  const total = results.length;
-  const completedAt = Number(finishedAt);
-  return Object.freeze({
-    session: Object.freeze({...session, finishedAt: completedAt, updatedAt: completedAt}),
-    results: Object.freeze(results),
-    correct,
-    incorrect: total - correct,
-    total,
-    percent: total ? correct / total * 100 : 0,
-    elapsedMs: Math.max(0, completedAt - session.startedAt),
-  });
-}
-
-export function formatElapsed(milliseconds) {
-  const totalSeconds = Math.max(0, Math.floor(Number(milliseconds) / 1000));
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor(totalSeconds % 3600 / 60);
-  const seconds = totalSeconds % 60;
-  return hours
-    ? `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
-    : `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-}
+export function createSession(catalog, startedAt = Date.now()) {assertCatalog(catalog);return Object.freeze({schemaVersion:'1.0.0',materialId:catalog.id,questionIds:Object.freeze(catalog.questoes.map(question=>question.id)),answers:Object.freeze({}),currentIndex:0,startedAt:Number(startedAt),updatedAt:Number(startedAt),finishedAt:null})}
+export function selectAnswer(session, questionId, option, updatedAt = Date.now()) {if(!session.questionIds.includes(questionId))throw new RangeError('Questão ausente da sessão.');if(!ANSWER_OPTIONS.includes(option))throw new RangeError('Alternativa inválida.');if(session.finishedAt!==null)throw new Error('A sessão já foi finalizada.');return Object.freeze({...session,answers:Object.freeze({...session.answers,[questionId]:option}),updatedAt:Number(updatedAt)})}
+export function moveToQuestion(session,index,updatedAt=Date.now()){const target=Number(index);if(!Number.isInteger(target)||target<0||target>=session.questionIds.length)throw new RangeError('Índice de questão inválido.');return Object.freeze({...session,currentIndex:target,updatedAt:Number(updatedAt)})}
+export function sessionProgress(session){const answered=session.questionIds.filter(id=>ANSWER_OPTIONS.includes(session.answers[id])).length,total=session.questionIds.length;return Object.freeze({answered,total,remaining:total-answered,percent:total?answered/total*100:0})}
+export function canFinish(session){return sessionProgress(session).remaining===0&&session.finishedAt===null}
+export function evaluateSession(session,key,finishedAt=Date.now()){if(!canFinish(session))throw new Error('Todas as questões devem ser respondidas antes da finalização.');if(!key||key.material_id!==session.materialId||!Array.isArray(key.answers))throw new TypeError('Gabarito incompatível com a sessão.');const answerMap=new Map(key.answers.map(item=>[item.id,item.gabarito]));const results=session.questionIds.map(id=>{const selected=session.answers[id],correctAnswer=answerMap.get(id);if(!ANSWER_OPTIONS.includes(correctAnswer))throw new TypeError(`Gabarito ausente ou inválido para ${id}.`);return Object.freeze({id,selected,correctAnswer,correct:selected===correctAnswer})});const correct=results.filter(result=>result.correct).length,total=results.length,completedAt=Number(finishedAt);return Object.freeze({session:Object.freeze({...session,finishedAt:completedAt,updatedAt:completedAt}),results:Object.freeze(results),correct,incorrect:total-correct,total,percent:total?correct/total*100:0,elapsedMs:Math.max(0,completedAt-session.startedAt)})}
+export function formatElapsed(milliseconds){const totalSeconds=Math.max(0,Math.floor(Number(milliseconds)/1000)),hours=Math.floor(totalSeconds/3600),minutes=Math.floor(totalSeconds%3600/60),seconds=totalSeconds%60;return hours?`${String(hours).padStart(2,'0')}:${String(minutes).padStart(2,'0')}:${String(seconds).padStart(2,'0')}`:`${String(minutes).padStart(2,'0')}:${String(seconds).padStart(2,'0')}`}

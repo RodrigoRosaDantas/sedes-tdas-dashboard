@@ -7,18 +7,30 @@ on:
     paths:
       - 'index.html'
       - 'resolver/**'
+      - 'exportar-tentativa/**'
       - 'sw.js'
       - 'assets/v27.css'
       - 'assets/more.js'
       - 'assets/integration/home-notion-mirror.js'
       - 'assets/integration/question-bank.js'
       - 'assets/integration/question-bank-player.js'
+      - 'assets/integration/master-bank-ui.js'
       - 'assets/integration/bank-draft-guard.js'
       - 'assets/integration/question-catalog-archive.js'
       - 'assets/integration/review-catalog-bridge.js'
       - 'assets/integration/resolver-bootstrap.js'
       - 'assets/integration/continuity-engine.js'
       - 'assets/integration/home-v27.js'
+      - 'assets/integration/player-core.js'
+      - 'assets/integration/module-store.js'
+      - 'assets/integration/attempt-export.js'
+      - 'assets/integration/attempt-history-v2.js'
+      - 'assets/integration/attempt-export-page-v2.js'
+      - 'assets/integration/attempt-diagnostics.js'
+      - 'assets/integration/attempt-diagnostics.css'
+      - 'scripts/sync-tdas-master-question-bank.mjs'
+      - 'scripts/test-master-question-bank.mjs'
+      - 'scripts/validate-master-question-bank.mjs'
       - 'scripts/test-v27-*.mjs'
       - 'scripts/diagnose-check.mjs'
       - 'scripts/preserve-private-history-pwa.mjs'
@@ -42,11 +54,13 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Validar contratos v27
+      - name: Validar contratos v27 e Banco publicado
         run: |
           set -euo pipefail
           node scripts/test-v27-question-bank.mjs
           node scripts/test-v27-continuity.mjs
           node scripts/test-v27-contract.mjs
+          node scripts/test-master-question-bank.mjs
+          node scripts/validate-master-question-bank.mjs
       - name: Executar gate integral existente
         run: node scripts/diagnose-check.mjs
