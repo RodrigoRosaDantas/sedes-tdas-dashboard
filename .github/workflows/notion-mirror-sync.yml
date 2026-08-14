@@ -1,0 +1,57 @@
+name: Sincronizar espelho completo do Notion
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: ['Sincronizar Plataforma TDAS v26']
+    types: [completed]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: notion-mirror-publication
+  cancel-in-progress: true
+
+jobs:
+  mirror:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Baixar main atual
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Preparar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Gerar e validar espelho completo
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          TZ: America/Sao_Paulo
+        run: |
+          set -euo pipefail
+          node scripts/sync-notion-mirror.mjs
+          node scripts/validate-notion-mirror-live.mjs
+          node scripts/test-notion-mirror-contract.mjs
+
+      - name: Publicar snapshot do espelho atomicamente
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'tdas-notion-mirror[bot]'
+          git config user.email 'tdas-notion-mirror[bot]@users.noreply.github.com'
+          git add -A data/notion-mirror
+          if git diff --cached --quiet; then
+            echo 'Espelho já está atualizado; nenhuma publicação necessária.'
+            exit 0
+          fi
+          git commit -m 'Sincronizar espelho completo do Notion'
+          git fetch origin main
+          git rebase origin/main
+          git push origin HEAD:main
