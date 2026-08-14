@@ -27,8 +27,8 @@ async function addMirror(){
  s.className='tdas-dashboard-section notion-home-entry';
  s.dataset.notionHome='1';
  s.innerHTML=`<div class="section-head"><div><span class="kicker">Fonte oficial espelhada</span><h2>Meu Notion dentro do TDAS</h2><p>${escapeHTML(countLabel(data))}. Navegue pelas páginas e bancos sem sair da plataforma.</p></div><a class="btn primary" href="${BASE}notion/">Abrir meu Notion</a></div><div class="grid two">${children.map(p=>`<a class="card panel" href="${BASE}notion/?id=${encodeURIComponent(p.id)}"><strong>${escapeHTML(p.icon||'📄')} ${escapeHTML(p.title)}</strong><p>${p.children.length} subpágina(s) · ${p.databases.length} banco(s)</p></a>`).join('')}</div>`;
- const hero=main.querySelector('.tdas-home-focus');
- if(hero)hero.after(s);else main.prepend(s);
+ const hero=main.querySelector('.tdas-home-focus'),continuity=main.querySelector('[data-v27-continuity]');
+ if(continuity)continuity.after(s);else if(hero)hero.after(s);else main.prepend(s);
  return true;
 }
 
