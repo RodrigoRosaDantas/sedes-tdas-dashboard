@@ -61,7 +61,7 @@ export function buildTdasSnapshot(catalog,materialPayloads,{sourceSha='fixture'}
  questions.sort((a,b)=>a.materialName.localeCompare(b.materialName,'pt-BR',{numeric:true,sensitivity:'base'})||(a.numeroOriginal??0)-(b.numeroOriginal??0)||a.id.localeCompare(b.id));
  answers.sort((a,b)=>a.id.localeCompare(b.id));
  materials.sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR',{numeric:true,sensitivity:'base'}));
- const generatedAt=new Date().toISOString();
+ const generatedAt=clean(catalog.exported_at)||null;
  const fingerprint=hash(JSON.stringify(questions.map(item=>[item.id,item.enunciado,item.alternativas]))).slice(0,16);
  const publicSnapshot={schemaVersion:'1.0.0',mode:'tdas-master-question-bank',generatedAt,source:{repository:SOURCE_REPO,commit:sourceSha,releaseVersion:clean(catalog.release_version),exportedAt:clean(catalog.exported_at),notion:catalog?.source?.notion_url||null},cargo:{code:CARGO_CODE,name:CARGO_NAME},materialCount:materials.length,questionCount:questions.length,keyPath:KEY_WEB_PATH,fingerprint,materials,questions};
  const keySnapshot={schemaVersion:'1.0.0',material_id:`tdas-master-202-${fingerprint}`,sourceCommit:sourceSha,questionCount:answers.length,answers};
@@ -78,8 +78,12 @@ export async function syncTdasMasterQuestionBank(){
  const{publicSnapshot,keySnapshot}=buildTdasSnapshot(catalog,payloads,{sourceSha});
  if(publicSnapshot.questionCount<570)throw new Error(`Release TDAS regressiva: ${publicSnapshot.questionCount} questões; mínimo histórico esperado 570.`);
  await fs.mkdir(path.dirname(PUBLIC_PATH),{recursive:true});await fs.mkdir(path.dirname(KEY_PATH),{recursive:true});
- await fs.writeFile(PUBLIC_PATH,JSON.stringify(publicSnapshot)+'\n','utf8');await fs.writeFile(KEY_PATH,JSON.stringify(keySnapshot)+'\n','utf8');
- console.log(`Banco Mestre TDAS sincronizado: ${publicSnapshot.questionCount} questões em ${publicSnapshot.materialCount} materiais · fonte ${sourceSha.slice(0,12)}.`);
+ const publicContent=JSON.stringify(publicSnapshot)+'\n',keyContent=JSON.stringify(keySnapshot)+'\n';
+ const previousPublic=await fs.readFile(PUBLIC_PATH,'utf8').catch(()=>null),previousKey=await fs.readFile(KEY_PATH,'utf8').catch(()=>null);
+ if(previousPublic!==publicContent)await fs.writeFile(PUBLIC_PATH,publicContent,'utf8');
+ if(previousKey!==keyContent)await fs.writeFile(KEY_PATH,keyContent,'utf8');
+ const changed=previousPublic!==publicContent||previousKey!==keyContent;
+ console.log(`Banco Mestre TDAS sincronizado: ${publicSnapshot.questionCount} questões em ${publicSnapshot.materialCount} materiais · fonte ${sourceSha.slice(0,12)} · ${changed?'snapshot atualizado':'sem mudanças'}.`);
  return publicSnapshot;
 }
 
