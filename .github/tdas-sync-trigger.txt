@@ -4,4 +4,4 @@ Atualize este arquivo somente quando for necessário solicitar uma recuperação
 
 Última solicitação:
 - data: 2026-08-13
-- motivo: reexecutar a sincronização oficial após a integração da persistência privada Firebase, confirmando que o pipeline Notion preserva autenticação e sincronização privadas, exportação para ChatGPT, Caderno de Erros detalhado, catálogo histórico do PE88 e precache PWA sem alterar o conteúdo oficial.
+- motivo: reexecutar a sincronização oficial após corrigir a condição de corrida entre a publicação do espelho completo do Notion e o guard do PWA. A geração do espelho já concluiu dentro da janela dedicada; esta rodada deve validar e publicar o snapshot real sem depender da ordem temporal do Service Worker.
