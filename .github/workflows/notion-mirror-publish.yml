@@ -1,0 +1,69 @@
+name: Publicar espelho completo do Notion
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: ['Sincronizar Plataforma TDAS v26']
+    types: [completed]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: notion-mirror-publication
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Baixar main atual
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Preparar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Gerar espelho completo do Notion
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          TZ: America/Sao_Paulo
+        run: node scripts/sync-notion-mirror.mjs
+
+      - name: Validar espelho gerado
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/test-notion-mirror-contract.mjs
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs/promises';
+          const index=JSON.parse(await fs.readFile('data/notion-mirror/index.json','utf8'));
+          if(index.bootstrap) throw new Error('Espelho permaneceu em bootstrap.');
+          if(!Number.isInteger(index.pageCount)||index.pageCount<=1) throw new Error(`Quantidade de páginas inválida: ${index.pageCount}`);
+          if(!Number.isInteger(index.databaseCount)||index.databaseCount<1) throw new Error(`Nenhum banco foi espelhado: ${index.databaseCount}`);
+          if(!index.hash||index.hash==='bootstrap') throw new Error('Hash real do espelho não foi gerado.');
+          console.log(`Espelho real validado: ${index.pageCount} páginas, ${index.databaseCount} bancos, ${index.recordCount} registros.`);
+          NODE
+          npm run check
+
+      - name: Publicar snapshot somente se houver mudança
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'tdas-notion-mirror[bot]'
+          git config user.email 'tdas-notion-mirror[bot]@users.noreply.github.com'
+          git add -A data/notion-mirror
+          if git diff --cached --quiet; then
+            echo 'Espelho já está atualizado; nenhuma publicação necessária.'
+            exit 0
+          fi
+          git commit -m 'Atualizar espelho completo do Notion'
+          git fetch origin main
+          git rebase origin/main
+          git push origin HEAD:main
