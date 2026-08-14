@@ -13,20 +13,27 @@ function addHeroAction(main){
  actions.append(link);
 }
 
+async function loadHomeMirror(){
+ const summary=await fetch(BASE+'data/notion-mirror/summary.json',{cache:'no-store'}).catch(()=>null);
+ if(summary?.ok)return summary.json();
+ const legacy=await fetch(BASE+'data/notion-mirror/index.json',{cache:'no-store'}).catch(()=>null);
+ if(!legacy?.ok)return null;
+ const data=await legacy.json();
+ return{...data,rootChildren:(data.pages||[]).filter(p=>p.parentId===data.rootId).map(p=>({id:p.id,title:p.title,icon:p.icon,childCount:(p.children||[]).length,databaseCount:(p.databases||[]).length}))};
+}
+
 async function addMirror(){
  const main=document.querySelector('main');
  if(!main)return false;
  addHeroAction(main);
  if(main.querySelector('[data-notion-home]'))return true;
- const r=await fetch(BASE+'data/notion-mirror/index.json',{cache:'no-store'});
- if(!r.ok)return false;
- const data=await r.json();
- if(data.bootstrap||!Array.isArray(data.pages)||data.pages.length<=1)return false;
- const children=data.pages.filter(p=>p.parentId===data.rootId);
+ const data=await loadHomeMirror();
+ if(!data||Number(data.pageCount||0)<=1)return false;
+ const children=Array.isArray(data.rootChildren)?data.rootChildren:[];
  const s=document.createElement('section');
  s.className='tdas-dashboard-section notion-home-entry';
  s.dataset.notionHome='1';
- s.innerHTML=`<div class="section-head"><div><span class="kicker">Fonte oficial espelhada</span><h2>Meu Notion dentro do TDAS</h2><p>${escapeHTML(countLabel(data))}. Navegue pelas páginas e bancos sem sair da plataforma.</p></div><a class="btn primary" href="${BASE}notion/">Abrir meu Notion</a></div><div class="grid two">${children.map(p=>`<a class="card panel" href="${BASE}notion/?id=${encodeURIComponent(p.id)}"><strong>${escapeHTML(p.icon||'📄')} ${escapeHTML(p.title)}</strong><p>${p.children.length} subpágina(s) · ${p.databases.length} banco(s)</p></a>`).join('')}</div>`;
+ s.innerHTML=`<div class="section-head"><div><span class="kicker">Fonte oficial espelhada</span><h2>Meu Notion dentro do TDAS</h2><p>${escapeHTML(countLabel(data))}. Navegue pelas páginas e bancos sem sair da plataforma.</p></div><a class="btn primary" href="${BASE}notion/">Abrir meu Notion</a></div>${children.length?`<div class="grid two">${children.map(p=>`<a class="card panel" href="${BASE}notion/?id=${encodeURIComponent(p.id)}"><strong>${escapeHTML(p.icon||'📄')} ${escapeHTML(p.title)}</strong><p>${Number(p.childCount||0)} subpágina(s) · ${Number(p.databaseCount||0)} banco(s)</p></a>`).join('')}</div>`:''}`;
  const hero=main.querySelector('.tdas-home-focus'),continuity=main.querySelector('[data-v27-continuity]');
  if(continuity)continuity.after(s);else if(hero)hero.after(s);else main.prepend(s);
  return true;
