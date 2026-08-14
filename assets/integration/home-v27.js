@@ -16,5 +16,5 @@ try{
  if(continuity.primary&&defaultPrimary){defaultPrimary.href=continuity.primary.href;defaultPrimary.textContent=continuity.primary.label;defaultPrimary.dataset.v27Primary=continuity.primary.kind;}
  const section=document.createElement('section');section.className='tdas-dashboard-section tdas-v27-continuity';section.dataset.v27Continuity='1';
  section.innerHTML=`<div class="section-head"><div><span class="kicker">Continuar de onde parei</span><h2>Fila inteligente de execução</h2><p>A plataforma prioriza uma sessão interrompida, revisões vencidas e só depois a próxima ação do ciclo.</p></div><a class="btn" href="${BASE}hoje/">Ver plano do dia</a></div><div class="tdas-v27-queue">${continuity.queue.map((item,index)=>`<a class="card tdas-v27-queue-item ${index===0?'primary':''}" href="${escapeHTML(item.href)}"><span class="tdas-v27-queue-icon">${icon(item.kind)}</span><span><small>${index===0?'Faça agora':item.kind==='review'?'Depois':'Na sequência'}</small><strong>${escapeHTML(item.label)}</strong><p>${escapeHTML(item.detail)}</p></span><b>›</b></a>`).join('')}</div>`;
- const notion=hero.nextElementSibling?.matches?.('[data-notion-home]')?hero.nextElementSibling:null;if(notion)notion.after(section);else hero.after(section);
+ hero.after(section);
 }catch(error){if(!/já inicializada/.test(error.message))console.warn(error)}
