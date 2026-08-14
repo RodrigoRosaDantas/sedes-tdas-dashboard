@@ -1,12 +1,20 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { ROOT, hash, localIso, slugify, writeJson } from './config.mjs';
+import { ROOT, hash, localIso, writeJson } from './config.mjs';
 import { request, mapLimit } from './api.mjs';
 
-export const MIRROR_SCHEMA='1.0.0';
+export const MIRROR_SCHEMA='1.1.0';
 export const DEFAULT_ROOT_ID='363cf5a2-6731-816e-a702-c9a8c6ea11dc';
 const SHARD_SIZE=150;
 const MAX_DEPTH=14;
+const PRIVATE_PROPERTY_TYPES=new Set(['email','phone_number','people']);
+const SECRET_PATTERNS=[
+ ['Notion token',/\b(?:secret_|ntn_)[A-Za-z0-9_-]{20,}\b/],
+ ['GitHub token',/\b(?:gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,})\b/],
+ ['OpenAI key',/\bsk-(?:proj-)?[A-Za-z0-9_-]{20,}\b/],
+ ['AWS access key',/\bAKIA[0-9A-Z]{16}\b/],
+ ['private key',/-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/]
+];
 const cleanId=value=>String(value||'').replace(/-/g,'');
 const plain=items=>(items||[]).map(item=>item?.plain_text??item?.text?.content??'').join('');
 const safeUrl=value=>/^https?:\/\//i.test(String(value||''))?String(value):null;
@@ -22,11 +30,10 @@ function rich(items=[]){
 function propertyValue(property){
  if(!property?.type)return null;const type=property.type,v=property[type];
  if(type==='title'||type==='rich_text')return plain(v);
- if(['number','checkbox','url','email','phone_number','created_time','last_edited_time'].includes(type))return v??null;
+ if(['number','checkbox','url','created_time','last_edited_time'].includes(type))return v??null;
  if(type==='select'||type==='status')return v?.name??null;
  if(type==='multi_select')return(v||[]).map(x=>x.name);
  if(type==='date')return v?{start:v.start||null,end:v.end||null,time_zone:v.time_zone||null}:null;
- if(type==='people')return(v||[]).map(x=>({id:x.id,name:x.name||null}));
  if(type==='relation')return(v||[]).map(x=>x.id);
  if(type==='files')return(v||[]).map(file=>({name:file.name||'Arquivo',type:file.type||null,url:file.type==='external'?safeUrl(file.external?.url):null,notionHosted:file.type==='file'}));
  if(type==='formula')return v?{type:v.type,value:v.type==='date'?v.date:v[v.type]??null}:null;
@@ -36,7 +43,9 @@ function propertyValue(property){
 }
 
 function normalizeProperties(properties={}){
- return Object.fromEntries(Object.entries(properties).map(([name,p])=>[name,{type:p.type,value:propertyValue(p)}]));
+ return Object.fromEntries(Object.entries(properties)
+  .filter(([,p])=>!PRIVATE_PROPERTY_TYPES.has(p?.type))
+  .map(([name,p])=>[name,{type:p.type,value:propertyValue(p)}]));
 }
 
 function media(block,type){
@@ -74,6 +83,8 @@ function titleOf(page){
  const entry=Object.values(page.properties||{}).find(p=>p.type==='title');return plain(entry?.title)||'Página sem título';
 }
 function iconOf(page){return page?.icon?.type==='emoji'?page.icon.emoji:null;}
+function blockSearchText(blocks=[]){const out=[];const visit=block=>{if(block?.text)out.push(block.text);for(const child of block?.children||[])visit(child)};for(const block of blocks)visit(block);return out.join(' ');}
+function assertPublicSafe(file,value){const text=JSON.stringify(value);for(const[label,pattern]of SECRET_PATTERNS)if(pattern.test(text))throw new Error(`Espelho Notion: ${label} detectado em ${file}; publicação bloqueada.`);}
 
 async function queryDataSource(dataSourceId){
  const rows=[];let cursor=null,rounds=0;
@@ -86,7 +97,7 @@ async function mirrorDatabase(ref,parentPageId,ctx){
  try{database=await request(`/databases/${ref.id}`);}catch(error){ctx.warnings.push(`Banco ${ref.title}: ${error.message}`);return;}
  const sources=database.data_sources||[];const schemas=[];const records=[];
  for(const source of sources){
-  try{const schema=await request(`/data_sources/${source.id}`);schemas.push({id:source.id,name:source.name||schema.name||ref.title,properties:Object.fromEntries(Object.entries(schema.properties||{}).map(([name,p])=>[name,{id:p.id,type:p.type,name:p.name||name}]))});const pages=await queryDataSource(source.id);for(const page of pages)records.push({id:page.id,title:titleOf(page),url:page.url,createdAt:page.created_time,lastEditedAt:page.last_edited_time,properties:normalizeProperties(page.properties)});
+  try{const schema=await request(`/data_sources/${source.id}`);schemas.push({id:source.id,name:source.name||schema.name||ref.title,properties:Object.fromEntries(Object.entries(schema.properties||{}).filter(([,p])=>!PRIVATE_PROPERTY_TYPES.has(p?.type)).map(([name,p])=>[name,{id:p.id,type:p.type,name:p.name||name}]))});const pages=await queryDataSource(source.id);for(const page of pages)records.push({id:page.id,title:titleOf(page),url:page.url,createdAt:page.created_time,lastEditedAt:page.last_edited_time,properties:normalizeProperties(page.properties)});
   }catch(error){ctx.warnings.push(`Data source ${source.name||source.id}: ${error.message}`);}
  }
  const db={schemaVersion:MIRROR_SCHEMA,id:ref.id,title:database.title?plain(database.title):ref.title,description:rich(database.description),url:database.url||null,parentPageId,recordCount:records.length,dataSources:schemas,shards:[]};
@@ -106,15 +117,22 @@ function ancestors(pageId,pages){const out=[];let current=pages.get(pageId),guar
 export async function buildNotionMirror({rootId=process.env.NOTION_DASHBOARD_ID||DEFAULT_ROOT_ID}={}){
  const ctx={pages:new Map(),databases:new Map(),files:new Map(),warnings:[]};await mirrorPage(rootId,null,ctx);
  if(!ctx.pages.has(rootId))throw new Error('Espelho Notion: página raiz não foi coletada.');
- const pageIndex=[...ctx.pages.values()].map(page=>({id:page.id,title:page.title,icon:page.icon,parentId:page.parentId,url:page.url,lastEditedAt:page.lastEditedAt,children:page.children,databases:page.databases,breadcrumbs:ancestors(page.id,ctx.pages),searchText:[page.title,...page.blocks.map(b=>b.text||'')].join(' ').slice(0,12000)}));
+ const generatedAt=localIso(),root=ctx.pages.get(rootId);
+ const pageIndex=[...ctx.pages.values()].map(page=>({id:page.id,title:page.title,icon:page.icon,parentId:page.parentId,url:page.url,lastEditedAt:page.lastEditedAt,children:page.children,databases:page.databases,breadcrumbs:ancestors(page.id,ctx.pages)}));
+ const searchPages=[...ctx.pages.values()].map(page=>({id:page.id,title:page.title,icon:page.icon,breadcrumbs:ancestors(page.id,ctx.pages),searchText:[page.title,blockSearchText(page.blocks)].join(' ').slice(0,12000)}));
  const databaseIndex=[...ctx.databases.values()].map(db=>({id:db.id,title:db.title,parentPageId:db.parentPageId,url:db.url,recordCount:db.recordCount,shards:db.shards}));
- const semantic={rootId,pages:pageIndex.map(({searchText,...x})=>x),databases:databaseIndex,warnings:ctx.warnings};const mirrorHash=hash(semantic);
- const index={schemaVersion:MIRROR_SCHEMA,generatedAt:localIso(),rootId,rootTitle:ctx.pages.get(rootId).title,pageCount:pageIndex.length,databaseCount:databaseIndex.length,recordCount:databaseIndex.reduce((sum,x)=>sum+x.recordCount,0),hash:mirrorHash,pages:pageIndex,databases:databaseIndex,warnings:ctx.warnings};ctx.files.set('index.json',index);
- return{index,files:ctx.files,hash:mirrorHash};
+ const recordCount=databaseIndex.reduce((sum,x)=>sum+x.recordCount,0);
+ const semantic={rootId,pages:pageIndex,databases:databaseIndex,warnings:ctx.warnings};const mirrorHash=hash(semantic);
+ const index={schemaVersion:MIRROR_SCHEMA,generatedAt,rootId,rootTitle:root.title,pageCount:pageIndex.length,databaseCount:databaseIndex.length,recordCount,hash:mirrorHash,pages:pageIndex,databases:databaseIndex,warnings:ctx.warnings};
+ const byId=new Map(pageIndex.map(page=>[page.id,page]));
+ const summary={schemaVersion:MIRROR_SCHEMA,generatedAt,rootId,rootTitle:root.title,rootUrl:root.url,pageCount:pageIndex.length,databaseCount:databaseIndex.length,recordCount,hash:mirrorHash,warningCount:ctx.warnings.length,rootChildren:root.children.map(id=>byId.get(id)).filter(Boolean).map(page=>({id:page.id,title:page.title,icon:page.icon,childCount:page.children.length,databaseCount:page.databases.length}))};
+ const search={schemaVersion:MIRROR_SCHEMA,generatedAt,rootId,pages:searchPages};
+ ctx.files.set('index.json',index);ctx.files.set('summary.json',summary);ctx.files.set('search.json',search);
+ return{index,summary,search,files:ctx.files,hash:mirrorHash};
 }
 
 export async function writeNotionMirror(mirror){
  const target=path.join(ROOT,'data/notion-mirror');await fs.rm(target,{recursive:true,force:true});await fs.mkdir(target,{recursive:true});
- for(const[file,value]of mirror.files)await writeJson(`data/notion-mirror/${file}`,value);
+ for(const[file,value]of mirror.files){assertPublicSafe(file,value);await writeJson(`data/notion-mirror/${file}`,value);}
  return mirror.index;
 }
