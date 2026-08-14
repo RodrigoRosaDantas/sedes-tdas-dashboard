@@ -21,6 +21,11 @@ on:
       - 'assets/integration/home-v27.js'
       - 'scripts/test-v27-*.mjs'
       - 'scripts/diagnose-check.mjs'
+      - 'scripts/preserve-private-history-pwa.mjs'
+      - 'scripts/preserve-local-telemetry-pwa.mjs'
+      - 'scripts/preserve-notion-mirror-pwa.mjs'
+      - 'scripts/preserve-v27-pwa.mjs'
+      - '.github/workflows/notion-sync.yml'
       - '.github/workflows/validate-v27.yml'
 
 permissions:
