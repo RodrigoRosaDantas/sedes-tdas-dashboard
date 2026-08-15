@@ -1,4 +1,4 @@
-name: Sincronizar Plataforma TDAS v26
+name: Sincronizar Plataforma TDAS v28
 
 on:
   workflow_dispatch:
@@ -194,7 +194,7 @@ jobs:
             echo 'Nenhum arquivo foi alterado.'
             exit 0
           fi
-          git commit -m 'Sincronizar integralmente a Plataforma TDAS v26'
+          git commit -m 'Sincronizar integralmente a Plataforma TDAS v28'
           git push origin "HEAD:refs/heads/${{ steps.branch.outputs.target }}"
 
       - name: Promover atomicamente para main
