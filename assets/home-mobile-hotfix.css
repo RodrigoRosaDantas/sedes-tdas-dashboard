@@ -50,6 +50,12 @@
   }
 }
 
+/* Em iPads largos, apenas camadas decorativas ultrapassavam a viewport.
+   Todos os elementos funcionais permanecem dentro da área útil; clip evita rolagem fantasma. */
+@media(min-width:781px) and (max-width:1366px){
+  html,body{max-width:100%;overflow-x:clip}
+}
+
 @media(max-width:1180px) and (min-width:781px){
   .tdas-v27-queue{grid-template-columns:1fr}
   .tdas-pro-grid,.tdas-insight-grid,.tdas-reference-grid,.tdas-strategy-grid{grid-template-columns:1fr}
