@@ -1,4 +1,10 @@
-html[data-home-v28="1"] .tdas-v28-source-only{display:none!important}
+html[data-home-v28="1"] .tdas-v28-source-only,
+html[data-home-v28="1"] [data-command-center],
+html[data-home-v28="1"] [data-v27-continuity],
+html[data-home-v28="1"] [data-study-intelligence],
+html[data-home-v28="1"] [data-notion-home]{display:none!important}
+html[data-home-v28="1"] .tdas-home-actions>a:nth-of-type(n+5){display:none!important}
+html[data-home-v28="1"] .tdas-home-actions>[data-notion-hero-action]{display:none!important}
 html[data-home-v28="1"] .tdas-command-search{max-width:760px;margin:0 auto 22px}
 html[data-home-v28="1"] .tdas-search-shell{min-height:48px;border-radius:16px}
 html[data-home-v28="1"] .tdas-home-focus{margin-bottom:22px}
