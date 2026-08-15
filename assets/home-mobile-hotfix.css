@@ -2,6 +2,63 @@
    Intervenção mínima: corrige overflow do cabeçalho, hierarquia dos cabeçalhos
    de seção e gráfico fixo de 720px sem alterar dados ou lógica da Home. */
 
+/* Tablet/iPad — a viewport ainda pode ser “desktop”, mas a sidebar consome 268px.
+   O breakpoint passa a observar a largura útil da Home, não apenas a tela inteira. */
+@media(min-width:781px){
+  .content{container-type:inline-size}
+
+  @container (min-width:760px) and (max-width:1180px){
+    .tdas-home-focus{
+      display:grid;
+      grid-template-columns:minmax(0,1fr) minmax(200px,230px);
+      column-gap:24px;
+      align-items:start;
+      min-height:0;
+      padding:30px;
+    }
+    .tdas-home-focus-head{grid-column:1/-1}
+    .tdas-home-focus h1{
+      grid-column:1;
+      max-width:none;
+      margin:16px 0 10px;
+      font-size:clamp(34px,4vw,48px);
+      line-height:1.03;
+    }
+    .tdas-home-focus-copy,.tdas-home-actions,.tdas-home-quick{grid-column:1;max-width:none}
+    .tdas-home-actions{margin-top:19px}
+    .tdas-home-quick{margin-top:16px}
+    .tdas-hero-aside{
+      position:relative;
+      right:auto;
+      bottom:auto;
+      grid-column:2;
+      grid-row:2 / span 4;
+      align-self:end;
+      width:100%;
+      max-width:230px;
+      margin:16px 0 0;
+    }
+    .tdas-reference-grid,.tdas-strategy-grid,.tdas-pro-grid,.tdas-insight-grid{grid-template-columns:1fr}
+    .tdas-week-strip{grid-template-columns:repeat(8,minmax(30px,1fr))}
+  }
+
+  @container (max-width:759px){
+    .tdas-home-focus{display:block;min-height:0;padding:28px}
+    .tdas-home-focus h1{max-width:none;margin:15px 0 10px;font-size:clamp(32px,4.2vw,42px);line-height:1.04}
+    .tdas-home-focus-copy{max-width:none}
+    .tdas-home-actions{margin-top:18px}
+    .tdas-home-quick{margin-top:15px}
+    .tdas-hero-aside{position:relative;right:auto;bottom:auto;width:min(100%,320px);max-width:320px;margin:18px 0 0}
+    .tdas-reference-grid,.tdas-strategy-grid,.tdas-pro-grid,.tdas-insight-grid,.tdas-v27-queue{grid-template-columns:1fr}
+    .tdas-week-strip{grid-template-columns:repeat(8,minmax(28px,1fr))}
+  }
+}
+
+@media(max-width:1180px) and (min-width:781px){
+  .tdas-v27-queue{grid-template-columns:1fr}
+  .tdas-pro-grid,.tdas-insight-grid,.tdas-reference-grid,.tdas-strategy-grid{grid-template-columns:1fr}
+}
+
 @media(max-width:780px){
   html,body,.app,.shell,.content,#conteudo{max-width:100%;min-width:0}
   body{overflow-x:clip}
