@@ -3,7 +3,7 @@ export const PRIVATE_HISTORY_CONFIG=Object.freeze({
  provider:'firebase',
  schemaVersion:'1.1.0',
  firebaseConfig:Object.freeze({
-  apiKey:'AIzaSyC1_x7yhWfSwS7plrE1lv4tt8rz0cll8vU',
+  apiKey:'AIzaSyC1_x7yhWfSwS7plrE1lv4tt8rzOcll8vU',
   authDomain:'tdas-68014.firebaseapp.com',
   projectId:'tdas-68014',
   storageBucket:'tdas-68014.firebasestorage.app',
