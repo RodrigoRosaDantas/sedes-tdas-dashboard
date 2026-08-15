@@ -76,10 +76,34 @@ assert.match(performanceUi, /Inteligência privada de estudo/);
 assert.match(performanceUi, /registro oficial do Notion permanece separado/);
 assert.match(performanceUi, /Estas métricas não alteram a Evolução oficial/);
 
-// 4) Diferença intencional: o TDAS é diário. Não deve aceitar snapshot de outro dia apenas por haver "no_changes".
-const publicationMonitor = await fs.readFile('scripts/monitor-tdas-publication.mjs', 'utf8');
-assert.match(publicationMonitor, /SNAPSHOT_DATE_STALE/);
-assert.match(publicationMonitor, /EXECUTION_DATE_STALE/);
-assert.match(publicationMonitor, /snapshot técnico do site não corresponde à data atual/);
+// 4) Diferença intencional: o TDAS é diário. Um "no_changes" recente não pode tornar válido o snapshot de outro dia.
+process.env.MONITOR_SELF_TEST = 'true';
+const {evaluatePublication} = await import('./monitor-tdas-publication.mjs?convergence=1');
+delete process.env.MONITOR_SELF_TEST;
+const now = new Date('2026-08-15T12:00:00-03:00');
+const syncAt = '2026-08-15T11:30:00-03:00';
+const staleDailySnapshot = evaluatePublication({
+  now,
+  platform: {syncAt, peId: 'PE89'},
+  today: {
+    meta: {snapshotDate: '2026-08-14', examDate: '2026-09-06'},
+    current: {date: '2026-08-14', pe: 'PE89', meta: 2},
+  },
+  agenda: {
+    meta: {examDate: '2026-09-06'},
+    current: {pe: 'PE89', date: '2026-08-15', title: 'PE diário', planned_questions: '2'},
+    next: [],
+    allFuture: [],
+  },
+  catalog: {peId: 'PE89', questionCount: 2, questions: [{id:'q1'},{id:'q2'}]},
+  material: {mode: 'notion-daily-material', peId: 'PE89', html: 'x'.repeat(300), source: {pageId: 'material-page'}},
+  contract: {current: {peId: 'PE89', materialPageId: 'material-page'}},
+  history: {entries: [{at: syncAt, status: 'no_changes'}]},
+  maxAgeMinutes: 180,
+});
+assert.equal(staleDailySnapshot.status, 'blocked');
+assert.ok(staleDailySnapshot.issues.some(item => item.code === 'SNAPSHOT_DATE_STALE'));
+assert.ok(staleDailySnapshot.issues.some(item => item.code === 'EXECUTION_DATE_STALE'));
+assert.ok(!staleDailySnapshot.issues.some(item => item.code === 'SYNC_STALE'), 'A falha deve ser do dia publicado, não da recência da sincronização.');
 
 console.log('Convergência EDAS → TDAS protegida: quarentena editorial, rollback local, separação privado/oficial e frescor diário específico do TDAS.');
