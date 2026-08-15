@@ -4,11 +4,11 @@
   "dataVersion": "20260811.1",
   "catalogVersion": "edas-400-s12-20260807",
   "serviceWorkerVersion": "edas-20260809.1",
-  "sourceCommit": "7e3a35118af3c6fe3e06e1cc1bf5a16a967bf27f",
-  "syncDate": "2026-08-13",
-  "syncAt": "2026-08-13T07:25:41-03:00",
+  "sourceCommit": "58392a5ad0d26cfc11dcccae47ab7577cda60083",
+  "syncDate": "2026-08-15",
+  "syncAt": "2026-08-15T10:28:58-03:00",
   "releaseAt": "2026-08-09T14:00:21-03:00",
   "sprintId": "S08",
-  "publicationId": "20260809.1|20260811.1|edas-400-s12-20260807|2026-08-13T07:25:41-03:00|7e3a35118af3",
-  "note": "Revalidação oficial em 13/08/2026: as três views EDAS foram percorridas integralmente até has_more=false e não apresentaram alterações semânticas. Permanecem confirmados 42 Sprints, 6 blocos concluídos, 205 questões, 167 acertos (81,46%), 38 erros acumulados, 31 páginas detalhadas no Caderno e 12 estudos de caso não iniciados. O S08 continua como próxima ação pendente; S18 permanece apenas como Sprint do calendário."
+  "publicationId": "20260809.1|20260811.1|edas-400-s12-20260807|2026-08-15T10:28:58-03:00|58392a5ad0d2",
+  "note": "Revalidação oficial em 15/08/2026 sem alteração semântica: Banco de Controle com 42 Sprints, 6 blocos concluídos, 205 questões e 167 acertos (81,46%); Caderno com 31 páginas detalhadas, preservando 38 erros acumulados; 12 estudos de caso. O S08 continua como próxima ação pendente. O snapshot semântico de 13/08 foi preservado e o frescor passou a ser registrado separadamente em data/revalidation.json."
 }
