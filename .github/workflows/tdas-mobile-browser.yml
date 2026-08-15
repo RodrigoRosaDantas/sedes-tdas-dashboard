@@ -28,6 +28,7 @@ on:
       - 'scripts/test-home-mobile-layout.mjs'
       - 'scripts/test-home-tablet-layout.mjs'
       - 'scripts/test-home-v28-browser.mjs'
+      - 'scripts/test-home-v28-responsive-audit.mjs'
       - 'scripts/test-tdas-mobile-ux.mjs'
       - 'scripts/test-command-palette.mjs'
       - 'scripts/test-command-palette-browser.mjs'
@@ -59,6 +60,7 @@ on:
       - 'scripts/test-home-mobile-layout.mjs'
       - 'scripts/test-home-tablet-layout.mjs'
       - 'scripts/test-home-v28-browser.mjs'
+      - 'scripts/test-home-v28-responsive-audit.mjs'
       - 'scripts/test-tdas-mobile-ux.mjs'
       - 'scripts/test-command-palette.mjs'
       - 'scripts/test-command-palette-browser.mjs'
@@ -109,6 +111,11 @@ jobs:
         env:
           CHROME_BIN: google-chrome
         run: node scripts/test-home-v28-browser.mjs
+
+      - name: Auditar Home v28 em mobile, iPad e desktop
+        env:
+          CHROME_BIN: google-chrome
+        run: node scripts/test-home-v28-responsive-audit.mjs
 
       - name: Validar Command Palette no Chrome real
         env:
