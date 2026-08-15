@@ -16,14 +16,18 @@ on:
       - 'assets/tdas-pro-modules.css'
       - 'assets/tdas-command-palette.js'
       - 'assets/tdas-command-palette.css'
+      - 'assets/v28-home.css'
       - 'assets/settings.js'
       - 'assets/more.js'
       - 'assets/enhance-v20.js'
       - 'assets/integration/home-command-center.js'
+      - 'assets/integration/home-v28.js'
       - 'assets/integration/study-ux.js'
+      - 'scripts/preserve-v27-pwa.mjs'
       - 'scripts/test-tdas-mobile-browser.mjs'
       - 'scripts/test-home-mobile-layout.mjs'
       - 'scripts/test-home-tablet-layout.mjs'
+      - 'scripts/test-home-v28-browser.mjs'
       - 'scripts/test-tdas-mobile-ux.mjs'
       - 'scripts/test-command-palette.mjs'
       - 'scripts/test-command-palette-browser.mjs'
@@ -43,14 +47,18 @@ on:
       - 'assets/tdas-pro-modules.css'
       - 'assets/tdas-command-palette.js'
       - 'assets/tdas-command-palette.css'
+      - 'assets/v28-home.css'
       - 'assets/settings.js'
       - 'assets/more.js'
       - 'assets/enhance-v20.js'
       - 'assets/integration/home-command-center.js'
+      - 'assets/integration/home-v28.js'
       - 'assets/integration/study-ux.js'
+      - 'scripts/preserve-v27-pwa.mjs'
       - 'scripts/test-tdas-mobile-browser.mjs'
       - 'scripts/test-home-mobile-layout.mjs'
       - 'scripts/test-home-tablet-layout.mjs'
+      - 'scripts/test-home-v28-browser.mjs'
       - 'scripts/test-tdas-mobile-ux.mjs'
       - 'scripts/test-command-palette.mjs'
       - 'scripts/test-command-palette-browser.mjs'
@@ -96,6 +104,11 @@ jobs:
         env:
           CHROME_BIN: google-chrome
         run: node scripts/test-home-tablet-layout.mjs
+
+      - name: Validar Home Reta Final v28
+        env:
+          CHROME_BIN: google-chrome
+        run: node scripts/test-home-v28-browser.mjs
 
       - name: Validar Command Palette no Chrome real
         env:
