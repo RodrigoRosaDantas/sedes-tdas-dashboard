@@ -57,13 +57,16 @@ jobs:
           grep -F "writeBatch" assets/integration/firebase-history-store.js
       - name: Validar Firebase Authentication real
         run: node scripts/test-private-history-firebase.mjs
-      - name: Validar semântica da central de histórico
+      - name: Validar semântica e concorrência da central de histórico
         run: |
           grep -F 'Histórico pessoal TDAS' assets/integration/private-history-page.js
           grep -F 'PEs já concluídos são tratados somente como histórico de resolução' assets/integration/private-history-page.js
-          grep -F "private-history-sync-v3.js?v=3.0.0" assets/integration/private-history-page.js
-          grep -F "private-history-sync-v3.js?v=3.0.0" assets/integration/private-history-login.js
+          grep -F 'snapshot das questões respondidas' assets/integration/private-history-page.js
+          grep -F "private-history-sync-v3.js?v=3.1.0" assets/integration/private-history-page.js
+          grep -F "private-history-sync-v3.js?v=3.1.0" assets/integration/private-history-login.js
           grep -F "private-history-auth.js?v=1.2.0" assets/integration/private-history-login.js
+          grep -F "let syncPromise=null,forceAfterCurrent=false" assets/integration/private-history-sync-v3.js
+          grep -F "syncPrivateHistory({force:true})" assets/integration/private-history-login.js
           ! grep -F 'private-history-sync-v2' assets/integration/private-history-login.js
           ! grep -F 'PE88 localizado neste navegador' assets/integration/private-history-page.js
           ! grep -F 'Migração local pronta' assets/integration/private-history-page.js
