@@ -23,6 +23,7 @@ on:
       - 'assets/integration/study-ux.js'
       - 'scripts/test-tdas-mobile-browser.mjs'
       - 'scripts/test-home-mobile-layout.mjs'
+      - 'scripts/test-home-tablet-layout.mjs'
       - 'scripts/test-tdas-mobile-ux.mjs'
       - 'scripts/test-command-palette.mjs'
       - 'scripts/test-command-palette-browser.mjs'
@@ -49,6 +50,7 @@ on:
       - 'assets/integration/study-ux.js'
       - 'scripts/test-tdas-mobile-browser.mjs'
       - 'scripts/test-home-mobile-layout.mjs'
+      - 'scripts/test-home-tablet-layout.mjs'
       - 'scripts/test-tdas-mobile-ux.mjs'
       - 'scripts/test-command-palette.mjs'
       - 'scripts/test-command-palette-browser.mjs'
@@ -89,6 +91,11 @@ jobs:
         env:
           CHROME_BIN: google-chrome
         run: node scripts/test-home-mobile-layout.mjs
+
+      - name: Validar Home em iPad e tablet
+        env:
+          CHROME_BIN: google-chrome
+        run: node scripts/test-home-tablet-layout.mjs
 
       - name: Validar Command Palette no Chrome real
         env:
