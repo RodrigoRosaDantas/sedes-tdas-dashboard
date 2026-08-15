@@ -1,5 +1,6 @@
-import {PRIVATE_HISTORY_CONFIG} from './private-history-config.js?v=1.1.0';
+import {PRIVATE_HISTORY_CONFIG} from './private-history-config.js?v=1.2.0';
 const VERSION='12.16.0';
+const APP_NAME='tdas-private-history';
 const APP_SDK=`https://www.gstatic.com/firebasejs/${VERSION}/firebase-app.js`;
 const AUTH_SDK=`https://www.gstatic.com/firebasejs/${VERSION}/firebase-auth.js`;
 let appPromise=null,authPromise=null;
@@ -8,7 +9,15 @@ function configured(){const c=PRIVATE_HISTORY_CONFIG.firebaseConfig||{};return P
 export function privateHistoryEnabled(){return Boolean(configured())}
 export async function privateHistoryApp(){
  if(!privateHistoryEnabled())throw new Error('Persistência privada Firebase ainda não configurada.');
- if(!appPromise)appPromise=import(APP_SDK).then(({initializeApp,getApp,getApps})=>getApps().length?getApp():initializeApp(PRIVATE_HISTORY_CONFIG.firebaseConfig));
+ if(!appPromise)appPromise=import(APP_SDK).then(({initializeApp,getApps})=>{
+  const config=PRIVATE_HISTORY_CONFIG.firebaseConfig;
+  const existing=getApps().find(app=>app.name===APP_NAME);
+  if(existing){
+   if(existing.options?.projectId!==config.projectId||existing.options?.appId!==config.appId)throw new Error('Firebase TDAS já inicializado com configuração incompatível.');
+   return existing;
+  }
+  return initializeApp(config,APP_NAME);
+ });
  return appPromise;
 }
 export async function privateHistoryAuth(){

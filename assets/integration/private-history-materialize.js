@@ -1,6 +1,6 @@
 import {readModuleState,STORAGE_KEY} from './module-store.js?v=2.1.0';
 import {dbList,dbPut,STORES} from './history-db-core.js?v=1.0.0';
-import {getPrivateSession,privateHistoryEnabled} from './private-history-auth.js?v=1.1.0';
+import {getPrivateSession,privateHistoryEnabled} from './private-history-auth.js?v=1.2.0';
 import {CURRENT_STORAGE_KEYS,queueId} from './persistence-contract.js?v=1.0.0';
 const toTime=value=>Number(value)||Date.parse(String(value||''))||0;
 const readJson=(key,fallback)=>{try{return JSON.parse(localStorage.getItem(key)||'null')||fallback}catch{return fallback}};

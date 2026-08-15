@@ -1,4 +1,4 @@
-import {privateHistoryApp} from './private-history-auth.js?v=1.1.0';
+import {privateHistoryApp} from './private-history-auth.js?v=1.2.0';
 const VERSION='12.16.0',SDK=`https://www.gstatic.com/firebasejs/${VERSION}/firebase-firestore.js`;
 let backendPromise=null;
 const key=value=>encodeURIComponent(String(value));

@@ -46,18 +46,24 @@ jobs:
           node --check assets/integration/result-persistence-links-v2.js
           node --check assets/integration/module-error-book-v3.js
           node --check assets/integration/module-performance-v6.js
+          node --check scripts/test-private-history-firebase.mjs
       - name: Validar contrato Firebase
         run: |
           grep -F "provider:'firebase'" assets/integration/private-history-config.js
+          grep -F "APP_NAME='tdas-private-history'" assets/integration/private-history-auth.js
+          grep -F "private-history-config.js?v=1.2.0" assets/integration/private-history-auth.js
           grep -F "request.auth.uid == userId" firestore.rules
           grep -F "'users',String(userId),'attempts'" assets/integration/firebase-history-store.js
           grep -F "writeBatch" assets/integration/firebase-history-store.js
+      - name: Validar Firebase Authentication real
+        run: node scripts/test-private-history-firebase.mjs
       - name: Validar semântica da central de histórico
         run: |
           grep -F 'Histórico pessoal TDAS' assets/integration/private-history-page.js
           grep -F 'PEs já concluídos são tratados somente como histórico de resolução' assets/integration/private-history-page.js
           grep -F "private-history-sync-v3.js?v=3.0.0" assets/integration/private-history-page.js
           grep -F "private-history-sync-v3.js?v=3.0.0" assets/integration/private-history-login.js
+          grep -F "private-history-auth.js?v=1.2.0" assets/integration/private-history-login.js
           ! grep -F 'private-history-sync-v2' assets/integration/private-history-login.js
           ! grep -F 'PE88 localizado neste navegador' assets/integration/private-history-page.js
           ! grep -F 'Migração local pronta' assets/integration/private-history-page.js

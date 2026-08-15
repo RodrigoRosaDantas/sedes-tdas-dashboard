@@ -1,9 +1,9 @@
-import {getPrivateSession,privateHistoryEnabled} from './private-history-auth.js?v=1.1.0';
+import {getPrivateSession,privateHistoryEnabled} from './private-history-auth.js?v=1.2.0';
 import {archiveLocalState,loadCurrentQuestionSource} from './persistence-local-v2.js?v=2.0.0';
 import {dbList,dbPut,STORES} from './history-db-core.js?v=1.0.0';
 import {getOrCreateDeviceId,writeSyncMeta} from './persistence-contract.js?v=1.0.0';
 import {readSessionDraft,writeSessionDraft} from './session-draft.js?v=1.0.0';
-import {putFirebaseAttempt,putFirebaseDraft,putFirebaseState,readFirebaseHistory} from './firebase-history-store.js?v=1.1.0';
+import {putFirebaseAttempt,putFirebaseDraft,putFirebaseState,readFirebaseHistory} from './firebase-history-store.js?v=1.2.0';
 const delay=n=>Math.min(300000,5000*2**Math.max(0,Number(n)||0));
 async function send(userId,deviceId,item){if(item.kind==='attempt')return putFirebaseAttempt(userId,deviceId,item.payload);if(item.kind==='draft')return putFirebaseDraft(userId,deviceId,item.payload);if(item.kind==='state')return putFirebaseState(userId,deviceId,item);throw new Error(`Operação desconhecida: ${item.kind}`)}
 async function restoreDraft(rows,catalog){const newest=(rows||[]).find(x=>x.status==='active'&&x.payload);if(!newest||!catalog||newest.catalogId!==catalog.catalogId)return false;const local=readSessionDraft(),remoteAt=Number(newest.clientUpdatedAt)||0,localAt=Number(local?.savedAt||0);if(local&&localAt>=remoteAt)return false;try{writeSessionDraft(newest.payload);return true}catch{return false}}

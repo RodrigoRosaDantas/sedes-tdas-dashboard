@@ -1,6 +1,6 @@
 import {archiveLocalState,loadCurrentQuestionSource} from './persistence-local-v2.js?v=2.0.0';
 import {syncPrivateHistory} from './private-history-sync-v3.js?v=3.0.0';
-import {privateHistoryEnabled,getPrivateSession} from './private-history-auth.js?v=1.1.0';
+import {privateHistoryEnabled,getPrivateSession} from './private-history-auth.js?v=1.2.0';
 import {dbList,STORES} from './history-db-core.js?v=1.0.0';
 let lastFingerprint='',busy=false,timer=null;
 function badge(){let node=document.querySelector('[data-private-sync-status]');if(node)return node;node=document.createElement('a');node.href='/sedes-tdas-dashboard/sincronizacao/';node.className='btn';node.dataset.privateSyncStatus='1';node.setAttribute('aria-live','polite');node.textContent='Salvo';document.querySelector('.topbar .actions')?.prepend(node);return node}
