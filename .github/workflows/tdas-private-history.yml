@@ -47,6 +47,7 @@ jobs:
           node --check assets/integration/module-error-book-v3.js
           node --check assets/integration/module-performance-v6.js
           node --check scripts/test-private-history-firebase.mjs
+          node --check scripts/test-private-history-firestore.mjs
       - name: Validar contrato Firebase
         run: |
           grep -F "provider:'firebase'" assets/integration/private-history-config.js
@@ -57,6 +58,8 @@ jobs:
           grep -F "writeBatch" assets/integration/firebase-history-store.js
       - name: Validar Firebase Authentication real
         run: node scripts/test-private-history-firebase.mjs
+      - name: Validar Firestore e regras reais
+        run: node scripts/test-private-history-firestore.mjs
       - name: Validar semântica e concorrência da central de histórico
         run: |
           grep -F 'Histórico pessoal TDAS' assets/integration/private-history-page.js
