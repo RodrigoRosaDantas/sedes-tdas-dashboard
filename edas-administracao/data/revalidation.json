@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "1.0.0",
+  "status": "no_changes",
+  "validatedAt": "2026-08-15T10:28:58-03:00",
+  "validatedDate": "2026-08-15",
+  "snapshotDate": "2026-08-13",
+  "dataVersion": "20260811.1",
+  "sprintId": "S08",
+  "sources": {
+    "control": "collection://754d97fb-da34-4050-82f4-a056126bb6b5",
+    "errors": "collection://c67ff9ea-b229-4198-aafd-0de5cfccfc7d",
+    "cases": "collection://774d93e2-dc21-461d-818e-d35f081dcbe4"
+  },
+  "observed": {
+    "totalSprints": 42,
+    "completedSprints": 6,
+    "questions": 205,
+    "correct": 167,
+    "accuracy": 81.46,
+    "errorsAccumulated": 38,
+    "errorPages": 31,
+    "cases": 12
+  },
+  "note": "Revalidação oficial de 15/08/2026 sem alteração semântica: o Banco de Controle permanece com 42 Sprints, 6 blocos objetivos concluídos, 205 questões e 167 acertos (81,46%); o Caderno mantém 31 páginas detalhadas, correspondentes aos 38 erros acumulados preservados no snapshot; Estudos de Caso mantém 12 registros. S08 continua como próxima ação operacional pendente. O snapshot semântico de 13/08/2026 foi preservado em vez de receber uma data artificial de geração."
+}
