@@ -10,4 +10,5 @@ assert.ok(page.includes('data-copy-full'),'A página deve oferecer cópia operac
 assert.ok(page.includes('JSON.stringify(data,null,2)'),'O handoff operacional deve transportar o JSON integral da tentativa.');
 assert.ok(page.includes('Não conte novamente uma tentativa com o mesmo `attempt.id`'),'O handoff deve orientar deduplicação da mesma tentativa ao consolidar no Notion.');
 assert.ok(page.includes('Notion permanece a fonte oficial consolidada'),'O handoff não pode transformar o Firebase/site em fonte oficial do estudo.');
-console.log('Contrato JSON 1.1, compatibilidade 1.0, relatório pedagógico e handoff completo ChatGPT/Notion validados.');
+for(const file of ['assets/integration/module-performance-v6.js','assets/integration/module-error-book-v3.js','assets/integration/result-persistence-links-v2.js']){const source=fs.readFileSync(file,'utf8');assert.ok(source.includes("private-history-runtime-v3.js?v=3.1.0")||source.includes("private-history-sync-v3.js?v=3.1.0"),`${file} deve apontar para o histórico privado 3.1.0.`);assert.ok(!source.includes("private-history-runtime-v3.js?v=3.0.0")&&!source.includes("private-history-sync-v3.js?v=3.0.0"),`${file} não pode reintroduzir o runtime privado 3.0.0.`)}
+console.log('Contrato JSON 1.1, compatibilidade 1.0, handoff ChatGPT/Notion e cache-busters privados validados.');
