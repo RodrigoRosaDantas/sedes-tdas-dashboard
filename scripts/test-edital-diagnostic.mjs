@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import {DIAGNOSTIC_STORAGE_KEY,diagnosticSearchTerm,exactTopicSelection,normalizeTopicKey,parseDiagnosticTarget,readDiagnosticState,recordDiagnosticAttempt,saveDiagnosticActive,summarizeLocalDiagnostics} from '../assets/integration/edital-diagnostic.js';
+import {buildEditalEvidenceSummary,diagnosticUrlForTopic,mergeRemoteDiagnosticEvidence} from '../assets/integration/edital-evidence-runtime.js';
 
-class MemoryStorage{constructor(){this.map=new Map()}getItem(key){return this.map.has(key)?this.map.get(key):null}setItem(key,value){this.map.set(key,String(value))}}
+class MemoryStorage{constructor(entries={}){this.map=new Map(Object.entries(entries))}getItem(key){return this.map.has(key)?this.map.get(key):null}setItem(key,value){this.map.set(key,String(value))}removeItem(key){this.map.delete(key)}}
 const storage=new MemoryStorage();
 const target=parseDiagnosticTarget('?source=edital&editalId=TDAS202:11111111111111111111111111111111&editalTopic=Reg%C3%AAncia%20verbal%20e%20nominal.&editalCode=5.6&editalDiscipline=Portugu%C3%AAs');
 assert.ok(target,'Alvo diagnóstico válido não foi reconhecido.');
@@ -27,16 +28,36 @@ assert.equal(mixed.measuredCount,1,'Tentativa auxiliar não pode aumentar tópic
 assert.equal(mixed.intentOnlyCount,1,'Tentativa auxiliar deve permanecer auditável separadamente.');
 assert.ok(storage.getItem(DIAGNOSTIC_STORAGE_KEY),'Sidecar diagnóstico não foi salvo.');
 
-const [editalHtml,resolverHtml,diagnostic,pwaPreserver]=await Promise.all([
- fs.readFile('edital/index.html','utf8'),fs.readFile('resolver/index.html','utf8'),fs.readFile('assets/integration/edital-diagnostic.js','utf8'),fs.readFile('scripts/preserve-v27-pwa.mjs','utf8')
+const historicalTarget={source:'edital',canonicalId:'TDAS202:22222222222222222222222222222222',topic:'Tópico já oficializado',code:'2',discipline:'Disciplina',searchTerm:'Tópico já oficializado'};
+recordDiagnosticAttempt({attempt:{id:'attempt:historical',catalogId:'tdas-bank-historical',correct:9,total:10,percent:90,finishedAt:3000},target:historicalTarget,measurementEligible:true},storage);
+const pendingTopic={canonicalId:'TDAS202:33333333333333333333333333333333',id:'33333333-3333-3333-3333-333333333333',topic:'Tópico ainda sem evidência',code:'3',discipline:'Disciplina',priority:'Alta',risk:'critical',measurement:{state:'unmeasured'}};
+const edital={topics:[{canonicalId:target.canonicalId,id:'11111111-1111-1111-1111-111111111111',topic:target.topic,discipline:'Português',priority:'Média',risk:'attention',measurement:{state:'unmeasured'}},{canonicalId:historicalTarget.canonicalId,id:'22222222-2222-2222-2222-222222222222',topic:historicalTarget.topic,discipline:'Disciplina',priority:'Alta',risk:'critical',measurement:{state:'measured'}},pendingTopic]};
+let evidence=buildEditalEvidenceSummary({edital,storage});
+assert.equal(evidence.localExactAll,2,'Histórico privado deve preservar aferições exatas antigas.');
+assert.equal(evidence.localExactCurrent,1,'Aferição que já virou oficial não pode reduzir lacunas atuais duas vezes.');
+assert.equal(evidence.pending,1,'Pendentes devem considerar somente aferições locais ainda ligadas a itens oficialmente sem bateria.');
+assert.equal(evidence.nextDiagnostic?.canonicalId,pendingTopic.canonicalId,'Próxima bateria deve priorizar a lacuna crítica de alta prioridade.');
+assert.match(diagnosticUrlForTopic(pendingTopic),/source=edital/,'CTA diagnóstico deve preservar a origem canônica.');
+
+mergeRemoteDiagnosticEvidence([{payload:{attemptId:'attempt:remote',catalogId:'tdas-bank-remote',target:{source:'edital',canonicalId:pendingTopic.canonicalId,topic:pendingTopic.topic,code:'3',discipline:'Disciplina',searchTerm:pendingTopic.topic},measurementEligible:true,correct:6,total:10,percent:60,finishedAt:4000,recordedAt:4001}}],storage);
+evidence=buildEditalEvidenceSummary({edital,storage});
+assert.equal(evidence.localExactCurrent,2,'Aferição remota exata deve materializar no sidecar privado.');
+assert.equal(evidence.pending,0,'Aferição remota exata deve fechar a lacuna local correspondente.');
+assert.equal(evidence.intentOnly,1,'Sincronização privada não pode transformar tentativa auxiliar em aferição.');
+assert.equal(evidence.lowestExact?.attempt.percent,60,'Menor aferição local deve permanecer rastreável sem virar nota oficial.');
+
+const [homeHtml,editalHtml,resolverHtml,mentorHtml,performanceHtml,diagnostic,runtime,pwaPreserver]=await Promise.all([
+ fs.readFile('index.html','utf8'),fs.readFile('edital/index.html','utf8'),fs.readFile('resolver/index.html','utf8'),fs.readFile('mentor/index.html','utf8'),fs.readFile('desempenho/index.html','utf8'),fs.readFile('assets/integration/edital-diagnostic.js','utf8'),fs.readFile('assets/integration/edital-evidence-runtime.js','utf8'),fs.readFile('scripts/preserve-v27-pwa.mjs','utf8')
 ]);
 for(const html of[editalHtml,resolverHtml]){
  assert.match(html,/edital-diagnostic\.css\?v=1\.0\.0/,'A camada diagnóstica perdeu o CSS compartilhado.');
  assert.match(html,/edital-diagnostic\.js\?v=1\.0\.0/,'A camada diagnóstica perdeu o controlador compartilhado.');
 }
+for(const html of[homeHtml,editalHtml,resolverHtml,mentorHtml,performanceHtml])assert.match(html,/edital-evidence-runtime\.js\?v=1\.0\.0/,'Uma rota operacional perdeu a camada privada de evidência do Edital.');
 for(const marker of['Fila diagnóstica','Aferir no Banco','measurementEligible','exactTopicSelection','intent-only','TDAS202:'])assert.ok(diagnostic.includes(marker),`Controlador diagnóstico perdeu ${marker}.`);
+for(const marker of['Evidência do Edital','Lacuna de evidência','Sua maior oportunidade agora','editalDiagnostic','queueMutableRecord','syncPrivateHistory','localExactCurrent'])assert.ok(runtime.includes(marker),`Runtime de evidência perdeu ${marker}.`);
 assert.match(diagnostic,/loadQuestionBank/,'Banco não valida as questões selecionadas antes de atribuir aferição.');
 assert.match(diagnostic,/question\?\.assunto/,'Aferição canônica deixou de exigir o campo Assunto.');
-assert.ok(!diagnostic.includes('api.notion.com'),'Navegador não pode consultar diretamente a API do Notion.');
-for(const asset of['assets/integration/edital-diagnostic.js','assets/integration/edital-diagnostic.css'])assert.ok(pwaPreserver.includes(asset),`PWA pode perder ${asset} na próxima sincronização.`);
-console.log('Fila diagnóstica validada: alvo canônico, busca assistida, matching lexical exato, sidecar local, PWA e separação entre aferição e intenção preservados.');
+assert.ok(!diagnostic.includes('api.notion.com')&&!runtime.includes('api.notion.com'),'Navegador não pode consultar diretamente a API do Notion.');
+for(const asset of['assets/integration/edital-diagnostic.js','assets/integration/edital-diagnostic.css','assets/integration/edital-evidence-runtime.js'])assert.ok(pwaPreserver.includes(asset),`PWA pode perder ${asset} na próxima sincronização.`);
+console.log('Fila diagnóstica e evidência privada validadas: vínculo exato, pendência atual, priorização, Firebase privado, PWA e separação oficial preservados.');
