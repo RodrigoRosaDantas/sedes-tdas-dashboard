@@ -208,18 +208,63 @@ jobs:
           set -euo pipefail
           git push origin HEAD:main
 
-      - name: Solicitar build do GitHub Pages da revisão sincronizada
+      - name: Publicar e confirmar revisão sincronizada no GitHub Pages
         if: steps.cycle.outputs.run == 'true' && steps.publish.outputs.changed == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
-          curl --fail-with-body --silent --show-error --location \
-            --request POST \
-            --header 'Accept: application/vnd.github+json' \
-            --header "Authorization: Bearer ${GH_TOKEN}" \
-            --header 'X-GitHub-Api-Version: 2026-03-10' \
-            "https://api.github.com/repos/${GITHUB_REPOSITORY}/pages/builds"
-          echo
-          echo 'Build do GitHub Pages solicitado para a revisão mais recente da main.'
+          target_sha="$(git rev-parse HEAD)"
+          main_sha=''
+          pages_status='unknown'
+          ready='false'
+
+          for attempt in $(seq 1 60); do
+            main_sha="$(gh api "repos/${GITHUB_REPOSITORY}/branches/main" --jq '.commit.sha')"
+            pages_status="$(gh api "repos/${GITHUB_REPOSITORY}/pages/builds/latest" --jq '.status')"
+            echo "Aguardando publicação: main=${main_sha} alvo=${target_sha} Pages=${pages_status}"
+            if [[ "$main_sha" == "$target_sha" && "$pages_status" != 'building' ]]; then
+              ready='true'
+              break
+            fi
+            sleep 2
+          done
+
+          if [[ "$ready" != 'true' ]]; then
+            echo "A main ou o Pages não estabilizou antes da publicação. main=${main_sha}; alvo=${target_sha}; Pages=${pages_status}" >&2
+            exit 1
+          fi
+
+          response="$(gh api --method POST "repos/${GITHUB_REPOSITORY}/pages/builds")"
+          build_url="$(jq -r '.url // empty' <<<"$response")"
+          build_id="${build_url##*/}"
+          build_commit="$(jq -r '.commit // empty' <<<"$response")"
+          if [[ -z "$build_id" || "$build_commit" != "$target_sha" ]]; then
+            echo "O Pages não aceitou a revisão sincronizada esperada. resposta=${response}" >&2
+            exit 1
+          fi
+
+          final_status='queued'
+          for attempt in $(seq 1 90); do
+            build="$(gh api "repos/${GITHUB_REPOSITORY}/pages/builds/${build_id}")"
+            final_status="$(jq -r '.status // "unknown"' <<<"$build")"
+            build_commit="$(jq -r '.commit // empty' <<<"$build")"
+            echo "Build Pages ${build_commit}: ${final_status}"
+            if [[ "$build_commit" != "$target_sha" ]]; then
+              echo 'O build mudou de revisão durante a publicação.' >&2
+              exit 1
+            fi
+            if [[ "$final_status" == 'built' ]]; then
+              echo "GitHub Pages confirmado na revisão sincronizada ${target_sha}."
+              exit 0
+            fi
+            if [[ "$final_status" == 'errored' ]]; then
+              echo "GitHub Pages falhou para a revisão sincronizada ${target_sha}." >&2
+              exit 1
+            fi
+            sleep 2
+          done
+
+          echo "Timeout aguardando GitHub Pages concluir a revisão ${target_sha}; último status=${final_status}." >&2
+          exit 1
