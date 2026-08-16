@@ -48,7 +48,11 @@ assert.match(pagesStep,/previous_build_url/,'Após POST, a confirmação deve ex
 assert.match(pagesStep,/pages_commit.*target_sha/s,'A publicação final precisa pertencer ao SHA exato do sync.');
 assert.match(pagesStep,/pages_status.*== 'built'/s,'Sync só pode confirmar a publicação quando o SHA alvo terminar como built.');
 assert.match(pagesStep,/pages_status.*== 'errored'/s,'Falha do build do SHA alvo precisa falhar a etapa de publicação.');
-assert.doesNotMatch(pagesStep,/response[\s\S]*\.commit/,'A resposta do POST não deve ser tratada como se trouxesse obrigatoriamente o commit do build.');
+const postStart=pagesStep.indexOf('response="$(gh api --method POST');
+const postEnd=pagesStep.indexOf('for attempt in $(seq 1 90); do',postStart);
+assert.ok(postStart>=0&&postEnd>postStart,'Bloco de solicitação do rebuild do Pages não encontrado.');
+const postResponseBlock=pagesStep.slice(postStart,postEnd);
+assert.doesNotMatch(postResponseBlock,/\.commit/,'A resposta do POST não deve ser tratada como se trouxesse obrigatoriamente o commit do build.');
 
 const validator = fs.readFileSync('scripts/validate-calendar-snapshot.mjs', 'utf8');
 assert.match(validator, /dateInTimeZone\(process\.env\.NOW \|\| new Date\(\)\)/, 'O validador diário precisa respeitar o instante fixado pelo workflow.');
