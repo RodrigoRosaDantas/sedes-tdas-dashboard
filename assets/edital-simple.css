@@ -1,0 +1,47 @@
+.edital-simple .edital-metric-secondary{display:none}
+.edital-simple .edital-metrics{grid-template-columns:repeat(3,minmax(0,1fr));margin-bottom:.4rem}
+.edital-simple .edital-hero{padding-bottom:1.1rem}
+.edital-simple .edital-hero p{max-width:760px}
+.edital-simple .edital-hero .hero-actions{margin-top:.85rem}
+.edital-simple .edital-hero .hero-actions .btn:first-child{min-width:220px;justify-content:center}
+.edital-simple .edital-topic>small{display:none}
+.edital-simple .edital-diagnostic{margin-top:.65rem}
+.edital-simple .edital-diagnostic .section-head{align-items:end}
+.edital-simple .edital-diagnostic .section-head p{max-width:720px}
+.edital-simple .edital-diagnostic-summary{grid-template-columns:minmax(220px,340px);margin:.8rem 0}
+.edital-simple .edital-diagnostic-summary>div{padding:.85rem 1rem}
+.edital-simple .edital-diagnostic-grid{grid-template-columns:minmax(0,1fr);max-width:760px}
+.edital-simple .edital-diagnostic-grid>.edital-diagnostic-card{padding:1rem 1.1rem}
+.edital-simple .edital-diagnostic-card small{display:none}
+.edital-simple .edital-diagnostic-actions{padding-top:.4rem}
+.edital-simple .edital-diagnostic-more,.edital-simple .edital-catalog-details,.edital-simple .edital-secondary,.edital-simple .edital-filter-details{border:1px solid var(--line);border-radius:16px;background:var(--surface)}
+.edital-simple .edital-diagnostic-more{max-width:760px;margin-top:.75rem}
+.edital-simple .edital-diagnostic-more>summary,.edital-simple .edital-catalog-details>summary,.edital-simple .edital-secondary>summary,.edital-simple .edital-filter-details>summary{cursor:pointer;list-style:none;font-weight:800}
+.edital-simple .edital-diagnostic-more>summary::-webkit-details-marker,.edital-simple .edital-catalog-details>summary::-webkit-details-marker,.edital-simple .edital-secondary>summary::-webkit-details-marker,.edital-simple .edital-filter-details>summary::-webkit-details-marker{display:none}
+.edital-simple .edital-diagnostic-more>summary{padding:.85rem 1rem;color:var(--accent)}
+.edital-simple .edital-diagnostic-more-body{padding:0 1rem 1rem}
+.edital-simple .edital-diagnostic-summary-extra{grid-template-columns:repeat(3,minmax(0,1fr));max-width:none}
+.edital-simple .edital-diagnostic-grid-extra{grid-template-columns:repeat(2,minmax(0,1fr));max-width:none}
+.edital-simple .edital-diagnostic-note{margin-top:.8rem}
+.edital-simple #topicos>.section-head{margin-bottom:.65rem}
+.edital-simple .edital-catalog-details{overflow:hidden}
+.edital-simple .edital-catalog-details>summary,.edital-simple .edital-secondary>summary{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:1rem 1.1rem}
+.edital-simple .edital-catalog-details>summary span:first-child,.edital-simple .edital-secondary>summary span:first-child{font-size:1rem}
+.edital-simple .edital-catalog-details>summary small,.edital-simple .edital-secondary>summary small{color:var(--muted);font-weight:600}
+.edital-simple .edital-catalog-details>summary::after,.edital-simple .edital-secondary>summary::after,.edital-simple .edital-filter-details>summary::after,.edital-simple .edital-diagnostic-more>summary::after{content:'＋';margin-left:auto;color:var(--muted)}
+.edital-simple .edital-catalog-details[open]>summary::after,.edital-simple .edital-secondary[open]>summary::after,.edital-simple .edital-filter-details[open]>summary::after,.edital-simple .edital-diagnostic-more[open]>summary::after{content:'−'}
+.edital-simple .edital-catalog-body{padding:0 1rem 1rem}
+.edital-simple .edital-filter-details{margin:0 0 12px;background:var(--surface2)}
+.edital-simple .edital-filter-details>summary{padding:.75rem .9rem;color:var(--muted)}
+.edital-simple .edital-filter-details .edital-filters{margin:0;padding:0 .9rem .9rem;border:0;background:transparent}
+.edital-simple .edital-quickviews{margin-top:.2rem}
+.edital-simple .edital-table{min-width:920px}
+.edital-simple .edital-table th:nth-child(1),.edital-simple .edital-table td:nth-child(1),.edital-simple .edital-table th:nth-child(5),.edital-simple .edital-table td:nth-child(5),.edital-simple .edital-table th:nth-child(6),.edital-simple .edital-table td:nth-child(6){display:none}
+.edital-simple .edital-topic{min-width:300px}
+.edital-simple .edital-secondary{margin-top:1rem}
+.edital-simple .edital-secondary-body{padding:0 1rem 1rem}
+.edital-simple .edital-secondary .section{margin-top:1rem}
+.edital-simple .edital-source-links{display:flex;gap:.6rem;flex-wrap:wrap;padding-top:.2rem}
+.edital-simple .edital-source-links .btn{font-size:.86rem}
+@media(max-width:900px){.edital-simple .edital-diagnostic-summary-extra,.edital-simple .edital-diagnostic-grid-extra{grid-template-columns:1fr 1fr}.edital-simple .edital-catalog-details>summary,.edital-simple .edital-secondary>summary{align-items:flex-start;flex-direction:column;gap:.25rem}.edital-simple .edital-catalog-details>summary::after,.edital-simple .edital-secondary>summary::after{position:absolute;right:1rem}.edital-simple .edital-catalog-details>summary,.edital-simple .edital-secondary>summary{position:relative;padding-right:3rem}}
+@media(max-width:720px){.edital-simple .edital-metrics{grid-template-columns:1fr 1fr 1fr;gap:8px}.edital-simple .edital-metrics .metric{padding:11px 9px}.edital-simple .edital-metrics .metric strong{font-size:1.15rem}.edital-simple .edital-metrics .metric small{font-size:.68rem}.edital-simple .edital-diagnostic .section-head{display:block}.edital-simple .edital-diagnostic .section-head .btn{width:100%;justify-content:center;margin-top:.65rem}.edital-simple .edital-diagnostic-summary{max-width:none}.edital-simple .edital-diagnostic-grid{max-width:none}.edital-simple .edital-diagnostic-summary-extra,.edital-simple .edital-diagnostic-grid-extra{grid-template-columns:1fr}.edital-simple .edital-quickviews{display:flex;overflow-x:auto;flex-wrap:nowrap;padding-bottom:4px;scrollbar-width:none}.edital-simple .edital-quickviews::-webkit-scrollbar{display:none}.edital-simple .edital-view{width:auto;flex:0 0 auto}.edital-simple .edital-table td[data-label="Código"],.edital-simple .edital-table td[data-label="Cobertura"],.edital-simple .edital-table td[data-label="Prioridade"],.edital-simple .edital-table td[data-label="Disciplina"]{display:none}.edital-simple .edital-catalog-body{padding:0 .7rem .7rem}.edital-simple .edital-secondary-body{padding:0 .7rem .7rem}}
