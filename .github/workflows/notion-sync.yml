@@ -216,55 +216,89 @@ jobs:
         run: |
           set -euo pipefail
           target_sha="$(git rev-parse HEAD)"
-          main_sha=''
-          pages_status='unknown'
-          ready='false'
+          stable_without_target=0
+          previous_build_url=''
+          request_needed='false'
 
-          for attempt in $(seq 1 60); do
+          for attempt in $(seq 1 90); do
             main_sha="$(gh api "repos/${GITHUB_REPOSITORY}/branches/main" --jq '.commit.sha')"
-            pages_status="$(gh api "repos/${GITHUB_REPOSITORY}/pages/builds/latest" --jq '.status')"
-            echo "Aguardando publicação: main=${main_sha} alvo=${target_sha} Pages=${pages_status}"
-            if [[ "$main_sha" == "$target_sha" && "$pages_status" != 'building' ]]; then
-              ready='true'
+            latest="$(gh api "repos/${GITHUB_REPOSITORY}/pages/builds/latest")"
+            pages_status="$(jq -r '.status // "unknown"' <<<"$latest")"
+            pages_commit="$(jq -r '.commit // empty' <<<"$latest")"
+            pages_url="$(jq -r '.url // empty' <<<"$latest")"
+            echo "Pages: main=${main_sha} alvo=${target_sha} build=${pages_commit} status=${pages_status}"
+
+            if [[ "$main_sha" != "$target_sha" ]]; then
+              stable_without_target=0
+              sleep 2
+              continue
+            fi
+
+            if [[ "$pages_commit" == "$target_sha" ]]; then
+              stable_without_target=0
+              if [[ "$pages_status" == 'built' ]]; then
+                echo "GitHub Pages já confirmado na revisão sincronizada ${target_sha}."
+                exit 0
+              fi
+              if [[ "$pages_status" == 'building' || "$pages_status" == 'queued' ]]; then
+                sleep 2
+                continue
+              fi
+              previous_build_url="$pages_url"
+              request_needed='true'
               break
             fi
-            sleep 2
+
+            if [[ "$pages_status" == 'building' || "$pages_status" == 'queued' ]]; then
+              stable_without_target=0
+              sleep 2
+              continue
+            fi
+
+            stable_without_target=$((stable_without_target + 1))
+            if [[ $stable_without_target -lt 3 ]]; then
+              sleep 2
+              continue
+            fi
+            previous_build_url="$pages_url"
+            request_needed='true'
+            break
           done
 
-          if [[ "$ready" != 'true' ]]; then
-            echo "A main ou o Pages não estabilizou antes da publicação. main=${main_sha}; alvo=${target_sha}; Pages=${pages_status}" >&2
+          if [[ "$request_needed" != 'true' ]]; then
+            echo "O Pages não estabilizou nem confirmou a revisão sincronizada ${target_sha}." >&2
             exit 1
           fi
 
           response="$(gh api --method POST "repos/${GITHUB_REPOSITORY}/pages/builds")"
-          build_url="$(jq -r '.url // empty' <<<"$response")"
-          build_id="${build_url##*/}"
-          build_commit="$(jq -r '.commit // empty' <<<"$response")"
-          if [[ -z "$build_id" || "$build_commit" != "$target_sha" ]]; then
-            echo "O Pages não aceitou a revisão sincronizada esperada. resposta=${response}" >&2
-            exit 1
-          fi
+          request_status="$(jq -r '.status // "unknown"' <<<"$response")"
+          echo "Rebuild solicitado ao Pages: ${request_status}."
 
-          final_status='queued'
           for attempt in $(seq 1 90); do
-            build="$(gh api "repos/${GITHUB_REPOSITORY}/pages/builds/${build_id}")"
-            final_status="$(jq -r '.status // "unknown"' <<<"$build")"
-            build_commit="$(jq -r '.commit // empty' <<<"$build")"
-            echo "Build Pages ${build_commit}: ${final_status}"
-            if [[ "$build_commit" != "$target_sha" ]]; then
-              echo 'O build mudou de revisão durante a publicação.' >&2
-              exit 1
+            latest="$(gh api "repos/${GITHUB_REPOSITORY}/pages/builds/latest")"
+            pages_status="$(jq -r '.status // "unknown"' <<<"$latest")"
+            pages_commit="$(jq -r '.commit // empty' <<<"$latest")"
+            pages_url="$(jq -r '.url // empty' <<<"$latest")"
+            echo "Rebuild Pages: commit=${pages_commit} status=${pages_status}"
+
+            if [[ "$pages_url" == "$previous_build_url" ]]; then
+              sleep 2
+              continue
             fi
-            if [[ "$final_status" == 'built' ]]; then
+            if [[ "$pages_commit" != "$target_sha" ]]; then
+              sleep 2
+              continue
+            fi
+            if [[ "$pages_status" == 'built' ]]; then
               echo "GitHub Pages confirmado na revisão sincronizada ${target_sha}."
               exit 0
             fi
-            if [[ "$final_status" == 'errored' ]]; then
+            if [[ "$pages_status" == 'errored' ]]; then
               echo "GitHub Pages falhou para a revisão sincronizada ${target_sha}." >&2
               exit 1
             fi
             sleep 2
           done
 
-          echo "Timeout aguardando GitHub Pages concluir a revisão ${target_sha}; último status=${final_status}." >&2
+          echo "Timeout aguardando GitHub Pages concluir a revisão ${target_sha}." >&2
           exit 1

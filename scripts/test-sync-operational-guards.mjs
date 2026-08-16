@@ -39,13 +39,20 @@ const pagesStep=workflow.slice(pagesStart);
 assert.match(pagesStep,/steps\.publish\.outputs\.changed == 'true'/,'Pages só deve ser tratado quando o snapshot realmente mudar.');
 assert.match(pagesStep,/target_sha="\$\(git rev-parse HEAD\)"/,'Publicação deve fixar o SHA exato produzido pelo sync.');
 assert.match(pagesStep,/branches\/main[\s\S]*\.commit\.sha/,'Publicação deve confirmar que a main já aponta para o SHA sincronizado.');
-assert.match(pagesStep,/pages\/builds\/latest[\s\S]*pages_status/,'Publicação deve esperar um build anterior do Pages terminar antes de pedir outro.');
-assert.match(pagesStep,/pages_status.*!= 'building'/s,'Novo build não pode competir com outro build ainda em andamento.');
-assert.match(pagesStep,/gh api --method POST [^\n]*pages\/builds/,'Sync validado deve solicitar explicitamente um novo build do Pages.');
-assert.match(pagesStep,/build_commit.*target_sha/s,'Build solicitado precisa pertencer ao SHA exato do sync.');
-assert.match(pagesStep,/pages\/builds\/\$\{build_id\}/,'Workflow deve acompanhar o build específico que acabou de solicitar.');
-assert.match(pagesStep,/final_status.*== 'built'/s,'Sync só pode confirmar a publicação quando o build específico terminar como built.');
-assert.match(pagesStep,/final_status.*== 'errored'/s,'Falha do build específico precisa falhar a etapa de publicação.');
+assert.match(pagesStep,/pages\/builds\/latest/,'Publicação deve observar o build mais recente do Pages.');
+assert.match(pagesStep,/pages_commit.*target_sha[\s\S]*pages_status.*built/s,'Se o SHA sincronizado já estiver built, a etapa deve encerrar com sucesso sem rebuild duplicado.');
+assert.match(pagesStep,/pages_status.*building.*pages_status.*queued/s,'A etapa deve esperar builds automáticos em andamento antes de decidir por rebuild.');
+assert.match(pagesStep,/stable_without_target/,'A ausência de build do SHA alvo precisa ser confirmada por mais de uma leitura antes de solicitar rebuild.');
+assert.match(pagesStep,/gh api --method POST [^\n]*pages\/builds/,'Se necessário, o sync deve solicitar explicitamente um novo build do Pages.');
+assert.match(pagesStep,/previous_build_url/,'Após POST, a confirmação deve exigir um build novo em vez de reaproveitar o registro anterior.');
+assert.match(pagesStep,/pages_commit.*target_sha/s,'A publicação final precisa pertencer ao SHA exato do sync.');
+assert.match(pagesStep,/pages_status.*== 'built'/s,'Sync só pode confirmar a publicação quando o SHA alvo terminar como built.');
+assert.match(pagesStep,/pages_status.*== 'errored'/s,'Falha do build do SHA alvo precisa falhar a etapa de publicação.');
+const postStart=pagesStep.indexOf('response="$(gh api --method POST');
+const postEnd=pagesStep.indexOf('for attempt in $(seq 1 90); do',postStart);
+assert.ok(postStart>=0&&postEnd>postStart,'Bloco de solicitação do rebuild do Pages não encontrado.');
+const postResponseBlock=pagesStep.slice(postStart,postEnd);
+assert.doesNotMatch(postResponseBlock,/\.commit/,'A resposta do POST não deve ser tratada como se trouxesse obrigatoriamente o commit do build.');
 
 const validator = fs.readFileSync('scripts/validate-calendar-snapshot.mjs', 'utf8');
 assert.match(validator, /dateInTimeZone\(process\.env\.NOW \|\| new Date\(\)\)/, 'O validador diário precisa respeitar o instante fixado pelo workflow.');
@@ -58,4 +65,4 @@ assert.doesNotMatch(
   'Testes sobre o snapshot vigente não podem ficar presos a um PE literal.'
 );
 
-console.log('Guardas operacionais validadas: data fixa atravessa meia-noite, falhas são registradas, PE vigente não fica fixado e Pages só confirma publicação do SHA exato após serializar builds.');
+console.log('Guardas operacionais validadas: data fixa atravessa meia-noite, falhas são registradas, PE vigente não fica fixado e Pages confirma idempotentemente o SHA exato, com rebuild apenas quando necessário.');
