@@ -6,8 +6,11 @@ on:
     branches: [main]
     paths:
       - 'edital/**'
+      - 'resolver/**'
       - 'assets/edital.js'
       - 'assets/edital.css'
+      - 'assets/integration/edital-diagnostic.js'
+      - 'assets/integration/edital-diagnostic.css'
       - 'assets/common.js'
       - 'assets/more.js'
       - 'assets/tdas-mobile-ux.js'
@@ -15,8 +18,10 @@ on:
       - 'scripts/notion/edital-status.mjs'
       - 'scripts/notion/source-manifest.mjs'
       - 'scripts/postprocess-v26.mjs'
+      - 'scripts/preserve-v27-pwa.mjs'
       - 'scripts/sync-platform-version.mjs'
       - 'scripts/test-edital-page.mjs'
+      - 'scripts/test-edital-diagnostic.mjs'
       - 'package.json'
       - 'sw.js'
       - '.github/workflows/edital-browser.yml'
@@ -24,8 +29,11 @@ on:
     branches: [main]
     paths:
       - 'edital/**'
+      - 'resolver/**'
       - 'assets/edital.js'
       - 'assets/edital.css'
+      - 'assets/integration/edital-diagnostic.js'
+      - 'assets/integration/edital-diagnostic.css'
       - 'assets/common.js'
       - 'assets/more.js'
       - 'assets/tdas-mobile-ux.js'
@@ -33,8 +41,10 @@ on:
       - 'scripts/notion/edital-status.mjs'
       - 'scripts/notion/source-manifest.mjs'
       - 'scripts/postprocess-v26.mjs'
+      - 'scripts/preserve-v27-pwa.mjs'
       - 'scripts/sync-platform-version.mjs'
       - 'scripts/test-edital-page.mjs'
+      - 'scripts/test-edital-diagnostic.mjs'
       - 'package.json'
       - 'sw.js'
       - '.github/workflows/edital-browser.yml'
@@ -118,6 +128,10 @@ jobs:
           grep -q 'Edital inteligente' /tmp/edital.html
           grep -q 'Aferidos' /tmp/edital.html
           grep -q 'Sem bateria' /tmp/edital.html
+          grep -q 'Fila diagnóstica' /tmp/edital.html
+          grep -q 'Transformar “sem bateria” em evidência real' /tmp/edital.html
+          grep -q 'Aferir no Banco' /tmp/edital.html
+          grep -q 'Tentativas auxiliares' /tmp/edital.html
           grep -q 'Ausência de bateria não é 0%' /tmp/edital.html
           grep -q 'TDAS202:' /tmp/edital.html
           grep -q "${TOTAL} tópicos" /tmp/edital.html
@@ -137,7 +151,7 @@ jobs:
           grep -q 'Edital</b>' /tmp/edital-mobile.html
           ! grep -Eqi 'Carregando o edital|Não foi possível carregar esta página|Snapshot parcial' /tmp/edital.html /tmp/edital-mobile.html
           ! grep -Eqi 'Uncaught (TypeError|ReferenceError|SyntaxError)' /tmp/edital*.stderr
-          printf '{"editalBrowser":"ok","total":%s,"critical":%s,"attention":%s,"unmeasured":%s,"consolidated":%s,"review":%s,"portuguese":%s,"block":%s,"searchCrase":%s,"mobile":true,"filters":true,"views":true}\n' "$TOTAL" "$CRITICAL" "$ATTENTION" "$UNMEASURED" "$CONSOLIDATED" "$REVIEW" "$PORTUGUESE" "$BLOCK" "$SEARCH_CRASE"
+          printf '{"editalBrowser":"ok","total":%s,"critical":%s,"attention":%s,"unmeasured":%s,"consolidated":%s,"review":%s,"portuguese":%s,"block":%s,"searchCrase":%s,"diagnosticQueue":true,"mobile":true,"filters":true,"views":true}\n' "$TOTAL" "$CRITICAL" "$ATTENTION" "$UNMEASURED" "$CONSOLIDATED" "$REVIEW" "$PORTUGUESE" "$BLOCK" "$SEARCH_CRASE"
 
       - name: Diagnosticar falha
         if: failure()
@@ -147,7 +161,7 @@ jobs:
           for file in /tmp/edital.html /tmp/edital-mobile.html /tmp/edital-unmeasured.html /tmp/edital-attention.html /tmp/edital-consolidated.html /tmp/edital-review.html /tmp/edital-critical.html /tmp/edital-portugues.html /tmp/edital-block.html /tmp/edital-search.html; do
             [[ -f "$file" ]] || continue
             echo "=== $file ==="
-            grep -Eo '[0-9]+ de [0-9]+ itens|Não foi possível carregar esta página|Snapshot parcial|O que já foi coberto|Edital inteligente|Aferidos|Sem bateria|Check do Edital</b>|Edital</b>|>Mais</span>' "$file" | head -40 || true
+            grep -Eo '[0-9]+ de [0-9]+ itens|Não foi possível carregar esta página|Snapshot parcial|O que já foi coberto|Edital inteligente|Fila diagnóstica|Aferir no Banco|Aferidos|Sem bateria|Check do Edital</b>|Edital</b>|>Mais</span>' "$file" | head -50 || true
           done
           for file in /tmp/edital*.stderr; do
             [[ -f "$file" ]] || continue
