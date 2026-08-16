@@ -28,6 +28,15 @@ function simplifyCatalog(section){
  heroCatalogAction?.addEventListener('click',()=>{if(heroCatalogAction.getAttribute('href')==='#topicos')details.open=true});
 }
 
+function ensureVerticalizedGateway(metrics,catalog){
+ if(!metrics||!catalog||document.querySelector('[data-edital-verticalized-gateway]'))return;
+ const count=document.querySelector('#result-count')?.textContent?.match(/\d+/)?.[0]||'82';
+ const gateway=document.createElement('section');gateway.className='edital-verticalized-gateway';gateway.dataset.editalVerticalizedGateway='1';
+ gateway.innerHTML=`<article class="card"><div><span class="kicker">Edital verticalizado</span><h2>Consulte os ${count} tópicos do edital</h2><p>Veja matéria por matéria, tópico por tópico, com cobertura, risco, bateria tópica e próxima ação.</p></div><a class="btn primary" data-open-verticalized href="#topicos">Abrir edital verticalizado</a></article>`;
+ metrics.after(gateway);
+ gateway.querySelector('[data-open-verticalized]')?.addEventListener('click',()=>{const details=catalog.querySelector('.edital-catalog-details');if(details)details.open=true});
+}
+
 function simplifyDiagnostic(section){
  if(!section||section.dataset.simpleDiagnostic)return;section.dataset.simpleDiagnostic='1';
  const kicker=section.querySelector('.kicker'),title=section.querySelector('h2'),description=section.querySelector('.section-head p'),headAction=section.querySelector('.section-head>.btn');
@@ -78,7 +87,7 @@ async function init(){
  if(title)title.textContent='Seu edital, sem bagunça';
  if(paragraph)paragraph.innerHTML='Veja <strong>o que já foi coberto</strong>, <strong>o que já foi medido</strong> e <strong>o que fazer agora</strong>. O edital verticalizado continua disponível como consulta principal.';
  const metrics=document.querySelector('.edital-metrics');if(metrics)[...metrics.children].forEach((node,index)=>node.classList.toggle('edital-metric-secondary',index>2));
- const catalog=document.querySelector('#topicos');simplifyCatalog(catalog);
+ const catalog=document.querySelector('#topicos');simplifyCatalog(catalog);ensureVerticalizedGateway(metrics,catalog);
  const diagnostic=await waitFor('[data-edital-diagnostic-queue]',8000);simplifyDiagnostic(diagnostic);
  if(diagnostic)diagnostic.id='edital-proxima-acao';
  if(diagnostic&&catalog&&diagnostic.nextElementSibling!==catalog)catalog.before(diagnostic);
