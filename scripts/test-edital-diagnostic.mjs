@@ -28,7 +28,7 @@ assert.equal(mixed.measuredCount,1,'Tentativa auxiliar não pode aumentar tópic
 assert.equal(mixed.intentOnlyCount,1,'Tentativa auxiliar deve permanecer auditável separadamente.');
 assert.ok(storage.getItem(DIAGNOSTIC_STORAGE_KEY),'Sidecar diagnóstico não foi salvo.');
 
-const historicalTarget={source:'edital',canonicalId:'TDAS202:22222222222222222222222222222222',topic:'Tópico já oficializado',code:'2',discipline:'Disciplina',searchTerm:'Tópico já officializado'};
+const historicalTarget={source:'edital',canonicalId:'TDAS202:22222222222222222222222222222222',topic:'Tópico já oficializado',code:'2',discipline:'Disciplina',searchTerm:'Tópico já oficializado'};
 recordDiagnosticAttempt({attempt:{id:'attempt:historical',catalogId:'tdas-bank-historical',correct:9,total:10,percent:90,finishedAt:3000},target:historicalTarget,measurementEligible:true},storage);
 const pendingTopic={canonicalId:'TDAS202:33333333333333333333333333333333',id:'33333333-3333-3333-3333-333333333333',topic:'Tópico ainda sem evidência',code:'3',discipline:'Disciplina',priority:'Alta',risk:'critical',measurement:{state:'unmeasured'}};
 const edital={topics:[{canonicalId:target.canonicalId,id:'11111111-1111-1111-1111-111111111111',topic:target.topic,discipline:'Português',priority:'Média',risk:'attention',measurement:{state:'unmeasured'}},{canonicalId:historicalTarget.canonicalId,id:'22222222-2222-2222-2222-222222222222',topic:historicalTarget.topic,discipline:'Disciplina',priority:'Alta',risk:'critical',measurement:{state:'measured'}},pendingTopic]};
@@ -81,7 +81,7 @@ for(const html of[editalHtml,resolverHtml]){
  assert.match(html,/edital-diagnostic\.css\?v=1\.0\.0/,'A camada diagnóstica perdeu o CSS compartilhado.');
  assert.match(html,/edital-diagnostic\.js\?v=1\.0\.0/,'A camada diagnóstica perdeu o controlador compartilhado.');
 }
-for(const html of[homeHtml,editalHtml,resolverHtml,mentorHtml,performanceHtml])assert.match(html,/edital-evidence-runtime\.js\?v=1\.0\.0/,'Uma rota operacional perdeu a camada privada de evidência do Edital.');
+for(const html of[homeHtml,editalHtml,resolverHtml,mentorHtml,performanceHtml])assert.match(html,/edital-evidence-runtime\.js\?v=1\.1\.0/,'Uma rota operacional perdeu a camada privada de evidência do Edital.');
 for(const marker of['Fila diagnóstica','Aferir no Banco','measurementEligible','exactTopicSelection','intent-only','TDAS202:'])assert.ok(diagnostic.includes(marker),`Controlador diagnóstico perdeu ${marker}.`);
 for(const marker of['Evidência do Edital','Lacuna de evidência','Sua maior oportunidade agora','editalDiagnostic','queueMutableRecord','syncPrivateHistory','localExactCurrent','Sequência diagnóstica automática','Ordem operacional','COOLDOWN_MS','suggestedCount'])assert.ok(runtime.includes(marker),`Runtime de evidência perdeu ${marker}.`);
 assert.match(diagnostic,/loadQuestionBank/,'Banco não valida as questões selecionadas antes de atribuir aferição.');
