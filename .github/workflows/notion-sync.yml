@@ -43,6 +43,7 @@ on:
 
 permissions:
   contents: write
+  pages: write
 
 concurrency:
   group: notion-sync-publication
@@ -186,16 +187,19 @@ jobs:
 
       - name: Criar conjunto integral validado
         if: steps.cycle.outputs.run == 'true'
+        id: publish
         shell: bash
         run: |
           set -euo pipefail
           git add -A data pe materias sw.js
           if git diff --cached --quiet; then
+            echo 'changed=false' >> "$GITHUB_OUTPUT"
             echo 'Nenhum arquivo foi alterado.'
             exit 0
           fi
           git commit -m 'Sincronizar integralmente a Plataforma TDAS v28'
           git push origin "HEAD:refs/heads/${{ steps.branch.outputs.target }}"
+          echo 'changed=true' >> "$GITHUB_OUTPUT"
 
       - name: Promover atomicamente para main
         if: steps.cycle.outputs.run == 'true' && github.event_name != 'push'
@@ -203,3 +207,19 @@ jobs:
         run: |
           set -euo pipefail
           git push origin HEAD:main
+
+      - name: Solicitar build do GitHub Pages da revisão sincronizada
+        if: steps.cycle.outputs.run == 'true' && steps.publish.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail-with-body --silent --show-error --location \
+            --request POST \
+            --header 'Accept: application/vnd.github+json' \
+            --header "Authorization: Bearer ${GH_TOKEN}" \
+            --header 'X-GitHub-Api-Version: 2026-03-10' \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/pages/builds"
+          echo
+          echo 'Build do GitHub Pages solicitado para a revisão mais recente da main.'
