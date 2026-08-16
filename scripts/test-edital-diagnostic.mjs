@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs/promises';
 import {DIAGNOSTIC_STORAGE_KEY,diagnosticSearchTerm,exactTopicSelection,normalizeTopicKey,parseDiagnosticTarget,readDiagnosticState,recordDiagnosticAttempt,saveDiagnosticActive,summarizeLocalDiagnostics} from '../assets/integration/edital-diagnostic.js';
 
 class MemoryStorage{constructor(){this.map=new Map()}getItem(key){return this.map.has(key)?this.map.get(key):null}setItem(key,value){this.map.set(key,String(value))}}
@@ -25,4 +26,17 @@ const mixed=summarizeLocalDiagnostics(storage);
 assert.equal(mixed.measuredCount,1,'Tentativa auxiliar não pode aumentar tópicos aferidos.');
 assert.equal(mixed.intentOnlyCount,1,'Tentativa auxiliar deve permanecer auditável separadamente.');
 assert.ok(storage.getItem(DIAGNOSTIC_STORAGE_KEY),'Sidecar diagnóstico não foi salvo.');
-console.log('Fila diagnóstica validada: alvo canônico, busca assistida, matching lexical exato, sidecar local e separação entre aferição e intenção preservados.');
+
+const [editalHtml,resolverHtml,diagnostic,pwaPreserver]=await Promise.all([
+ fs.readFile('edital/index.html','utf8'),fs.readFile('resolver/index.html','utf8'),fs.readFile('assets/integration/edital-diagnostic.js','utf8'),fs.readFile('scripts/preserve-v27-pwa.mjs','utf8')
+]);
+for(const html of[editalHtml,resolverHtml]){
+ assert.match(html,/edital-diagnostic\.css\?v=1\.0\.0/,'A camada diagnóstica perdeu o CSS compartilhado.');
+ assert.match(html,/edital-diagnostic\.js\?v=1\.0\.0/,'A camada diagnóstica perdeu o controlador compartilhado.');
+}
+for(const marker of['Fila diagnóstica','Aferir no Banco','measurementEligible','exactTopicSelection','intent-only','TDAS202:'])assert.ok(diagnostic.includes(marker),`Controlador diagnóstico perdeu ${marker}.`);
+assert.match(diagnostic,/loadQuestionBank/,'Banco não valida as questões selecionadas antes de atribuir aferição.');
+assert.match(diagnostic,/question\.assunto/,'Aferição canônica deixou de exigir o campo Assunto.');
+assert.ok(!diagnostic.includes('api.notion.com'),'Navegador não pode consultar diretamente a API do Notion.');
+for(const asset of['assets/integration/edital-diagnostic.js','assets/integration/edital-diagnostic.css'])assert.ok(pwaPreserver.includes(asset),`PWA pode perder ${asset} na próxima sincronização.`);
+console.log('Fila diagnóstica validada: alvo canônico, busca assistida, matching lexical exato, sidecar local, PWA e separação entre aferição e intenção preservados.');
