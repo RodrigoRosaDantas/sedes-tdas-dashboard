@@ -4,11 +4,11 @@
   "dataVersion": "20260811.1",
   "catalogVersion": "edas-400-s12-20260807",
   "serviceWorkerVersion": "edas-20260809.1",
-  "sourceCommit": "58392a5ad0d26cfc11dcccae47ab7577cda60083",
-  "syncDate": "2026-08-15",
-  "syncAt": "2026-08-15T10:28:58-03:00",
+  "sourceCommit": "b2b50b75ac74a20eaaf0dbb9cb4b0cd18c682412",
+  "syncDate": "2026-08-16",
+  "syncAt": "2026-08-16T13:16:35-03:00",
   "releaseAt": "2026-08-09T14:00:21-03:00",
   "sprintId": "S08",
-  "publicationId": "20260809.1|20260811.1|edas-400-s12-20260807|2026-08-15T10:28:58-03:00|58392a5ad0d2",
-  "note": "Revalidação oficial em 15/08/2026 sem alteração semântica: Banco de Controle com 42 Sprints, 6 blocos concluídos, 205 questões e 167 acertos (81,46%); Caderno com 31 páginas detalhadas, preservando 38 erros acumulados; 12 estudos de caso. O S08 continua como próxima ação pendente. O snapshot semântico de 13/08 foi preservado e o frescor passou a ser registrado separadamente em data/revalidation.json."
+  "publicationId": "20260809.1|20260811.1|edas-400-s12-20260807|2026-08-16T13:16:35-03:00|b2b50b75ac74",
+  "note": "Revalidação oficial em 16/08/2026 sem alteração semântica: Banco de Controle confirmado com 42 Sprints válidos (desconsiderando ARQ01–ARQ03 marcados para arquivo), 6 blocos concluídos, 205 questões e 167 acertos (81,46%); Caderno confirmado com 31 páginas detalhadas, preservando 38 erros acumulados do snapshot; Estudos de Caso confirmado com 12 registros. O S08 continua como próxima ação pendente. O snapshot semântico de 13/08 foi preservado; esta revisão atualiza apenas o frescor validado da publicação."
 }
