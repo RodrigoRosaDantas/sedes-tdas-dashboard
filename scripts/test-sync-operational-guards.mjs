@@ -26,6 +26,19 @@ assert.match(
   'A falha deve reativar modo estrito, registrar histórico e publicar uma branch de erro.'
 );
 
+assert.match(workflow,/permissions:[\s\S]*contents: write[\s\S]*pages: write/,'O sync precisa de permissão explícita para solicitar rebuild do GitHub Pages.');
+const publishStart=workflow.indexOf('- name: Criar conjunto integral validado');
+const promoteStart=workflow.indexOf('\n      - name: Promover atomicamente para main',publishStart);
+const pagesStart=workflow.indexOf('\n      - name: Solicitar build do GitHub Pages da revisão sincronizada',promoteStart);
+assert.ok(publishStart>=0&&promoteStart>publishStart&&pagesStart>promoteStart,'Publicação deve gerar snapshot, promover main e só então solicitar o Pages.');
+const publishStep=workflow.slice(publishStart,promoteStart);
+assert.match(publishStep,/id: publish/,'Etapa de publicação precisa expor se houve mudança.');
+assert.match(publishStep,/changed=false.*GITHUB_OUTPUT/s,'Sync sem alteração precisa sinalizar que não há rebuild necessário.');
+assert.match(publishStep,/changed=true.*GITHUB_OUTPUT/s,'Sync com alteração precisa sinalizar rebuild necessário.');
+const pagesStep=workflow.slice(pagesStart);
+assert.match(pagesStep,/steps\.publish\.outputs\.changed == 'true'/,'Pages só deve ser solicitado quando o snapshot realmente mudar.');
+assert.match(pagesStep,/--request POST[\s\S]*\/pages\/builds/,'Sync validado deve solicitar explicitamente o build da revisão mais recente no GitHub Pages.');
+
 const validator = fs.readFileSync('scripts/validate-calendar-snapshot.mjs', 'utf8');
 assert.match(validator, /dateInTimeZone\(process\.env\.NOW \|\| new Date\(\)\)/, 'O validador diário precisa respeitar o instante fixado pelo workflow.');
 assert.ok(validator.includes('data de referência da execução'), 'A mensagem de validação deve distinguir referência fixada de relógio corrente.');
@@ -37,4 +50,4 @@ assert.doesNotMatch(
   'Testes sobre o snapshot vigente não podem ficar presos a um PE literal.'
 );
 
-console.log('Guardas operacionais validadas: data de referência fixa atravessa meia-noite, falhas são registradas e o PE vigente não fica fixado em teste.');
+console.log('Guardas operacionais validadas: data fixa atravessa meia-noite, falhas são registradas, PE vigente não fica fixado e todo snapshot alterado solicita rebuild do Pages.');
