@@ -1,0 +1,113 @@
+name: Validar acesso ao Edital verticalizado
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'edital/**'
+      - 'assets/edital.js'
+      - 'assets/edital.css'
+      - 'assets/edital-simple.js'
+      - 'assets/edital-simple.css'
+      - 'assets/edital-verticalized-access.js'
+      - 'assets/integration/edital-diagnostic.js'
+      - 'data/edital-status.json'
+      - 'scripts/test-edital-simple-ux.mjs'
+      - '.github/workflows/edital-verticalizado-browser.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'edital/**'
+      - 'assets/edital.js'
+      - 'assets/edital.css'
+      - 'assets/edital-simple.js'
+      - 'assets/edital-simple.css'
+      - 'assets/edital-verticalized-access.js'
+      - 'assets/integration/edital-diagnostic.js'
+      - 'data/edital-status.json'
+      - 'scripts/test-edital-simple-ux.mjs'
+      - '.github/workflows/edital-verticalizado-browser.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: edital-verticalizado-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Baixar repositório
+        uses: actions/checkout@v4
+
+      - name: Preparar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Validar contrato estático
+        run: npm run test:edital
+
+      - name: Servir site local
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/tdas-site/sedes-tdas-dashboard
+          cp -a . /tmp/tdas-site/sedes-tdas-dashboard/
+          cd /tmp/tdas-site
+          python3 -m http.server 4185 >/tmp/edital-verticalizado-server.log 2>&1 &
+          echo $! >/tmp/edital-verticalizado-server.pid
+          for attempt in $(seq 1 30); do
+            curl -fsS http://127.0.0.1:4185/sedes-tdas-dashboard/edital/ >/dev/null && exit 0
+            sleep 1
+          done
+          cat /tmp/edital-verticalizado-server.log >&2
+          exit 1
+
+      - name: Validar verticalizado no Chrome desktop e mobile
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='http://127.0.0.1:4185/sedes-tdas-dashboard/edital/'
+          chrome=(google-chrome --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --virtual-time-budget=15000 --dump-dom)
+          "${chrome[@]}" "$base" >/tmp/edital-verticalizado-desktop.html 2>/tmp/edital-verticalizado-desktop.stderr
+          "${chrome[@]}" --window-size=390,844 "$base" >/tmp/edital-verticalizado-mobile.html 2>/tmp/edital-verticalizado-mobile.stderr
+          "${chrome[@]}" --window-size=390,844 "${base}#topicos" >/tmp/edital-verticalizado-open.html 2>/tmp/edital-verticalizado-open.stderr
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const data=JSON.parse(fs.readFileSync('data/edital-status.json','utf8'));
+          const total=Number(data.summary?.total||0);
+          if(!total)throw new Error('Total do edital ausente.');
+          for(const file of ['/tmp/edital-verticalizado-desktop.html','/tmp/edital-verticalizado-mobile.html']){
+            const html=fs.readFileSync(file,'utf8');
+            for(const marker of ['data-edital-verticalized-gateway="1"','Edital verticalizado',`Consulte os ${total} tópicos do edital`,'Abrir edital verticalizado','data-open-verticalized']){
+              if(!html.includes(marker))throw new Error(`${file}: acesso verticalizado ausente: ${marker}`);
+            }
+            const gateway=html.indexOf('data-edital-verticalized-gateway="1"');
+            const next=html.indexOf('id="edital-proxima-acao"');
+            if(gateway<0||next<0||gateway>next)throw new Error(`${file}: verticalizado precisa aparecer antes da Próxima ação.`);
+            if(/Carregando o edital|Não foi possível carregar esta página|Snapshot parcial/.test(html))throw new Error(`${file}: estado de carregamento/erro persistiu.`);
+          }
+          const opened=fs.readFileSync('/tmp/edital-verticalizado-open.html','utf8');
+          if(!/<details[^>]*class="edital-catalog-details"[^>]*open|<details[^>]*open[^>]*class="edital-catalog-details"/.test(opened))throw new Error('Hash #topicos não abriu o catálogo verticalizado no mobile.');
+          console.log(`Edital verticalizado validado em Chrome: ${total} tópicos, gateway antes da próxima ação e catálogo abrindo no mobile.`);
+          NODE
+          ! grep -Eqi 'Uncaught (TypeError|ReferenceError|SyntaxError)' /tmp/edital-verticalizado-*.stderr
+
+      - name: Diagnosticar falha
+        if: failure()
+        shell: bash
+        run: |
+          for file in /tmp/edital-verticalizado-*.html /tmp/edital-verticalizado-*.stderr; do
+            [[ -f "$file" ]] || continue
+            echo "=== $file ==="
+            grep -Eo 'Edital verticalizado|Consulte os [0-9]+ tópicos do edital|Abrir edital verticalizado|Próxima ação|Carregando o edital|Não foi possível carregar esta página|Snapshot parcial|Uncaught [A-Za-z]+' "$file" | head -80 || true
+          done
+
+      - name: Encerrar servidor
+        if: always()
+        run: kill "$(cat /tmp/edital-verticalizado-server.pid 2>/dev/null)" 2>/dev/null || true
