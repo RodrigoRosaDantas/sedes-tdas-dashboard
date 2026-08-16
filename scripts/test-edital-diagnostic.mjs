@@ -42,12 +42,12 @@ assert.match(diagnosticUrlForTopic(pendingTopic,evidence.nextPlan.suggestedCount
 assert.match(diagnosticUrlForTopic(pendingTopic),/source=edital/,'CTA diagnóstico deve preservar a origem canônica.');
 
 mergeRemoteDiagnosticEvidence([{payload:{attemptId:'attempt:remote',catalogId:'tdas-bank-remote',target:{source:'edital',canonicalId:pendingTopic.canonicalId,topic:pendingTopic.topic,code:'3',discipline:'Disciplina',searchTerm:pendingTopic.topic},measurementEligible:true,correct:6,total:10,percent:60,finishedAt:4000,recordedAt:4001}}],storage);
-evidence=buildEditalEvidenceSummary({edital,storage,now:10_000_000});
+evidence=buildEditalEvidenceSummary({edital,storage,now:100_000_000});
 assert.equal(evidence.localExactCurrent,2,'Aferição remota exata deve materializar no sidecar privado.');
 assert.equal(evidence.pending,0,'Aferição remota exata deve fechar a lacuna local correspondente.');
 assert.equal(evidence.intentOnly,1,'Sincronização privada não pode transformar tentativa auxiliar em aferição.');
 assert.equal(evidence.lowestExact?.attempt.percent,60,'Menor aferição local deve permanecer rastreável sem virar nota oficial.');
-assert.equal(evidence.nextPlan?.canonicalId,pendingTopic.canonicalId,'Resultado baixo deve continuar acionável mesmo depois da primeira aferição.');
+assert.equal(evidence.nextPlan?.canonicalId,pendingTopic.canonicalId,'Resultado baixo deve continuar acionável depois da janela de 24h.');
 assert.equal(evidence.nextPlan?.kind,'weak','Resultado abaixo de 75% deve pedir confirmação após revisão.');
 assert.equal(evidence.nextPlan?.suggestedCount,8,'Sinal baixo com amostra inicial deve sugerir reaferição curta.');
 
