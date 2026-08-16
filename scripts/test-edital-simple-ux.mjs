@@ -9,13 +9,14 @@ const [html,script,css,verticalized,pwa]=await Promise.all([
  fs.readFile('scripts/preserve-v27-pwa.mjs','utf8')
 ]);
 
-assert.match(html,/assets\/edital-simple\.css\?v=1\.0\.0/,'Edital não carrega a camada visual simplificada.');
+assert.match(html,/assets\/edital-simple\.css\?v=1\.1\.0/,'Edital não carrega a versão visual com acesso permanente ao verticalizado.');
 assert.match(html,/assets\/edital-simple\.js\?v=1\.1\.0/,'Edital não carrega a versão determinística da hierarquia simplificada.');
 assert.match(html,/assets\/edital-verticalized-access\.js\?v=1\.0\.0/,'Edital não carrega a compatibilidade do acesso explícito ao verticalizado.');
 assert.ok(html.indexOf('edital-diagnostic.js')<html.indexOf('edital-simple.js'),'Simplificação deve rodar depois da fila diagnóstica.');
-for(const marker of['Seu edital, sem bagunça','edital-metric-secondary','edital-catalog-details','edital-secondary','edital-diagnostic-more','Filtros avançados','Abrir edital verticalizado','Edital verticalizado','Ver próxima ação','edital-proxima-acao','data-edital-next-action','verticalizedAction'])assert.ok(script.includes(marker),`UX simplificada perdeu o marcador ${marker}.`);
+for(const marker of['Seu edital, sem bagunça','edital-metric-secondary','edital-catalog-details','edital-secondary','edital-diagnostic-more','Filtros avançados','Abrir edital verticalizado','Edital verticalizado','Ver próxima ação','edital-proxima-acao','data-edital-next-action','verticalizedAction','data-edital-verticalized-gateway','Consulte os ${count} tópicos do edital'])assert.ok(script.includes(marker),`UX simplificada perdeu o marcador ${marker}.`);
 for(const marker of['Edital verticalizado','Abrir edital verticalizado','busca, filtros e situação por assunto','data-edital-next-action','verticalizedAction'])assert.ok(verticalized.includes(marker),`Compatibilidade do acesso verticalizado perdeu o marcador ${marker}.`);
 assert.match(script,/primary\.setAttribute\('href','#topicos'\)/,'CTA principal da UX deve apontar diretamente para o catálogo verticalizado.');
+assert.match(script,/metrics\.after\(gateway\)/,'Acesso permanente ao verticalizado deve ficar logo após as métricas.');
 assert.match(script,/details\.open=true/,'CTA do verticalizado deve abrir o catálogo recolhido.');
 assert.doesNotMatch(script,/primaryAction\.textContent='Ver próxima ação'/,'Próxima ação não pode voltar a substituir o CTA principal do verticalizado.');
 assert.match(script,/heroActions\.slice\(1\)/,'Ações secundárias originais do hero não foram retiradas da superfície principal.');
@@ -24,6 +25,7 @@ assert.match(script,/cards\.slice\(1\)/,'Fila diagnóstica ainda deve manter ape
 assert.match(script,/\.btn:not\(\.primary\)/,'A ação secundária da prioridade atual deve sair da superfície principal.');
 assert.doesNotMatch(script,/class=["']skip["']/,'Camada simplificada não deve reutilizar a classe global de skip-link em conteúdo não focável.');
 assert.match(css,/\.edital-metric-secondary\{display:none\}/,'Apenas três métricas essenciais devem permanecer na superfície principal.');
+assert.match(css,/edital-verticalized-gateway/,'CSS perdeu o acesso permanente ao edital verticalizado.');
 assert.match(css,/nth-child\(5\).*display:none/s,'Tabela simplificada não oculta colunas redundantes.');
 assert.match(css,/edital-catalog-details/,'Checklist completo deixou de usar divulgação progressiva.');
 assert.match(css,/edital-secondary/,'Explicações e disciplinas deixaram de ser conteúdo secundário recolhível.');
@@ -31,4 +33,4 @@ assert.match(css,/edital-diagnostic-more-actions/,'Ações secundárias da fila 
 assert.ok(!script.includes('api.notion.com')&&!verticalized.includes('api.notion.com'),'Camadas de UX não podem consultar a API do Notion diretamente.');
 for(const asset of['assets/edital-simple.js','assets/edital-simple.css','assets/edital-verticalized-access.js'])assert.ok(pwa.includes(asset),`PWA pode perder ${asset} após sincronização.`);
 
-console.log('UX do Edital validada: verticalizado é CTA principal determinístico, próxima ação permanece separada e detalhes progressivos continuam preservados.');
+console.log('UX do Edital validada: gateway permanente do verticalizado após as métricas, CTA principal determinístico, próxima ação separada e detalhes progressivos preservados.');
