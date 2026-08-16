@@ -11,11 +11,16 @@ function wrapFilters(section){
 function simplifyCatalog(section){
  if(!section||section.dataset.simpleCatalog)return;section.dataset.simpleCatalog='1';
  const head=section.querySelector(':scope > .section-head');
- if(head){const paragraph=head.querySelector('p');if(paragraph)paragraph.textContent='Consulte um tópico específico quando precisar. A lista completa fica recolhida para não competir com a próxima ação.'}
+ if(head){
+  const copy=head.querySelector('div');
+  if(copy&&!copy.querySelector('[data-verticalized-label]')){const label=document.createElement('span');label.className='kicker';label.dataset.verticalizedLabel='1';label.textContent='Edital verticalizado';copy.prepend(label)}
+  const paragraph=head.querySelector('p');if(paragraph)paragraph.textContent='Lista oficial por código, disciplina e tópico, com cobertura, risco, bateria tópica e próxima ação. Use busca e filtros para localizar qualquer item.';
+ }
  wrapFilters(section);
  const movable=[...section.children].filter(node=>node!==head);
  const details=document.createElement('details');details.className='edital-catalog-details';
- const summary=document.createElement('summary');summary.innerHTML='<span>Consultar todos os tópicos</span><small>busca, visões e filtros</small>';
+ const count=document.querySelector('#result-count')?.textContent?.match(/\d+/)?.[0]||'82';
+ const summary=document.createElement('summary');summary.innerHTML=`<span>Abrir edital verticalizado</span><small>${count} tópicos · busca, filtros e situação por assunto</small>`;
  const body=document.createElement('div');body.className='edital-catalog-body';
  movable.forEach(node=>body.append(node));details.append(summary,body);section.append(details);
  const params=new URLSearchParams(location.search);if(params.toString()||location.hash==='#topicos')details.open=true;
@@ -58,20 +63,27 @@ function collapseSecondary(main,catalog){
  catalog?.after(details);
 }
 
+function ensurePrimaryActions(hero,diagnostic,catalog){
+ const actions=hero.querySelector('.hero-actions');
+ const primary=actions?.querySelector('.btn.primary')||actions?.querySelector('.btn');
+ if(primary){primary.textContent='Abrir edital verticalizado';primary.setAttribute('href','#topicos');primary.dataset.verticalizedAction='1';primary.addEventListener('click',()=>{const details=catalog?.querySelector('.edital-catalog-details');if(details)details.open=true},{once:false})}
+ if(diagnostic&&actions&&!actions.querySelector('[data-edital-next-action]')){const next=document.createElement('a');next.className='btn';next.dataset.editalNextAction='1';next.href='#edital-proxima-acao';next.textContent='Ver próxima ação';actions.append(next)}
+}
+
 async function init(){
  const hero=await waitFor('.edital-hero');if(!hero)return;
  document.documentElement.dataset.editalUx='simple';document.body.classList.add('edital-simple');
- const kicker=hero.querySelector('.kicker'),title=hero.querySelector('h1'),paragraph=hero.querySelector('p'),primaryAction=hero.querySelector('.hero-actions .btn:first-child');
+ const kicker=hero.querySelector('.kicker'),title=hero.querySelector('h1'),paragraph=hero.querySelector('p');
  if(kicker)kicker.textContent='Edital · Cargo 202';
  if(title)title.textContent='Seu edital, sem bagunça';
- if(paragraph)paragraph.innerHTML='Veja <strong>o que já foi coberto</strong>, <strong>o que já foi medido</strong> e <strong>o que fazer agora</strong>. Os detalhes continuam disponíveis quando você quiser aprofundar.';
- if(primaryAction)primaryAction.textContent='Consultar tópicos';
+ if(paragraph)paragraph.innerHTML='Veja <strong>o que já foi coberto</strong>, <strong>o que já foi medido</strong> e <strong>o que fazer agora</strong>. O edital verticalizado continua disponível como consulta principal.';
  const metrics=document.querySelector('.edital-metrics');if(metrics)[...metrics.children].forEach((node,index)=>node.classList.toggle('edital-metric-secondary',index>2));
  const catalog=document.querySelector('#topicos');simplifyCatalog(catalog);
  const diagnostic=await waitFor('[data-edital-diagnostic-queue]',8000);simplifyDiagnostic(diagnostic);
- if(diagnostic){diagnostic.id='edital-proxima-acao';if(primaryAction){primaryAction.textContent='Ver próxima ação';primaryAction.setAttribute('href','#edital-proxima-acao')}}
+ if(diagnostic)diagnostic.id='edital-proxima-acao';
  if(diagnostic&&catalog&&diagnostic.nextElementSibling!==catalog)catalog.before(diagnostic);
  collapseSecondary(document.querySelector('main'),catalog);
+ ensurePrimaryActions(hero,diagnostic,catalog);
 }
 
 if(typeof window!=='undefined'&&typeof document!=='undefined')init();
