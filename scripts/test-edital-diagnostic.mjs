@@ -36,7 +36,7 @@ for(const html of[editalHtml,resolverHtml]){
 }
 for(const marker of['Fila diagnóstica','Aferir no Banco','measurementEligible','exactTopicSelection','intent-only','TDAS202:'])assert.ok(diagnostic.includes(marker),`Controlador diagnóstico perdeu ${marker}.`);
 assert.match(diagnostic,/loadQuestionBank/,'Banco não valida as questões selecionadas antes de atribuir aferição.');
-assert.match(diagnostic,/question\.assunto/,'Aferição canônica deixou de exigir o campo Assunto.');
+assert.match(diagnostic,/question\?\.assunto/,'Aferição canônica deixou de exigir o campo Assunto.');
 assert.ok(!diagnostic.includes('api.notion.com'),'Navegador não pode consultar diretamente a API do Notion.');
 for(const asset of['assets/integration/edital-diagnostic.js','assets/integration/edital-diagnostic.css'])assert.ok(pwaPreserver.includes(asset),`PWA pode perder ${asset} na próxima sincronização.`);
 console.log('Fila diagnóstica validada: alvo canônico, busca assistida, matching lexical exato, sidecar local, PWA e separação entre aferição e intenção preservados.');
