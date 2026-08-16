@@ -65,25 +65,37 @@ jobs:
           node --input-type=module <<'NODE'
           import fs from 'node:fs';
           const root='/tmp/tdas-site/sedes-tdas-dashboard';
-          const catalog=JSON.parse(fs.readFileSync(`${root}/data/integration/question-catalog.json`,'utf8'));
+          const dailyCatalog=JSON.parse(fs.readFileSync(`${root}/data/integration/question-catalog.json`,'utf8'));
           const audit=JSON.parse(fs.readFileSync(`${root}/data/audit.json`,'utf8'));
           const platform=JSON.parse(fs.readFileSync(`${root}/data/platform-version.json`,'utf8'));
           const today=JSON.parse(fs.readFileSync(`${root}/data/today.json`,'utf8'));
           const home=JSON.parse(fs.readFileSync(`${root}/data/home.json`,'utf8'));
-          const ids=catalog.questions.map(item=>item.id);
-          if(ids.length<3)throw new Error('O smoke exige ao menos três questões no catálogo diário.');
+          const dailyQuestions=Array.isArray(dailyCatalog.questions)?dailyCatalog.questions:[];
+          let catalog=dailyCatalog;
+          if(dailyQuestions.length<3){
+            const archiveIndex=JSON.parse(fs.readFileSync(`${root}/data/integration/question-archive/index.json`,'utf8'));
+            const entries=Object.values(archiveIndex.catalogs||{}).reverse();
+            for(const entry of entries){
+              if(!entry?.path)continue;
+              const candidate=JSON.parse(fs.readFileSync(`${root}/${entry.path}`,'utf8'));
+              if(Array.isArray(candidate.questions)&&candidate.questions.length>=3){catalog=candidate;break}
+            }
+          }
+          const ids=(catalog.questions||[]).map(item=>item.id);
+          if(ids.length<3)throw new Error('O smoke exige ao menos três questões em catálogo diário ou arquivo autorizado.');
           if(Number.isNaN(Date.parse(platform.syncAt)))throw new Error('O smoke exige syncAt válido no manifesto.');
           const currentIndex=2;
           const answers=Object.fromEntries(ids.slice(0,currentIndex).map((id,index)=>[id,index%2===0?'A':'B']));
           const draft={schemaVersion:'1.0.0',catalogId:catalog.catalogId,peId:catalog.peId,savedAt:Date.now(),session:{schemaVersion:'1.0.0',materialId:catalog.catalogId,questionIds:ids,answers,currentIndex,startedAt:Date.now()-120000,updatedAt:Date.now(),finishedAt:null},responseMeta:{}};
           const progress={version:1,items:{[catalog.peId]:{material:true,questions:false,registered:false,updatedAt:new Date().toISOString()}}};
           const question=catalog.questions[0],reviewId=`review:smoke:${catalog.catalogId}:${question.id}:D+1`;
-          const review={id:reviewId,sourceAttemptId:'attempt:smoke',questionId:question.id,peId:catalog.peId,stage:'D+1',dueAt:Date.now()-60000,status:'pending',completedAt:null,reviewAttemptId:null,outcome:null,originReviewId:null,rootReviewId:reviewId,recurrenceCount:1,sourceOutcome:'wrong_again',classification:'incorrect_confirmed',confidence:'secure',marked:false,numeroOriginal:question.numero_original??1,assunto:question.assunto||'Questão',subassunto:question.subassunto||''};
+          const review={id:reviewId,sourceAttemptId:'attempt:smoke',questionId:question.id,peId:catalog.peId,stage:'D+1',dueAt:Date.now()-60000,status:'pending',completedAt:null,reviewAttemptId:null,outcome:null,originReviewId:null,rootReviewId:reviewId,recurrenceCount:1,sourceOutcome:'wrong_again',classification:'incorrect_confirmed',confidence:'secure',marked:false,numeroOriginal:question.numeroOriginal??question.numero_original??1,assunto:question.assunto||'Questão',subassunto:question.subassunto||''};
           const moduleState={schemaVersion:'2.0.0',updatedAt:Date.now(),attempts:[],errors:[],marked:[],reviews:[review],aiQueue:[]};
           const unlinked=(audit.quality||[]).filter(item=>item.title==='Registro incompleto no Caderno de Erros'&&/Origem \/ Dia ID/.test(item.detail||'')).length;
           const redactionItem=(today.checklist||[]).find(item=>item.done!==true&&/^Produzir\s+RD\d+/i.test(item.title||''));
           const focusRd=(redactionItem?.title||'').match(/RD\d+/i)?.[0]||'';
           const focusPe=focusRd?String(today.current?.pe||''):'';
+          const currentPe=String(today.current?.pe||dailyCatalog.peId||'');
           const sourceCommit=platform.sourceCommit==='unknown'?'local':String(platform.sourceCommit).slice(0,7);
           const syncDate=new Intl.DateTimeFormat('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',timeZone:'America/Sao_Paulo'}).format(new Date(platform.syncAt));
           const syncTime=new Intl.DateTimeFormat('pt-BR',{hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'America/Sao_Paulo'}).format(new Date(platform.syncAt));
@@ -95,7 +107,7 @@ jobs:
           fs.writeFileSync(`${root}/__seed.html`,draftHtml);
           fs.writeFileSync(`${root}/__review.html`,reviewHtml);
           fs.writeFileSync(`${root}/__review-home.html`,reviewHomeHtml);
-          fs.writeFileSync('/tmp/tdas-expected.env',`QUESTION_INDEX=${currentIndex+1}\nQUESTION_TOTAL=${ids.length}\nUNLINKED_ERRORS=${unlinked}\nPLATFORM_VERSION=${platform.platformVersion}\nSOURCE_COMMIT_SHORT=${sourceCommit}\nFOCUS_RD=${focusRd}\nFOCUS_PE=${focusPe}\nREVIEW_STAGE=D+1\nLAST_SYNC_DATE=${syncDate}\nLAST_SYNC_TIME=${syncTime}\nEXPECT_CYCLE_CLOSURE=${expectCycleClosure}\n`);
+          fs.writeFileSync('/tmp/tdas-expected.env',`QUESTION_INDEX=${currentIndex+1}\nQUESTION_TOTAL=${ids.length}\nDAILY_QUESTION_COUNT=${dailyQuestions.length}\nCURRENT_PE=${currentPe}\nUNLINKED_ERRORS=${unlinked}\nPLATFORM_VERSION=${platform.platformVersion}\nSOURCE_COMMIT_SHORT=${sourceCommit}\nFOCUS_RD=${focusRd}\nFOCUS_PE=${focusPe}\nREVIEW_STAGE=D+1\nLAST_SYNC_DATE=${syncDate}\nLAST_SYNC_TIME=${syncTime}\nEXPECT_CYCLE_CLOSURE=${expectCycleClosure}\n`);
           NODE
           cd /tmp/tdas-site
           python3 -m http.server 4173 >/tmp/tdas-server.log 2>&1 &
@@ -135,7 +147,12 @@ jobs:
           grep -q "Fazer revisão ${REVIEW_STAGE}" /tmp/review-home.html
           grep -q 'Erros sem origem confirmada' /tmp/audit.html
           grep -q "${UNLINKED_ERRORS} pendentes" /tmp/audit.html
-          grep -q 'data-daily-question-context="player-active"' /tmp/resolver.html
+          if (( DAILY_QUESTION_COUNT > 0 )); then
+            grep -q 'data-daily-question-context="player-active"' /tmp/resolver.html
+          else
+            grep -q "data-daily-question-context=\"${CURRENT_PE}\"" /tmp/resolver.html
+            grep -q "Questões do dia — ${CURRENT_PE}" /tmp/resolver.html
+          fi
           grep -q 'Banco de questões' /tmp/resolver.html
           if [[ -n "${FOCUS_RD}" ]]; then
             "${chrome[@]}" "$base/redacoes/?rd=${FOCUS_RD}&pe=${FOCUS_PE}" >/tmp/redactions.html 2>/tmp/redactions.stderr
@@ -149,7 +166,7 @@ jobs:
           ! grep -Eqi 'Uncaught (TypeError|ReferenceError|SyntaxError)|Central de execução indisponível|Erros sem origem indisponíveis|Revisão local não encontrada' /tmp/*.stderr
           grep -q 'assets/integration/review-engine.js' /tmp/tdas-site/sedes-tdas-dashboard/sw.js
           ! grep -q 'question-keys/' /tmp/tdas-site/sedes-tdas-dashboard/sw.js
-          printf '{"browser":"ok","commandCenter":true,"lastSync":"%sT%s","cycleClosure":%s,"adaptiveReview":true,"reviewStage":"%s","focusedRedaction":"%s","platformVersion":"%s","publication":"%s","resume":"question-%s-of-%s","unlinkedErrors":%s,"dailyPlayerActive":true,"questionBankVisible":true,"answerKeyPrecached":false}\n' "$LAST_SYNC_DATE" "$LAST_SYNC_TIME" "$EXPECT_CYCLE_CLOSURE" "$REVIEW_STAGE" "$FOCUS_RD" "$PLATFORM_VERSION" "$SOURCE_COMMIT_SHORT" "$QUESTION_INDEX" "$QUESTION_TOTAL" "$UNLINKED_ERRORS"
+          printf '{"browser":"ok","commandCenter":true,"lastSync":"%sT%s","cycleClosure":%s,"adaptiveReview":true,"reviewStage":"%s","focusedRedaction":"%s","platformVersion":"%s","publication":"%s","resume":"question-%s-of-%s","dailyQuestionCount":%s,"unlinkedErrors":%s,"questionBankVisible":true,"answerKeyPrecached":false}\n' "$LAST_SYNC_DATE" "$LAST_SYNC_TIME" "$EXPECT_CYCLE_CLOSURE" "$REVIEW_STAGE" "$FOCUS_RD" "$PLATFORM_VERSION" "$SOURCE_COMMIT_SHORT" "$QUESTION_INDEX" "$QUESTION_TOTAL" "$DAILY_QUESTION_COUNT" "$UNLINKED_ERRORS"
 
       - name: Diagnosticar falha do navegador
         if: failure()
@@ -160,7 +177,7 @@ jobs:
           for file in /tmp/home.html /tmp/resume.html /tmp/review.html /tmp/review-home.html /tmp/audit.html /tmp/resolver.html /tmp/redactions.html; do
             [[ -f "$file" ]] || continue
             echo "=== $file ==="
-            grep -Eo 'SEDES/DF · v[^<]+|Plataforma [^<]+|publicação [0-9a-z]+|[0-9]{2}/[0-9]{2}/[0-9]{4} às [0-9]{2}:[0-9]{2}|Continuar questão [^<]+|Revisão D\+[0-9]+|Banco de questões|data-daily-question-context="[^"]+"|[0-9]+ pendentes|Não foi possível carregar esta página' "$file" | head -40 || true
+            grep -Eo 'SEDES/DF · v[^<]+|Plataforma [^<]+|publicação [0-9a-z]+|[0-9]{2}/[0-9]{2}/[0-9]{4} às [0-9]{2}:[0-9]{2}|Continuar questão [^<]+|Revisão D\+[0-9]+|Questões do dia — PE[0-9]+|Banco de questões|data-daily-question-context="[^"]+"|[0-9]+ pendentes|Não foi possível carregar esta página' "$file" | head -40 || true
           done
           for file in /tmp/*.stderr; do
             [[ -f "$file" ]] || continue
