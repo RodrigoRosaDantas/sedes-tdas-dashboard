@@ -7,6 +7,11 @@ on:
     paths:
       - '.tdas-handoff/**'
       - '.github/workflows/apply-tdas-handoff-bundle.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - '.tdas-handoff/**'
+      - '.github/workflows/apply-tdas-handoff-bundle.yml'
   workflow_dispatch:
 
 permissions:
@@ -18,7 +23,7 @@ concurrency:
 
 jobs:
   apply:
-    if: ${{ github.event_name == 'workflow_dispatch' || !contains(github.event.head_commit.message, '[handoff-bundle-applied]') }}
+    if: ${{ github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || !contains(github.event.head_commit.message, '[handoff-bundle-applied]') }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
