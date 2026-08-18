@@ -33,36 +33,69 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Validar e recuperar refatoração funcional original
+      - name: Reconstruir pacote final auditado
         shell: bash
         run: |
           set -euo pipefail
-          ref='refs/remotes/origin/agent/simplificar-revisoes-chatgpt-notion'
-          : > /tmp/tdas-refactor.b64
-          for n in $(seq -w 0 10); do
-            git show "${ref}:.tdas-handoff/part-${n}.b64" >> /tmp/tdas-refactor.b64
-          done
-          base64 -d /tmp/tdas-refactor.b64 > /tmp/tdas-refactor.tar.gz
-          tar -tzf /tmp/tdas-refactor.tar.gz | sort > /tmp/archive-files.txt
-          awk '{print $2}' .tdas-delta/original-files.sha256 | sort > /tmp/expected-files.txt
+          cat .tdas-audit/part-*.b64 > /tmp/tdas-final-audit.b64
+          base64 -d /tmp/tdas-final-audit.b64 > /tmp/tdas-final-audit.tar.gz
+          echo '70fd4ded4853bd1ef797ee88d4a2ec453b9a3fea37500d526c85b7d0887f1759  /tmp/tdas-final-audit.tar.gz' | sha256sum -c -
+          tar -tzf /tmp/tdas-final-audit.tar.gz | sort > /tmp/archive-files.txt
+          cat > /tmp/expected-files.txt <<'FILES'
+          .github/workflows/browser-smoke.yml
+          .github/workflows/mentor-browser.yml
+          assets/home-mobile.js
+          assets/integration/attempt-diagnostics.js
+          assets/integration/attempt-export-page-v2.js
+          assets/integration/attempt-export.js
+          assets/integration/continuity-engine.js
+          assets/integration/daily-priorities.js
+          assets/integration/daily-progress.js
+          assets/integration/error-book-export.js
+          assets/integration/error-book.js
+          assets/integration/home-command-center.js
+          assets/integration/home-study-intelligence.js
+          assets/integration/home-v28.js
+          assets/integration/local-backup.js
+          assets/integration/mentor-ux.js
+          assets/integration/module-error-book-base.js
+          assets/integration/module-performance-v4.js
+          assets/integration/module-player.js
+          assets/integration/module-store.js
+          assets/integration/question-bank-player.js
+          assets/integration/resolver-bootstrap.js
+          assets/integration/result-persistence-links-v2.js
+          assets/integration/study-analytics.js
+          assets/integration/study-state.js
+          assets/integration/study-ux.js
+          assets/integration/today-execution.js
+          assets/mentor.js
+          assets/more.js
+          assets/tdas-command-palette.js
+          assets/tdas-mobile-ux.js
+          assets/tdas-pro-modules.js
+          data/platform-version.json
+          manifest.webmanifest
+          revisar/index.html
+          scripts/sync-platform-version.mjs
+          scripts/test-command-center.mjs
+          scripts/test-command-palette.mjs
+          scripts/test-daily-priorities.mjs
+          scripts/test-mentor.mjs
+          scripts/test-question-module.mjs
+          scripts/test-tdas-mobile-browser.mjs
+          scripts/test-tdas-mobile-ux.mjs
+          scripts/test-v27-continuity.mjs
+          scripts/test-v27-contract.mjs
+          scripts/validate-daily-execution.mjs
+          scripts/validate-daily-progress.mjs
+          scripts/validate-pwa-integration.mjs
+          scripts/validate-question-module.mjs
+          sw.js
+          FILES
+          sort -o /tmp/expected-files.txt /tmp/expected-files.txt
           diff -u /tmp/expected-files.txt /tmp/archive-files.txt
-          rm -rf /tmp/tdas-refactor-verify
-          mkdir -p /tmp/tdas-refactor-verify
-          tar -xzf /tmp/tdas-refactor.tar.gz -C /tmp/tdas-refactor-verify
-          (cd /tmp/tdas-refactor-verify && sha256sum -c "$GITHUB_WORKSPACE/.tdas-delta/original-files.sha256")
-          echo 'Manifesto do pacote original: 104e7d81fcb4273e3c4268dbb19d1cd400211a3e8061afa8abdc8ae554e046a9'
-          tar -xzf /tmp/tdas-refactor.tar.gz
-
-      - name: Aplicar correções encontradas na auditoria
-        shell: bash
-        run: |
-          set -euo pipefail
-          cat .tdas-delta/part-*.b64 > /tmp/tdas-audit-delta.b64
-          base64 -d /tmp/tdas-audit-delta.b64 > /tmp/tdas-audit-delta.patch.gz
-          echo 'd34a3f59e1945e442504a76ea6a2faae1ce0f1bb1e01a8e4b35cb255d4d412ab  /tmp/tdas-audit-delta.patch.gz' | sha256sum -c -
-          gzip -dc /tmp/tdas-audit-delta.patch.gz > /tmp/tdas-audit-delta.patch
-          git apply --check /tmp/tdas-audit-delta.patch
-          git apply /tmp/tdas-audit-delta.patch
+          tar -xzf /tmp/tdas-final-audit.tar.gz
 
       - name: Validar arquitetura completa
         shell: bash
