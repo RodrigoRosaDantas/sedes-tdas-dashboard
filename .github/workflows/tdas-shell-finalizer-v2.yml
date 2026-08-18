@@ -1,0 +1,121 @@
+name: Finalizar shell canônico TDAS v2
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/tdas-shell-finalizer-v2.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: tdas-shell-finalizer-v2-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/tdas-shell-canonico-20260817
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Materializar shell canônico
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          if [ ! -f assets/tdas-shell-unified.js ]; then
+            python3 - <<'PY'
+          from pathlib import Path
+          import textwrap
+          source=Path('.github/workflows/browser-smoke.yml').read_text()
+          marker="cat > assets/tdas-shell-unified.js <<'JS'\n"
+          if marker not in source:
+              raise SystemExit('Aplicador do shell não está disponível.')
+          start=source.index(marker)+len(marker)
+          end=source.index('\n          JS\n',start)
+          Path('assets/tdas-shell-unified.js').write_text(textwrap.dedent(source[start:end]).lstrip())
+          PY
+          fi
+          grep -q 'Navegação TDAS' assets/tdas-shell-unified.js
+          grep -q 'Revisão pedagógica agora acontece no ChatGPT' assets/tdas-shell-unified.js
+          python3 - <<'PY'
+          from pathlib import Path
+          common=Path('assets/common.js'); text=common.read_text(); marker='tdas-shell-unified.js?v=1.0.0'
+          if marker not in text: common.write_text(text+"\nimport('./tdas-shell-unified.js?v=1.0.0').catch(()=>{});\n")
+          subjects=Path('assets/subjects-index.js'); text=subjects.read_text()
+          if "setupShell('materias',d.meta)" not in text:
+              old="setupShell('riscos',d.meta)"
+              if old not in text: raise SystemExit('Contrato de Matérias não encontrado')
+              subjects.write_text(text.replace(old,"setupShell('materias',d.meta)",1))
+          PY
+          git show origin/main:sw.js > sw.js
+          git show origin/main:data/platform-version.json > data/platform-version.json
+          python3 - <<'PY'
+          from pathlib import Path
+          sw=Path('sw.js'); text=sw.read_text()
+          if 'tdas-shell-unified.js' not in text:
+              for token in ("'./assets/common.js'", '"./assets/common.js"'):
+                  if token in text:
+                      text=text.replace(token,token+",\n  './assets/tdas-shell-unified.js'",1); break
+              else: raise SystemExit('common.js não encontrado no precache')
+          sw.write_text(text)
+          PY
+      - name: Gate integral
+        run: npm test
+      - name: Sintaxe
+        run: |
+          node --check assets/tdas-shell-unified.js
+          node --check assets/common.js
+          node --check assets/subjects-index.js
+      - name: Smoke visual desktop
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/tdas-site/sedes-tdas-dashboard
+          cp -a . /tmp/tdas-site/sedes-tdas-dashboard/
+          cd /tmp/tdas-site
+          python3 -m http.server 4181 >/tmp/tdas-shell-server.log 2>&1 & echo $! >/tmp/tdas-shell-server.pid
+          for attempt in $(seq 1 30); do curl -fsS http://127.0.0.1:4181/sedes-tdas-dashboard/ >/dev/null && break; sleep 1; done
+          chrome=(google-chrome --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --window-size=1440,1200 --virtual-time-budget=7000 --dump-dom)
+          "${chrome[@]}" http://127.0.0.1:4181/sedes-tdas-dashboard/ >/tmp/home.html 2>/tmp/home.err
+          "${chrome[@]}" http://127.0.0.1:4181/sedes-tdas-dashboard/materias/ >/tmp/materias.html 2>/tmp/materias.err
+          "${chrome[@]}" http://127.0.0.1:4181/sedes-tdas-dashboard/caderno-erros/ >/tmp/caderno.html 2>/tmp/caderno.err
+          "${chrome[@]}" http://127.0.0.1:4181/sedes-tdas-dashboard/revisar/ >/tmp/revisar.html 2>/tmp/revisar.err
+          grep -q 'Navegação TDAS' /tmp/home.html
+          grep -q 'Navegação TDAS' /tmp/materias.html
+          grep -q 'Navegação TDAS' /tmp/caderno.html
+          grep -q 'Revisão pedagógica agora acontece no ChatGPT' /tmp/revisar.html
+          ! grep -q 'Iniciar revisão' /tmp/home.html
+          ! grep -qi 'erros confirmados' /tmp/caderno.html
+          grep -qi 'respostas para validar' /tmp/caderno.html
+          ! grep -Eqi 'Uncaught (TypeError|ReferenceError|SyntaxError)' /tmp/*.err
+      - name: Gravar apenas diff funcional
+        shell: bash
+        run: |
+          set -euo pipefail
+          git checkout origin/main -- .github/workflows/browser-smoke.yml
+          rm -f .github/workflows/tdas-shell-merge-helper.yml .github/workflows/tdas-shell-finalizer.yml .github/workflows/tdas-shell-finalizer-v2.yml
+          git config user.name 'tdas-ui-audit[bot]'
+          git config user.email 'tdas-ui-audit[bot]@users.noreply.github.com'
+          git add -A
+          git diff --cached --check
+          git commit -m 'Unificar shell visual do TDAS'
+          git push origin HEAD:agent/tdas-shell-canonico-20260817
+      - name: Mesclar PR validado
+        if: ${{ github.event_name == 'pull_request' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: gh pr merge "$PR_NUMBER" --repo RodrigoRosaDantas/sedes-tdas-dashboard --squash --delete-branch
+      - name: Encerrar servidor
+        if: always()
+        run: kill "$(cat /tmp/tdas-shell-server.pid 2>/dev/null)" 2>/dev/null || true
