@@ -56,7 +56,7 @@ jobs:
       - name: Executar gate estrutural
         run: npm run check
 
-      - name: Preparar site, sessão interrompida e revisão
+      - name: Preparar site, sessão interrompida e sinal adaptativo
         shell: bash
         run: |
           set -euo pipefail
@@ -116,7 +116,7 @@ jobs:
           cat /tmp/tdas-server.log >&2
           exit 1
 
-      - name: Validar central, retomada, revisão e auditoria
+      - name: Validar central, retomada, handoff e auditoria
         shell: bash
         run: |
           set -euo pipefail
@@ -140,11 +140,11 @@ jobs:
           ! grep -q '00h50 · 06h50 · 12h50 · 18h50</span>' /tmp/home.html
           ! grep -q 'versão carregando' /tmp/home.html
           grep -q "Continuar questão ${QUESTION_INDEX} de ${QUESTION_TOTAL}" /tmp/resume.html
-          grep -q "Revisão ${REVIEW_STAGE}" /tmp/review.html
-          grep -q 'Revisar questão' /tmp/review.html
-          grep -q 'Correção somente ao finalizar' /tmp/review.html
-          grep -q 'data-primary-stage="review"' /tmp/review-home.html
-          grep -q "Fazer revisão ${REVIEW_STAGE}" /tmp/review-home.html
+          grep -q 'A revisão pedagógica acontece no ChatGPT.' /tmp/review.html
+          grep -q 'TDAS → ChatGPT → Notion' /tmp/review.html
+          ! grep -q 'Revisar questão' /tmp/review.html
+          ! grep -q 'data-primary-stage="review"' /tmp/review-home.html
+          ! grep -q "Fazer revisão ${REVIEW_STAGE}" /tmp/review-home.html
           grep -q 'Erros sem origem confirmada' /tmp/audit.html
           grep -q "${UNLINKED_ERRORS} pendentes" /tmp/audit.html
           if (( DAILY_QUESTION_COUNT > 0 )); then
@@ -166,7 +166,7 @@ jobs:
           ! grep -Eqi 'Uncaught (TypeError|ReferenceError|SyntaxError)|Central de execução indisponível|Erros sem origem indisponíveis|Revisão local não encontrada' /tmp/*.stderr
           grep -q 'assets/integration/review-engine.js' /tmp/tdas-site/sedes-tdas-dashboard/sw.js
           ! grep -q 'question-keys/' /tmp/tdas-site/sedes-tdas-dashboard/sw.js
-          printf '{"browser":"ok","commandCenter":true,"lastSync":"%sT%s","cycleClosure":%s,"adaptiveReview":true,"reviewStage":"%s","focusedRedaction":"%s","platformVersion":"%s","publication":"%s","resume":"question-%s-of-%s","dailyQuestionCount":%s,"unlinkedErrors":%s,"questionBankVisible":true,"answerKeyPrecached":false}\n' "$LAST_SYNC_DATE" "$LAST_SYNC_TIME" "$EXPECT_CYCLE_CLOSURE" "$REVIEW_STAGE" "$FOCUS_RD" "$PLATFORM_VERSION" "$SOURCE_COMMIT_SHORT" "$QUESTION_INDEX" "$QUESTION_TOTAL" "$DAILY_QUESTION_COUNT" "$UNLINKED_ERRORS"
+          printf '{"browser":"ok","commandCenter":true,"lastSync":"%sT%s","cycleClosure":%s,"adaptiveReviewData":true,"reviewPreemptsHome":false,"reviewHandoff":"chatgpt-notion","reviewStage":"%s","focusedRedaction":"%s","platformVersion":"%s","publication":"%s","resume":"question-%s-of-%s","dailyQuestionCount":%s,"unlinkedErrors":%s,"questionBankVisible":true,"answerKeyPrecached":false}\n' "$LAST_SYNC_DATE" "$LAST_SYNC_TIME" "$EXPECT_CYCLE_CLOSURE" "$REVIEW_STAGE" "$FOCUS_RD" "$PLATFORM_VERSION" "$SOURCE_COMMIT_SHORT" "$QUESTION_INDEX" "$QUESTION_TOTAL" "$DAILY_QUESTION_COUNT" "$UNLINKED_ERRORS"
 
       - name: Diagnosticar falha do navegador
         if: failure()
@@ -177,7 +177,7 @@ jobs:
           for file in /tmp/home.html /tmp/resume.html /tmp/review.html /tmp/review-home.html /tmp/audit.html /tmp/resolver.html /tmp/redactions.html; do
             [[ -f "$file" ]] || continue
             echo "=== $file ==="
-            grep -Eo 'SEDES/DF · v[^<]+|Plataforma [^<]+|publicação [0-9a-z]+|[0-9]{2}/[0-9]{2}/[0-9]{4} às [0-9]{2}:[0-9]{2}|Continuar questão [^<]+|Revisão D\+[0-9]+|Questões do dia — PE[0-9]+|Banco de questões|data-daily-question-context="[^"]+"|[0-9]+ pendentes|Não foi possível carregar esta página' "$file" | head -40 || true
+            grep -Eo 'SEDES/DF · v[^<]+|Plataforma [^<]+|publicação [0-9a-z]+|[0-9]{2}/[0-9]{2}/[0-9]{4} às [0-9]{2}:[0-9]{2}|Continuar questão [^<]+|A revisão pedagógica acontece no ChatGPT\.|TDAS → ChatGPT → Notion|Questões do dia — PE[0-9]+|Banco de questões|data-daily-question-context="[^"]+"|[0-9]+ pendentes|Não foi possível carregar esta página' "$file" | head -50 || true
           done
           for file in /tmp/*.stderr; do
             [[ -f "$file" ]] || continue
