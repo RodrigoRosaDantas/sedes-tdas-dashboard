@@ -12,7 +12,9 @@ required(routes.resolver.includes('player.css?v=1.1.0'),'Resolver não carrega o
 required(scripts.bootstrap.includes("document.documentElement.dataset.questionMode='daily'")&&scripts.bootstrap.includes('module-player.js?v=2.1.0')&&scripts.bootstrap.includes('daily-question-page.js?v=1.0.2'),'Modo diário do Resolver não preserva player e contexto diário.');
 required(scripts.bootstrap.includes("params.get('modo')==='banco'")&&scripts.bootstrap.includes('question-bank-player.js?v=1.0.0')&&scripts.bootstrap.includes('master-bank-ui.js?v=1.0.0'),'Modo Banco não está isolado ou não carrega o resumo do acervo.');
 required(scripts.bootstrap.includes('review-catalog-bridge.js?v=1.1.0'),'Revisão histórica/mestre não usa a ponte de catálogo atual.');
-required(routes.revisar.includes('module-reviews.js?v=2.1.0'),'Revisar não carrega a agenda adaptativa atual.');
+required(routes.revisar.includes('module-reviews.js?v=2.2.0'),'Revisar não carrega o handoff atual ChatGPT + Notion.');
+required(scripts.reviews.includes('A revisão pedagógica acontece no ChatGPT.')&&scripts.reviews.includes('TDAS → ChatGPT → Notion'),'Rota Revisar não implementa o handoff pedagógico canônico.');
+required(!scripts.reviews.includes('resolver/?review='),'Rota Revisar não pode recriar a agenda adaptativa dentro do player.');
 required(['operational-empty','notion-daily','notion-daily-empty'].includes(catalog.mode),`Modo de catálogo inválido: ${catalog.mode}.`);
 if(catalog.mode==='operational-empty'){
  required(catalog.questionCount===0&&Array.isArray(catalog.questions)&&catalog.questions.length===0,'Catálogo de preparação contém questões.');
@@ -31,21 +33,21 @@ required(scripts.store.includes("tdas.202.question-module.v2.state"),'Namespace 
 required(scripts.store.includes('buildReinforcementReview')&&scripts.store.includes('reviewOutcome'),'Armazenamento não registra reforço adaptativo.');
 required(scripts.reviewEngine.includes("MASTERED:'mastered'")&&scripts.reviewEngine.includes("UNSURE:'unsure'")&&scripts.reviewEngine.includes("WRONG_AGAIN:'wrong_again'"),'Resultados pedagógicos obrigatórios ausentes.');
 required(scripts.reviewEngine.includes('Reforço 24h')&&scripts.reviewEngine.includes('Reforço 3d'),'Prazos adaptativos ausentes.');
-required(scripts.reviews.includes('sortReviewsByPriority')&&scripts.reviews.includes('Reincidência'),'Agenda não prioriza reincidência.');
+required(scripts.reviewEngine.includes('sortReviewsByPriority')&&scripts.reviewEngine.includes('reviewPriorityScore'),'Motor adaptativo não preserva priorização como contrato de dados.');
 required(scripts.player.includes('data/integration/question-catalog.json'),'Player não carrega o catálogo diário.');
 required(scripts.player.includes('safeKeyPath')&&scripts.player.includes('question-keys'),'Player não restringe o caminho da correção.');
-required(scripts.player.includes('data-review-outcome')&&scripts.player.includes('Dominei')&&scripts.player.includes('Ainda tenho dúvida')&&scripts.player.includes('Errei novamente'),'Player não exige decisão pedagógica após revisão.');
+required(scripts.player.includes('data-review-outcome')&&scripts.player.includes('Dominei')&&scripts.player.includes('Ainda tenho dúvida')&&scripts.player.includes('Errei novamente'),'Player não preserva decisão pedagógica em tentativas históricas de revisão.');
 const finishPosition=scripts.player.indexOf('async function finishSession'),keyFetchPosition=scripts.player.indexOf('state.catalog.keyPath',finishPosition),decisionPosition=scripts.player.indexOf('renderReviewDecision');
 required(finishPosition>=0&&keyFetchPosition>finishPosition,'Correção diária pode ser solicitada antes da finalização.');
-required(decisionPosition>=0&&scripts.player.indexOf('saveCompletedAttempt',finishPosition)>decisionPosition,'Revisão pode ser salva antes da decisão pedagógica.');
+required(decisionPosition>=0&&scripts.player.indexOf('saveCompletedAttempt',finishPosition)>decisionPosition,'Revisão histórica pode ser salva antes da decisão pedagógica.');
 required(!/localStorage|sessionStorage|indexedDB/.test(scripts.player),'Player acessa armazenamento diretamente.');
 const bankFinish=scripts.bankPlayer.indexOf('async function finishSession'),bankKey=scripts.bankPlayer.indexOf('loadMergedBankKey(state.catalog',bankFinish);
 required(bankFinish>=0&&bankKey>bankFinish,'Banco pode solicitar gabarito antes da finalização.');
 required(scripts.bank.includes('safeKeyPath')&&scripts.bank.includes('question-keys'),'Banco não restringe as origens de gabarito.');
 required(scripts.bank.includes('master-question-bank.json')&&scripts.bank.includes("sourceKind:'master-bank'"),'Banco não lê o snapshot local publicado do Banco Mestre.');
 required(scripts.bankPlayer.includes('saveCompletedAttempt')&&scripts.bankPlayer.includes('writeSessionDraft'),'Banco não usa a persistência local oficial.');
-required(scripts.reviewBridge.includes('loadCatalogForQuestion')&&scripts.reviewBridge.includes('question-catalog.json'),'Revisões não recuperam catálogo histórico de forma controlada.');
-required(scripts.reviewBridge.includes('loadMasterQuestionBank')&&scripts.reviewBridge.includes("mode:'master-review'"),'Revisões não recuperam questões do Banco Mestre pelo snapshot local.');
+required(scripts.reviewBridge.includes('loadCatalogForQuestion')&&scripts.reviewBridge.includes('question-catalog.json'),'Revisões históricas não recuperam catálogo de forma controlada.');
+required(scripts.reviewBridge.includes('loadMasterQuestionBank')&&scripts.reviewBridge.includes("mode:'master-review'"),'Revisões históricas não recuperam questões do Banco Mestre pelo snapshot local.');
 required(scripts.masterUi.includes('snapshot.questionCount')&&scripts.masterUi.includes('snapshot.materialCount'),'Resumo do acervo não usa os dados reais do snapshot.');
 required(!/api\.notion|method\s*:\s*['"](?:POST|PUT|PATCH|DELETE)/i.test(Object.values(scripts).join('\n')),'Módulo contém writeback ou acesso direto à API do Notion.');
 required(scripts.dashboard.includes('daily-material.json')&&scripts.dashboard.includes('daily-material-content'),'Estudar não renderiza o material incorporado.');
@@ -68,4 +70,4 @@ const activeSurface=[...Object.values(routes),...Object.values(scripts),home,mor
 for(const forbidden of ['pe76-catalog','pe76-key','pilot-catalog','real-study','?pilot=pe76','a1d5fc8f8e434105861faba90dc156d9','RodrigoRosaDantas/sedes-df-questoes'])required(!activeSurface.includes(forbidden),`Superfície ativa contém referência proibida: ${forbidden}.`);
 for(const removed of ['assets/integration/pilot-catalog.js','assets/integration/player.js','assets/integration/pe-pilot-status.js','data/integration/pilot/pe76-catalog.json','data/integration/pilot/pe76-key.json'])required(!(await exists(removed)),`Arquivo de exemplo ainda presente: ${removed}.`);
 required(packageData.scripts?.check?.includes('validate-daily-content.mjs')&&packageData.scripts?.check?.includes('validate-question-module.mjs')&&packageData.scripts?.check?.includes('test-review-engine.mjs')&&packageData.scripts?.check?.includes('test-question-module.mjs'),'Validação integral fora do gate principal.');
-console.log(`Módulo validado: conteúdo diário ${catalog.mode}, seis rotas, Banco Mestre local, armazenamento v2, revisão adaptativa e correção carregada somente ao finalizar.`);
+console.log(`Módulo validado: conteúdo diário ${catalog.mode}, seis rotas, Banco Mestre local, armazenamento v2, motor adaptativo preservado como contrato de dados, handoff ChatGPT + Notion na rota Revisar e correção carregada somente ao finalizar.`);
