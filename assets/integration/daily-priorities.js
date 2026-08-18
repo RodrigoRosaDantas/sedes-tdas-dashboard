@@ -25,9 +25,9 @@ export function buildOfficialCycleTasks({today,nextPe,base='/'}={}){
   tasks.push({
    id:'official-reviews',
    label:'Revisões de 24h e 72h',
-   detail:text(reviewItem?.detail)||text(current.action)||'Execute e registre as revisões nos momentos previstos.',
+   detail:text(reviewItem?.detail)||text(current.action)||'Sinal oficial do ciclo para análise e registro.',
    done,
-   href:`${base}hoje/`
+   href:`${base}revisar/?origem=oficial&pe=${encodeURIComponent(pe)}`
   });
  }
  if(nextPe){
@@ -47,7 +47,8 @@ export function selectPrimaryAction({pe,progress={},draft,attempt,nextPe,dueRevi
   const index=Number(draft.session?.currentIndex||0)+1,total=Array.isArray(draft.session?.questionIds)?draft.session.questionIds.length:0;
   return{stage:'questions',label:`Continuar questão ${index} de ${total}`,detail:'Existe uma sessão interrompida neste dispositivo.',href:`${base}resolver/?pe=${encodeURIComponent(pe)}&resume=1`,button:'Continuar de onde parei'};
  }
- if(dueReview)return{stage:'review',label:`Fazer revisão ${dueReview.stage}`,detail:'Há uma revisão local vencida ou disponível.',href:`${base}resolver/?review=${encodeURIComponent(dueReview.id)}`,button:'Iniciar revisão'};
+ // Sinais adaptativos locais continuam preservados em `dueReview`, mas não comandam a Home.
+ // A decisão pedagógica sobre essas evidências acontece no ChatGPT; a ação primária permanece no ciclo oficial.
  const currentStarted=Boolean(progress.material||progress.questions||progress.registered||attempt);
  if(!officialCompleted&&overduePe&&!currentStarted){
   const overdueId=text(overduePe.pe),status=text(overduePe.status)||'pendente';
@@ -58,7 +59,7 @@ export function selectPrimaryAction({pe,progress={},draft,attempt,nextPe,dueRevi
  if(officialCompleted&&nextPe)return{stage:'next',label:`Preparar ${nextPe.pe}`,detail:`${pe} foi concluído oficialmente. Próxima atividade: ${nextPe.title||nextPe.pe}.`,href:`${base}estudar/?pe=${encodeURIComponent(nextPe.pe)}`,button:'Abrir próximo PE'};
  if(officialCompleted){
   const pendingOfficial=officialTasks.find(item=>pending(item));
-  if(pendingOfficial)return{stage:pendingOfficial.id,label:pendingOfficial.label,detail:pendingOfficial.detail,href:pendingOfficial.href,button:'Abrir pendência'};
+  if(pendingOfficial)return{stage:pendingOfficial.id,label:pendingOfficial.label,detail:pendingOfficial.detail,href:pendingOfficial.href,button:pendingOfficial.id==='official-reviews'?'Analisar evidências':'Abrir pendência'};
   return{stage:'done',label:'Ciclo concluído',detail:`${pe} foi concluído oficialmente.`,href:`${base}desempenho/`,button:'Ver desempenho'};
  }
  if(!progress.material)return{stage:'material',label:`Começar material do ${pe}`,detail:'Primeiro passo: material premium e Lei Seca indicada.',href:`${base}estudar/?pe=${encodeURIComponent(pe)}`,button:'Começar material'};
