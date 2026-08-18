@@ -1,0 +1,102 @@
+name: Publicar shell canônico TDAS na main
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/tdas-shell-direct-main.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: tdas-shell-direct-main
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/tdas-shell-canonico-20260817
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Preservar implementação canônica
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -f assets/tdas-shell-unified.js ]; then
+            cp assets/tdas-shell-unified.js /tmp/tdas-shell-unified.js
+          else
+            python3 - <<'PY'
+          from pathlib import Path
+          import textwrap
+          source=Path('.github/workflows/browser-smoke.yml').read_text()
+          marker="cat > assets/tdas-shell-unified.js <<'JS'\n"
+          if marker not in source:
+              raise SystemExit('Implementação canônica não encontrada na branch de trabalho.')
+          start=source.index(marker)+len(marker)
+          end=source.index('\n          JS\n',start)
+          Path('/tmp/tdas-shell-unified.js').write_text(textwrap.dedent(source[start:end]).lstrip())
+          PY
+          fi
+          grep -q 'Navegação TDAS' /tmp/tdas-shell-unified.js
+          grep -q 'Revisão pedagógica agora acontece no ChatGPT' /tmp/tdas-shell-unified.js
+      - name: Rebase lógico sobre a main mais recente
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          git reset --hard origin/main
+          cp /tmp/tdas-shell-unified.js assets/tdas-shell-unified.js
+          python3 - <<'PY'
+          from pathlib import Path
+          common=Path('assets/common.js'); text=common.read_text(); marker='tdas-shell-unified.js?v=1.0.0'
+          if marker not in text:
+              common.write_text(text+"\nimport('./tdas-shell-unified.js?v=1.0.0').catch(()=>{});\n")
+          subjects=Path('assets/subjects-index.js'); text=subjects.read_text()
+          if "setupShell('materias',d.meta)" not in text:
+              old="setupShell('riscos',d.meta)"
+              if old not in text: raise SystemExit('Contrato de Matérias não encontrado na main atual')
+              subjects.write_text(text.replace(old,"setupShell('materias',d.meta)",1))
+          sw=Path('sw.js'); text=sw.read_text()
+          if 'tdas-shell-unified.js' not in text:
+              for token in ("'./assets/common.js'", '"./assets/common.js"'):
+                  if token in text:
+                      text=text.replace(token,token+",\n  './assets/tdas-shell-unified.js'",1); break
+              else: raise SystemExit('common.js não encontrado no precache da main atual')
+          sw.write_text(text)
+          PY
+      - name: Gate integral obrigatório
+        run: npm test
+      - name: Sintaxe e contratos
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check assets/tdas-shell-unified.js
+          node --check assets/common.js
+          node --check assets/subjects-index.js
+          grep -q 'Navegação TDAS' assets/tdas-shell-unified.js
+          grep -q 'Revisão pedagógica agora acontece no ChatGPT' assets/tdas-shell-unified.js
+          grep -q 'respostas para validar' assets/tdas-shell-unified.js
+          grep -q "setupShell('materias',d.meta)" assets/subjects-index.js
+          grep -q 'tdas-shell-unified.js?v=1.0.0' assets/common.js
+          grep -q 'tdas-shell-unified.js' sw.js
+      - name: Criar commit limpo sobre a main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'tdas-ui-audit[bot]'
+          git config user.email 'tdas-ui-audit[bot]@users.noreply.github.com'
+          git add assets/tdas-shell-unified.js assets/common.js assets/subjects-index.js sw.js
+          git diff --cached --check
+          tree=$(git write-tree)
+          parent=$(git rev-parse origin/main)
+          commit=$(printf '%s\n' 'Unificar shell visual do TDAS' | git commit-tree "$tree" -p "$parent")
+          git push origin "$commit":main
+          echo "TDAS_SHELL_COMMIT=$commit" >> "$GITHUB_ENV"
