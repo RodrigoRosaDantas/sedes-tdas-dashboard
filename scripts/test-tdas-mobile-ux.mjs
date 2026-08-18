@@ -30,8 +30,8 @@ assert.match(moduleUx,/renderReviewHandoff/,'Rota Revisar deve virar handoff exp
 assert.match(moduleUx,/A revisão pedagógica acontece no ChatGPT/,'Revisão deve declarar o papel do ChatGPT.');
 assert.match(moduleUx,/Notion/,'Handoff deve declarar a consolidação no Notion.');
 assert.match(moduleUx,/redirectLegacyReview/,'Links antigos de revisão devem ser interceptados.');
-assert.ok(!moduleUx.includes('data-pro-scorecard'),'Camada transversal não pode voltar a injetar scorecard concorrente.');
-assert.ok(!moduleUx.includes('data-pro-crossnav'),'Camada transversal não pode voltar a injetar segunda navegação interna.');
+assert.doesNotMatch(moduleUx,/dataset\.proScorecard|data-pro-scorecard=["']/,'Camada transversal não pode voltar a criar scorecard concorrente.');
+assert.doesNotMatch(moduleUx,/dataset\.proCrossnav|data-pro-crossnav=["']/,'Camada transversal não pode voltar a criar segunda navegação interna.');
 assert.ok(!moduleUx.includes('Feche a fila antes de aumentar o volume'),'Revisão interna não deve preemptar o fluxo principal.');
 assert.ok(!moduleUx.includes('api.notion.com'),'Camada de UX não pode consultar diretamente a API do Notion.');
 
