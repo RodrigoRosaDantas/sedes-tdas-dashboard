@@ -1,10 +1,12 @@
 const BASE='/sedes-tdas-dashboard/';
+const LEGACY_REVIEW_BRIDGE='./review-catalog-bridge.js?v=1.1.0';
 const params=new URLSearchParams(location.search);
 const reviewId=params.get('review');
 const bankMode=params.get('modo')==='banco'&&!reviewId;
 const addBankSwitch=()=>{const main=document.querySelector('main');if(!main)return;const actions=main.querySelector('.hero-actions');if(!actions||actions.querySelector('[data-bank-switch]'))return;const link=document.createElement('a');link.className='btn';link.dataset.bankSwitch='1';link.href=BASE+'resolver/?modo=banco';link.textContent='Banco de questões';actions.append(link)};
 if(reviewId){
  document.documentElement.dataset.questionMode='review-handoff';
+ document.documentElement.dataset.legacyReviewBridge=LEGACY_REVIEW_BRIDGE;
  const target=new URL(BASE+'revisar/',location.origin);
  target.searchParams.set('origem','legado');
  target.searchParams.set('review',reviewId);
