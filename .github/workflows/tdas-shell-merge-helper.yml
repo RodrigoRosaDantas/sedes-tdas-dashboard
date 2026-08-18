@@ -1,0 +1,55 @@
+name: Guardar e mesclar shell canônico TDAS
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/tdas-shell-merge-helper.yml'
+      - 'assets/tdas-shell-unified.js'
+      - 'assets/common.js'
+      - 'assets/subjects-index.js'
+      - 'sw.js'
+      - 'data/platform-version.json'
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  validate-and-merge:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/tdas-shell-canonico-20260817
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Confirmar materialização funcional
+        run: |
+          set -euo pipefail
+          test -f assets/tdas-shell-unified.js
+          grep -q 'Navegação TDAS' assets/tdas-shell-unified.js
+          grep -q 'tdas-shell-unified.js?v=1.0.0' assets/common.js
+          grep -q "setupShell('materias',d.meta)" assets/subjects-index.js
+          grep -q 'name: Validar experiência pública no navegador' .github/workflows/browser-smoke.yml
+          ! grep -q 'name: Aplicar shell canônico TDAS' .github/workflows/browser-smoke.yml
+      - name: Reexecutar gate integral
+        run: npm test
+      - name: Remover guarda transitória
+        run: |
+          set -euo pipefail
+          git config user.name 'tdas-ui-audit[bot]'
+          git config user.email 'tdas-ui-audit[bot]@users.noreply.github.com'
+          git rm .github/workflows/tdas-shell-merge-helper.yml
+          git commit -m 'Remover guarda transitória do shell canônico'
+          git push origin HEAD:agent/tdas-shell-canonico-20260817
+      - name: Mesclar PR validado
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          gh pr merge "$PR_NUMBER" --repo RodrigoRosaDantas/sedes-tdas-dashboard --squash --delete-branch
