@@ -10,7 +10,8 @@ if(reviewId){
  const target=new URL(BASE+'revisar/',location.origin);
  target.searchParams.set('origem','legado');
  target.searchParams.set('review',reviewId);
- location.replace(target.href);
+ history.replaceState(null,'',target.href);
+ await import('./module-reviews.js?v=2.2.0');
 }
 else if(bankMode){document.documentElement.dataset.questionMode='bank';await import('./bank-draft-guard.js?v=1.0.0');await import('./question-bank-player.js?v=1.0.0');await import('./master-bank-ui.js?v=1.0.0');await import('./question-telemetry-runtime.js?v=1.0.0');await import('./attempt-diagnostics.js?v=1.0.0')}
 else{document.documentElement.dataset.questionMode='daily';await import('./module-player.js?v=2.1.0');await import('./question-telemetry-runtime.js?v=1.0.0');await import('./daily-question-page.js?v=1.0.2');await import('./attempt-diagnostics.js?v=1.0.0');const observer=new MutationObserver(addBankSwitch);observer.observe(document.querySelector('main')||document.body,{childList:true,subtree:true});addBankSwitch()}
