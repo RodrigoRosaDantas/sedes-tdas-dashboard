@@ -1,7 +1,8 @@
 export const BASE='/sedes-tdas-dashboard/';
-export const routes={home:BASE,hoje:BASE+'hoje/',estudar:BASE+'estudar/',resolver:BASE+'resolver/',desempenho:BASE+'desempenho/',evolucao:BASE+'evolucao/',riscos:BASE+'riscos/',agenda:BASE+'agenda/',redacoes:BASE+'redacoes/',auditoria:BASE+'auditoria/',mais:BASE+'mais/',pe:BASE+'pe/',materias:BASE+'materias/',questoesErros:BASE+'questoes-erros/'};
-const icons={home:'⌂',hoje:'◎',estudar:'▤',resolver:'?',desempenho:'▥',evolucao:'↗',riscos:'!',agenda:'◷',redacoes:'✎',auditoria:'✓',mais:'☰'};
-const labels={home:'Início',hoje:'Hoje',estudar:'Estudar',resolver:'Questões',desempenho:'Desempenho',evolucao:'Evolução',riscos:'Riscos',agenda:'Agenda',redacoes:'Redações',auditoria:'Auditoria',mais:'Mais'};
+export const routes={home:BASE,hoje:BASE+'hoje/',estudar:BASE+'estudar/',resolver:BASE+'resolver/',revisar:BASE+'revisar/',caderno:BASE+'caderno-erros/',desempenho:BASE+'desempenho/',mentor:BASE+'mentor/',evolucao:BASE+'evolucao/',edital:BASE+'edital/',riscos:BASE+'riscos/',agenda:BASE+'agenda/',redacoes:BASE+'redacoes/',auditoria:BASE+'auditoria/',dados:BASE+'dados-locais/',config:BASE+'configuracoes/',mais:BASE+'mais/',pe:BASE+'pe/',materias:BASE+'materias/',questoesErros:BASE+'questoes-erros/'};
+const icons={home:'⌂',hoje:'⌂',estudar:'▤',resolver:'▶',revisar:'↻',caderno:'!',desempenho:'▥',mentor:'◆',evolucao:'↗',edital:'✓',riscos:'!',agenda:'↗',redacoes:'✎',auditoria:'▦',dados:'⇩',config:'⚙',mais:'☰',materias:'▤'};
+const canonicalDesktop=[['hoje','Hoje','Executar'],['resolver','Questões','Praticar'],['caderno','Erros','Validar'],['mentor','Mentor','Analisar'],['edital','Check do Edital','Cobertura'],['riscos','Riscos','Pareto'],['agenda','Plano PE01–PE112','Ciclo'],['mais','Mais','Ferramentas']];
+const canonicalMobile=[['hoje','Hoje'],['resolver','Questões'],['caderno','Erros'],['mentor','Mentor'],['mais','Mais']];
 const APP_SHELL_VERSION='28.0.0';
 const LAST_PUBLICATION_KEY='tdas-last-publication-meta-v1';
 const MAX_PUBLICATION_AGE_MS=8*60*60*1000;
@@ -111,14 +112,24 @@ function setupTabAccessibility(){
  document.documentElement.dataset.tabObserverReady='1';
  new MutationObserver(records=>{for(const record of records)for(const node of record.addedNodes)if(node.nodeType===1)enhanceTabs(node);}).observe(document.body,{childList:true,subtree:true});
 }
+function shellActive(){
+ const path=location.pathname;
+ if(path===BASE||path===BASE+'index.html'||path.startsWith(routes.hoje)||path.startsWith(routes.estudar))return'hoje';
+ if(path.startsWith(routes.resolver))return'resolver';
+ if(path.startsWith(routes.caderno)||path.startsWith(routes.questoesErros))return'caderno';
+ if(path.startsWith(routes.mentor))return'mentor';
+ if(path.startsWith(routes.edital))return'edital';
+ if(path.startsWith(routes.riscos))return'riscos';
+ if(path.startsWith(routes.agenda)||path.startsWith(routes.pe))return'agenda';
+ return'mais';
+}
 export function setupShell(page,meta={}){
- const desktop=['home','hoje','evolucao','riscos','agenda','redacoes','auditoria'];
- const mobile=['home','estudar','resolver','desempenho','mais'];
- const active=page==='pe'?'agenda':page==='subject'?'riscos':page;
+ const active=shellActive();
  document.querySelector('.brand small')?.replaceChildren(`SEDES/DF · v${APP_SHELL_VERSION}`);
- document.querySelector('#desktop-nav').innerHTML='<div class="nav-label">Plataforma de estudo</div>'+desktop.map(k=>`<a href="${routes[k]}" class="${k===active?'active':''}"><span class="nav-icon">${icons[k]}</span>${labels[k]}</a>`).join('');
- const mobileActive=['hoje','agenda','pe','subject'].includes(active)?'estudar':['redacoes'].includes(active)?'resolver':['evolucao','riscos'].includes(active)?'desempenho':['auditoria'].includes(active)?'mais':active;
- document.querySelector('#mobile-nav').innerHTML=mobile.map(k=>`<a href="${routes[k]}" class="${k===mobileActive?'active':''}"><span>${icons[k]}</span><span>${labels[k]}</span></a>`).join('');
+ const desktop=document.querySelector('#desktop-nav');
+ if(desktop)desktop.innerHTML='<div class="nav-label">Navegação TDAS</div>'+canonicalDesktop.map(([key,label,caption])=>`<a href="${routes[key]}" class="${key===active?'active':''}"><span class="nav-icon">${icons[key]}</span><span class="tdas-nav-copy"><b>${label}</b><small>${caption}</small></span></a>`).join('');
+ const mobile=document.querySelector('#mobile-nav');
+ if(mobile)mobile.innerHTML=canonicalMobile.map(([key,label])=>`<a href="${routes[key]}" class="${key===active?'active':''}"><span>${icons[key]}</span><span>${label}</span></a>`).join('');
  setText('[data-snapshot]',fmtDate(meta.snapshotDate));
  const stored=readStoredPublication();
  const initial=stored?.syncAt?fmtDateTime(stored.syncAt):fallbackTimestamp(meta);
