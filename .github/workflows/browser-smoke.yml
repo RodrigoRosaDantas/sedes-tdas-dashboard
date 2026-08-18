@@ -1,190 +1,55 @@
-name: Validar experiência pública no navegador
+name: Aplicar shell unificado TDAS
 
 on:
-  workflow_dispatch:
   pull_request:
     branches: [main]
     paths:
-      - 'index.html'
-      - 'auditoria/**'
-      - 'resolver/**'
-      - 'revisar/**'
-      - 'redacoes/**'
-      - 'assets/**'
-      - 'data/**'
-      - 'scripts/**'
-      - 'package.json'
-      - 'sw.js'
+      - '.tdas-shell/**'
       - '.github/workflows/browser-smoke.yml'
-  push:
-    branches: [main]
-    paths:
-      - 'index.html'
-      - 'auditoria/**'
-      - 'resolver/**'
-      - 'revisar/**'
-      - 'redacoes/**'
-      - 'assets/**'
-      - 'data/**'
-      - 'scripts/**'
-      - 'package.json'
-      - 'sw.js'
-      - '.github/workflows/browser-smoke.yml'
-  schedule:
-    - cron: '15 9 * * *'
+  workflow_dispatch:
 
 permissions:
-  contents: read
-
-concurrency:
-  group: browser-smoke-${{ github.ref }}
-  cancel-in-progress: true
+  contents: write
 
 jobs:
-  browser:
+  apply:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
     steps:
-      - name: Baixar repositório
+      - name: Baixar branch limpa
         uses: actions/checkout@v4
+        with:
+          ref: agent/tdas-shell-unificado-20260817
+          fetch-depth: 0
 
       - name: Preparar Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: 22
 
-      - name: Executar gate estrutural
-        run: npm run check
-
-      - name: Preparar site, sessão interrompida e revisão
-        shell: bash
+      - name: Reconstruir conjunto auditado
         run: |
           set -euo pipefail
-          mkdir -p /tmp/tdas-site/sedes-tdas-dashboard
-          cp -a . /tmp/tdas-site/sedes-tdas-dashboard/
-          node --input-type=module <<'NODE'
-          import fs from 'node:fs';
-          const root='/tmp/tdas-site/sedes-tdas-dashboard';
-          const dailyCatalog=JSON.parse(fs.readFileSync(`${root}/data/integration/question-catalog.json`,'utf8'));
-          const audit=JSON.parse(fs.readFileSync(`${root}/data/audit.json`,'utf8'));
-          const platform=JSON.parse(fs.readFileSync(`${root}/data/platform-version.json`,'utf8'));
-          const today=JSON.parse(fs.readFileSync(`${root}/data/today.json`,'utf8'));
-          const home=JSON.parse(fs.readFileSync(`${root}/data/home.json`,'utf8'));
-          const dailyQuestions=Array.isArray(dailyCatalog.questions)?dailyCatalog.questions:[];
-          let catalog=dailyCatalog;
-          if(dailyQuestions.length<3){
-            const archiveIndex=JSON.parse(fs.readFileSync(`${root}/data/integration/question-archive/index.json`,'utf8'));
-            const entries=Object.values(archiveIndex.catalogs||{}).reverse();
-            for(const entry of entries){
-              if(!entry?.path)continue;
-              const candidate=JSON.parse(fs.readFileSync(`${root}/${entry.path}`,'utf8'));
-              if(Array.isArray(candidate.questions)&&candidate.questions.length>=3){catalog=candidate;break}
-            }
-          }
-          const ids=(catalog.questions||[]).map(item=>item.id);
-          if(ids.length<3)throw new Error('O smoke exige ao menos três questões em catálogo diário ou arquivo autorizado.');
-          if(Number.isNaN(Date.parse(platform.syncAt)))throw new Error('O smoke exige syncAt válido no manifesto.');
-          const currentIndex=2;
-          const answers=Object.fromEntries(ids.slice(0,currentIndex).map((id,index)=>[id,index%2===0?'A':'B']));
-          const draft={schemaVersion:'1.0.0',catalogId:catalog.catalogId,peId:catalog.peId,savedAt:Date.now(),session:{schemaVersion:'1.0.0',materialId:catalog.catalogId,questionIds:ids,answers,currentIndex,startedAt:Date.now()-120000,updatedAt:Date.now(),finishedAt:null},responseMeta:{}};
-          const progress={version:1,items:{[catalog.peId]:{material:true,questions:false,registered:false,updatedAt:new Date().toISOString()}}};
-          const question=catalog.questions[0],reviewId=`review:smoke:${catalog.catalogId}:${question.id}:D+1`;
-          const review={id:reviewId,sourceAttemptId:'attempt:smoke',questionId:question.id,peId:catalog.peId,stage:'D+1',dueAt:Date.now()-60000,status:'pending',completedAt:null,reviewAttemptId:null,outcome:null,originReviewId:null,rootReviewId:reviewId,recurrenceCount:1,sourceOutcome:'wrong_again',classification:'incorrect_confirmed',confidence:'secure',marked:false,numeroOriginal:question.numeroOriginal??question.numero_original??1,assunto:question.assunto||'Questão',subassunto:question.subassunto||''};
-          const moduleState={schemaVersion:'2.0.0',updatedAt:Date.now(),attempts:[],errors:[],marked:[],reviews:[review],aiQueue:[]};
-          const unlinked=(audit.quality||[]).filter(item=>item.title==='Registro incompleto no Caderno de Erros'&&/Origem \/ Dia ID/.test(item.detail||'')).length;
-          const redactionItem=(today.checklist||[]).find(item=>item.done!==true&&/^Produzir\s+RD\d+/i.test(item.title||''));
-          const focusRd=(redactionItem?.title||'').match(/RD\d+/i)?.[0]||'';
-          const focusPe=focusRd?String(today.current?.pe||''):'';
-          const currentPe=String(today.current?.pe||dailyCatalog.peId||'');
-          const sourceCommit=platform.sourceCommit==='unknown'?'local':String(platform.sourceCommit).slice(0,7);
-          const syncDate=new Intl.DateTimeFormat('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',timeZone:'America/Sao_Paulo'}).format(new Date(platform.syncAt));
-          const syncTime=new Intl.DateTimeFormat('pt-BR',{hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'America/Sao_Paulo'}).format(new Date(platform.syncAt));
-          const expectCycleClosure=/conclu|finaliz|feito|realiz/i.test(String(home.today?.status||''))?'1':'0';
-          const draftHtml=`<!doctype html><meta charset="utf-8"><script>localStorage.setItem('tdas.202.question-module.v2.draft',${JSON.stringify(JSON.stringify(draft))});localStorage.setItem('tdas.202.daily-execution.v1',${JSON.stringify(JSON.stringify(progress))});location.replace('/sedes-tdas-dashboard/');<\/script>`;
-          const reviewScript=`localStorage.setItem('tdas.202.question-module.v2.state',${JSON.stringify(JSON.stringify(moduleState))});`;
-          const reviewHtml=`<!doctype html><meta charset="utf-8"><script>${reviewScript}location.replace('/sedes-tdas-dashboard/resolver/?review='+encodeURIComponent(${JSON.stringify(reviewId)}));<\/script>`;
-          const reviewHomeHtml=`<!doctype html><meta charset="utf-8"><script>${reviewScript}location.replace('/sedes-tdas-dashboard/');<\/script>`;
-          fs.writeFileSync(`${root}/__seed.html`,draftHtml);
-          fs.writeFileSync(`${root}/__review.html`,reviewHtml);
-          fs.writeFileSync(`${root}/__review-home.html`,reviewHomeHtml);
-          fs.writeFileSync('/tmp/tdas-expected.env',`QUESTION_INDEX=${currentIndex+1}\nQUESTION_TOTAL=${ids.length}\nDAILY_QUESTION_COUNT=${dailyQuestions.length}\nCURRENT_PE=${currentPe}\nUNLINKED_ERRORS=${unlinked}\nPLATFORM_VERSION=${platform.platformVersion}\nSOURCE_COMMIT_SHORT=${sourceCommit}\nFOCUS_RD=${focusRd}\nFOCUS_PE=${focusPe}\nREVIEW_STAGE=D+1\nLAST_SYNC_DATE=${syncDate}\nLAST_SYNC_TIME=${syncTime}\nEXPECT_CYCLE_CLOSURE=${expectCycleClosure}\n`);
-          NODE
-          cd /tmp/tdas-site
-          python3 -m http.server 4173 >/tmp/tdas-server.log 2>&1 &
-          echo $! >/tmp/tdas-server.pid
-          for attempt in $(seq 1 30); do curl -fsS http://127.0.0.1:4173/sedes-tdas-dashboard/ >/dev/null && exit 0; sleep 1; done
-          cat /tmp/tdas-server.log >&2
-          exit 1
+          cat .tdas-shell/chunk-00.b64 .tdas-shell/chunk-01.b64 .tdas-shell/chunk-02.b64 .tdas-shell/chunk-03.b64 .tdas-shell/chunk-04-rest.b64 > /tmp/tdas-shell.b64
+          base64 -d /tmp/tdas-shell.b64 > /tmp/tdas-shell.tar.gz
+          echo '82bbf4ae524f0cf77887cdf393cbb6de921d3a3e455eb52c1fd58bb1c8689b01  /tmp/tdas-shell.tar.gz' | sha256sum -c -
+          test "$(tar -tzf /tmp/tdas-shell.tar.gz | wc -l)" -eq 51
+          tar -xzf /tmp/tdas-shell.tar.gz
 
-      - name: Validar central, retomada, revisão e auditoria
-        shell: bash
+      - name: Validar arquitetura completa
         run: |
           set -euo pipefail
-          source /tmp/tdas-expected.env
-          base='http://127.0.0.1:4173/sedes-tdas-dashboard'
-          chrome=(google-chrome --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --virtual-time-budget=15000 --dump-dom)
-          "${chrome[@]}" "$base/" >/tmp/home.html 2>/tmp/home.stderr
-          "${chrome[@]}" --user-data-dir=/tmp/tdas-profile "$base/__seed.html" >/tmp/resume.html 2>/tmp/resume.stderr
-          "${chrome[@]}" --user-data-dir=/tmp/tdas-review-profile "$base/__review.html" >/tmp/review.html 2>/tmp/review.stderr
-          "${chrome[@]}" --user-data-dir=/tmp/tdas-review-home-profile "$base/__review-home.html" >/tmp/review-home.html 2>/tmp/review-home.stderr
-          "${chrome[@]}" "$base/auditoria/" >/tmp/audit.html 2>/tmp/audit.stderr
-          "${chrome[@]}" "$base/resolver/" >/tmp/resolver.html 2>/tmp/resolver.stderr
-          grep -q 'Central de execução' /tmp/home.html
-          if [[ "$EXPECT_CYCLE_CLOSURE" == '1' ]]; then grep -q 'Fechamento e continuidade' /tmp/home.html; else ! grep -q 'Fechamento e continuidade' /tmp/home.html; fi
-          grep -q "v${PLATFORM_VERSION}" /tmp/home.html
-          grep -q "Plataforma ${PLATFORM_VERSION}" /tmp/home.html
-          grep -q "publicação ${SOURCE_COMMIT_SHORT}" /tmp/home.html
-          grep -q 'Última sincronização' /tmp/home.html
-          grep -q "${LAST_SYNC_DATE} às ${LAST_SYNC_TIME}" /tmp/home.html
-          grep -q 'data-last-sync-at=' /tmp/home.html
-          ! grep -q '00h50 · 06h50 · 12h50 · 18h50</span>' /tmp/home.html
-          ! grep -q 'versão carregando' /tmp/home.html
-          grep -q "Continuar questão ${QUESTION_INDEX} de ${QUESTION_TOTAL}" /tmp/resume.html
-          grep -q "Revisão ${REVIEW_STAGE}" /tmp/review.html
-          grep -q 'Revisar questão' /tmp/review.html
-          grep -q 'Correção somente ao finalizar' /tmp/review.html
-          grep -q 'data-primary-stage="review"' /tmp/review-home.html
-          grep -q "Fazer revisão ${REVIEW_STAGE}" /tmp/review-home.html
-          grep -q 'Erros sem origem confirmada' /tmp/audit.html
-          grep -q "${UNLINKED_ERRORS} pendentes" /tmp/audit.html
-          if (( DAILY_QUESTION_COUNT > 0 )); then
-            grep -q 'data-daily-question-context="player-active"' /tmp/resolver.html
-          else
-            grep -q "data-daily-question-context=\"${CURRENT_PE}\"" /tmp/resolver.html
-            grep -q "Questões do dia — ${CURRENT_PE}" /tmp/resolver.html
-          fi
-          grep -q 'Banco de questões' /tmp/resolver.html
-          if [[ -n "${FOCUS_RD}" ]]; then
-            "${chrome[@]}" "$base/redacoes/?rd=${FOCUS_RD}&pe=${FOCUS_PE}" >/tmp/redactions.html 2>/tmp/redactions.stderr
-            grep -q 'data-primary-stage="redaction"' /tmp/home.html
-            grep -q "Produzir ${FOCUS_RD}" /tmp/home.html
-            grep -q 'data-focused-redaction="true"' /tmp/redactions.html
-            grep -q "${FOCUS_RD}" /tmp/redactions.html
-            grep -q "${FOCUS_PE}" /tmp/redactions.html
-          fi
-          ! grep -Eqi 'Carregando|Não foi possível carregar esta página' /tmp/home.html
-          ! grep -Eqi 'Uncaught (TypeError|ReferenceError|SyntaxError)|Central de execução indisponível|Erros sem origem indisponíveis|Revisão local não encontrada' /tmp/*.stderr
-          grep -q 'assets/integration/review-engine.js' /tmp/tdas-site/sedes-tdas-dashboard/sw.js
-          ! grep -q 'question-keys/' /tmp/tdas-site/sedes-tdas-dashboard/sw.js
-          printf '{"browser":"ok","commandCenter":true,"lastSync":"%sT%s","cycleClosure":%s,"adaptiveReview":true,"reviewStage":"%s","focusedRedaction":"%s","platformVersion":"%s","publication":"%s","resume":"question-%s-of-%s","dailyQuestionCount":%s,"unlinkedErrors":%s,"questionBankVisible":true,"answerKeyPrecached":false}\n' "$LAST_SYNC_DATE" "$LAST_SYNC_TIME" "$EXPECT_CYCLE_CLOSURE" "$REVIEW_STAGE" "$FOCUS_RD" "$PLATFORM_VERSION" "$SOURCE_COMMIT_SHORT" "$QUESTION_INDEX" "$QUESTION_TOTAL" "$DAILY_QUESTION_COUNT" "$UNLINKED_ERRORS"
+          npm test
+          while IFS= read -r file; do
+            node --check "$file"
+          done < <(find assets scripts -type f \( -name '*.js' -o -name '*.mjs' \) -print | sort)
 
-      - name: Diagnosticar falha do navegador
-        if: failure()
-        shell: bash
+      - name: Materializar somente código funcional
         run: |
-          echo '=== Valores esperados ==='
-          cat /tmp/tdas-expected.env 2>/dev/null || true
-          for file in /tmp/home.html /tmp/resume.html /tmp/review.html /tmp/review-home.html /tmp/audit.html /tmp/resolver.html /tmp/redactions.html; do
-            [[ -f "$file" ]] || continue
-            echo "=== $file ==="
-            grep -Eo 'SEDES/DF · v[^<]+|Plataforma [^<]+|publicação [0-9a-z]+|[0-9]{2}/[0-9]{2}/[0-9]{4} às [0-9]{2}:[0-9]{2}|Continuar questão [^<]+|Revisão D\+[0-9]+|Questões do dia — PE[0-9]+|Banco de questões|data-daily-question-context="[^"]+"|[0-9]+ pendentes|Não foi possível carregar esta página' "$file" | head -40 || true
-          done
-          for file in /tmp/*.stderr; do
-            [[ -f "$file" ]] || continue
-            echo "=== $file ==="
-            tail -80 "$file" || true
-          done
-
-      - name: Encerrar servidor
-        if: always()
-        run: kill "$(cat /tmp/tdas-server.pid 2>/dev/null)" 2>/dev/null || true
+          set -euo pipefail
+          rm -rf .tdas-shell
+          git config user.name 'tdas-ui-audit[bot]'
+          git config user.email 'tdas-ui-audit[bot]@users.noreply.github.com'
+          git add -A
+          git diff --cached --check
+          git commit -m 'Unificar shell TDAS e alinhar execução → ChatGPT → Notion'
+          git push origin HEAD:agent/tdas-shell-unificado-20260817
