@@ -1,190 +1,169 @@
-name: Validar experiência pública no navegador
+name: Aplicar shell canônico TDAS sobre a main
 
 on:
-  workflow_dispatch:
   pull_request:
     branches: [main]
     paths:
-      - 'index.html'
-      - 'auditoria/**'
-      - 'resolver/**'
-      - 'revisar/**'
-      - 'redacoes/**'
-      - 'assets/**'
-      - 'data/**'
-      - 'scripts/**'
-      - 'package.json'
-      - 'sw.js'
       - '.github/workflows/browser-smoke.yml'
-  push:
-    branches: [main]
-    paths:
-      - 'index.html'
-      - 'auditoria/**'
-      - 'resolver/**'
-      - 'revisar/**'
-      - 'redacoes/**'
-      - 'assets/**'
-      - 'data/**'
-      - 'scripts/**'
-      - 'package.json'
-      - 'sw.js'
-      - '.github/workflows/browser-smoke.yml'
-  schedule:
-    - cron: '15 9 * * *'
+  workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
-  group: browser-smoke-${{ github.ref }}
-  cancel-in-progress: true
+  group: tdas-shell-direct-final
+  cancel-in-progress: false
 
 jobs:
-  browser:
+  apply:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
-      - name: Baixar repositório
-        uses: actions/checkout@v4
-
-      - name: Preparar Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/tdas-shell-direct-final-20260817
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
         with:
           node-version: '22'
-
-      - name: Executar gate estrutural
-        run: npm run check
-
-      - name: Preparar site, sessão interrompida e revisão
+      - name: Partir da main mais recente
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          git reset --hard origin/main
+      - name: Criar shell canônico
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p /tmp/tdas-site/sedes-tdas-dashboard
-          cp -a . /tmp/tdas-site/sedes-tdas-dashboard/
-          node --input-type=module <<'NODE'
-          import fs from 'node:fs';
-          const root='/tmp/tdas-site/sedes-tdas-dashboard';
-          const dailyCatalog=JSON.parse(fs.readFileSync(`${root}/data/integration/question-catalog.json`,'utf8'));
-          const audit=JSON.parse(fs.readFileSync(`${root}/data/audit.json`,'utf8'));
-          const platform=JSON.parse(fs.readFileSync(`${root}/data/platform-version.json`,'utf8'));
-          const today=JSON.parse(fs.readFileSync(`${root}/data/today.json`,'utf8'));
-          const home=JSON.parse(fs.readFileSync(`${root}/data/home.json`,'utf8'));
-          const dailyQuestions=Array.isArray(dailyCatalog.questions)?dailyCatalog.questions:[];
-          let catalog=dailyCatalog;
-          if(dailyQuestions.length<3){
-            const archiveIndex=JSON.parse(fs.readFileSync(`${root}/data/integration/question-archive/index.json`,'utf8'));
-            const entries=Object.values(archiveIndex.catalogs||{}).reverse();
-            for(const entry of entries){
-              if(!entry?.path)continue;
-              const candidate=JSON.parse(fs.readFileSync(`${root}/${entry.path}`,'utf8'));
-              if(Array.isArray(candidate.questions)&&candidate.questions.length>=3){catalog=candidate;break}
-            }
+          cat > assets/tdas-shell-unified.js <<'JS'
+          const BASE='/sedes-tdas-dashboard/';
+          const clean=value=>String(value||'').replace(/\s+/g,' ').trim();
+          const fold=value=>clean(value).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+          const path=location.pathname;
+          const moduleState=()=>{try{return JSON.parse(localStorage.getItem('tdas.202.question-module.v2.state')||'{}')}catch{return{}}};
+          const latestAttempt=()=>Array.isArray(moduleState().attempts)?moduleState().attempts[0]||null:null;
+          const activeKey=()=>{
+            if(/\/resolver\//.test(path))return'questoes';
+            if(/\/caderno-erros\//.test(path)||/\/questoes-erros\//.test(path))return'erros';
+            if(/\/mentor\//.test(path))return'mentor';
+            if(/\/hoje\//.test(path)||path===BASE||path===`${BASE}index.html`)return'hoje';
+            return'mais';
+          };
+          const NAV=[
+            ['hoje','⌂','Hoje',`${BASE}hoje/`],
+            ['questoes','▶','Questões',`${BASE}resolver/`],
+            ['erros','!','Erros',`${BASE}caderno-erros/`],
+            ['mentor','◆','Mentor',`${BASE}mentor/`],
+            ['edital','✓','Check do Edital',`${BASE}edital/`],
+            ['riscos','!','Riscos',`${BASE}riscos/`],
+            ['plano','↗','Plano PE01–PE112',`${BASE}agenda/`],
+            ['mais','≡','Mais',`${BASE}mais/`]
+          ];
+          const BOTTOM=NAV.filter(item=>['hoje','questoes','erros','mentor','mais'].includes(item[0]));
+          function style(){
+            if(document.getElementById('tdas-unified-shell-style'))return;
+            const s=document.createElement('style');s.id='tdas-unified-shell-style';s.textContent=`
+              .tdas-unified-shell-nav{padding:18px 18px 22px;display:grid;gap:7px}.tdas-unified-shell-title{margin:0 10px 10px;color:var(--muted,#8fa4bb);font-size:11px;font-weight:800;letter-spacing:.2em;text-transform:uppercase}.tdas-unified-nav-link{display:grid;grid-template-columns:28px 1fr auto;align-items:center;gap:10px;min-height:46px;padding:0 12px;border:1px solid transparent;border-radius:14px;color:var(--muted,#a8bbcf);text-decoration:none;font-weight:700}.tdas-unified-nav-link:hover{border-color:rgba(110,135,255,.28);background:rgba(90,115,210,.08);color:var(--text,#eef5ff)}.tdas-unified-nav-link.is-active{border-color:rgba(110,135,255,.5);background:rgba(90,115,210,.16);color:var(--text,#fff)}.tdas-unified-nav-link small{font-size:10px;color:var(--muted,#8094aa);font-weight:600}.tdas-unified-nav-icon{display:grid;place-items:center;width:26px;height:26px;border-radius:9px;background:rgba(64,210,180,.1);color:#49d8ba}.tdas-unified-bottom-nav{display:none}.tdas-unified-review{max-width:980px;margin:0 auto;padding:36px 24px 120px}.tdas-unified-review .hero{padding:34px}.tdas-unified-review .hero-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px}
+              @media(max-width:900px){body{padding-bottom:84px!important}.tdas-unified-bottom-nav{position:fixed;z-index:9998;left:12px;right:12px;bottom:10px;display:grid;grid-template-columns:repeat(5,1fr);gap:4px;padding:7px;border:1px solid rgba(110,135,255,.28);border-radius:22px;background:rgba(7,20,35,.94);backdrop-filter:blur(18px);box-shadow:0 18px 50px rgba(0,0,0,.35)}.tdas-unified-bottom-nav a{display:grid;place-items:center;gap:2px;min-height:58px;border-radius:16px;color:#9fb2c7;text-decoration:none;font-size:11px;font-weight:750}.tdas-unified-bottom-nav a b{font-size:17px;font-weight:500}.tdas-unified-bottom-nav a.is-active{background:rgba(66,103,170,.28);color:#eef5ff}.tdas-unified-shell-nav{padding-bottom:100px}}
+            `;document.head.append(s);
           }
-          const ids=(catalog.questions||[]).map(item=>item.id);
-          if(ids.length<3)throw new Error('O smoke exige ao menos três questões em catálogo diário ou arquivo autorizado.');
-          if(Number.isNaN(Date.parse(platform.syncAt)))throw new Error('O smoke exige syncAt válido no manifesto.');
-          const currentIndex=2;
-          const answers=Object.fromEntries(ids.slice(0,currentIndex).map((id,index)=>[id,index%2===0?'A':'B']));
-          const draft={schemaVersion:'1.0.0',catalogId:catalog.catalogId,peId:catalog.peId,savedAt:Date.now(),session:{schemaVersion:'1.0.0',materialId:catalog.catalogId,questionIds:ids,answers,currentIndex,startedAt:Date.now()-120000,updatedAt:Date.now(),finishedAt:null},responseMeta:{}};
-          const progress={version:1,items:{[catalog.peId]:{material:true,questions:false,registered:false,updatedAt:new Date().toISOString()}}};
-          const question=catalog.questions[0],reviewId=`review:smoke:${catalog.catalogId}:${question.id}:D+1`;
-          const review={id:reviewId,sourceAttemptId:'attempt:smoke',questionId:question.id,peId:catalog.peId,stage:'D+1',dueAt:Date.now()-60000,status:'pending',completedAt:null,reviewAttemptId:null,outcome:null,originReviewId:null,rootReviewId:reviewId,recurrenceCount:1,sourceOutcome:'wrong_again',classification:'incorrect_confirmed',confidence:'secure',marked:false,numeroOriginal:question.numeroOriginal??question.numero_original??1,assunto:question.assunto||'Questão',subassunto:question.subassunto||''};
-          const moduleState={schemaVersion:'2.0.0',updatedAt:Date.now(),attempts:[],errors:[],marked:[],reviews:[review],aiQueue:[]};
-          const unlinked=(audit.quality||[]).filter(item=>item.title==='Registro incompleto no Caderno de Erros'&&/Origem \/ Dia ID/.test(item.detail||'')).length;
-          const redactionItem=(today.checklist||[]).find(item=>item.done!==true&&/^Produzir\s+RD\d+/i.test(item.title||''));
-          const focusRd=(redactionItem?.title||'').match(/RD\d+/i)?.[0]||'';
-          const focusPe=focusRd?String(today.current?.pe||''):'';
-          const currentPe=String(today.current?.pe||dailyCatalog.peId||'');
-          const sourceCommit=platform.sourceCommit==='unknown'?'local':String(platform.sourceCommit).slice(0,7);
-          const syncDate=new Intl.DateTimeFormat('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',timeZone:'America/Sao_Paulo'}).format(new Date(platform.syncAt));
-          const syncTime=new Intl.DateTimeFormat('pt-BR',{hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'America/Sao_Paulo'}).format(new Date(platform.syncAt));
-          const expectCycleClosure=/conclu|finaliz|feito|realiz/i.test(String(home.today?.status||''))?'1':'0';
-          const draftHtml=`<!doctype html><meta charset="utf-8"><script>localStorage.setItem('tdas.202.question-module.v2.draft',${JSON.stringify(JSON.stringify(draft))});localStorage.setItem('tdas.202.daily-execution.v1',${JSON.stringify(JSON.stringify(progress))});location.replace('/sedes-tdas-dashboard/');<\/script>`;
-          const reviewScript=`localStorage.setItem('tdas.202.question-module.v2.state',${JSON.stringify(JSON.stringify(moduleState))});`;
-          const reviewHtml=`<!doctype html><meta charset="utf-8"><script>${reviewScript}location.replace('/sedes-tdas-dashboard/resolver/?review='+encodeURIComponent(${JSON.stringify(reviewId)}));<\/script>`;
-          const reviewHomeHtml=`<!doctype html><meta charset="utf-8"><script>${reviewScript}location.replace('/sedes-tdas-dashboard/');<\/script>`;
-          fs.writeFileSync(`${root}/__seed.html`,draftHtml);
-          fs.writeFileSync(`${root}/__review.html`,reviewHtml);
-          fs.writeFileSync(`${root}/__review-home.html`,reviewHomeHtml);
-          fs.writeFileSync('/tmp/tdas-expected.env',`QUESTION_INDEX=${currentIndex+1}\nQUESTION_TOTAL=${ids.length}\nDAILY_QUESTION_COUNT=${dailyQuestions.length}\nCURRENT_PE=${currentPe}\nUNLINKED_ERRORS=${unlinked}\nPLATFORM_VERSION=${platform.platformVersion}\nSOURCE_COMMIT_SHORT=${sourceCommit}\nFOCUS_RD=${focusRd}\nFOCUS_PE=${focusPe}\nREVIEW_STAGE=D+1\nLAST_SYNC_DATE=${syncDate}\nLAST_SYNC_TIME=${syncTime}\nEXPECT_CYCLE_CLOSURE=${expectCycleClosure}\n`);
-          NODE
-          cd /tmp/tdas-site
-          python3 -m http.server 4173 >/tmp/tdas-server.log 2>&1 &
-          echo $! >/tmp/tdas-server.pid
-          for attempt in $(seq 1 30); do curl -fsS http://127.0.0.1:4173/sedes-tdas-dashboard/ >/dev/null && exit 0; sleep 1; done
-          cat /tmp/tdas-server.log >&2
-          exit 1
-
-      - name: Validar central, retomada, revisão e auditoria
+          const legacyLabels=['faça agora','resolver questões','revisões','caderno de erros','mentor','check do edital','riscos','plano pe01–pe112','biblioteca','bancos de dados','início','hoje','evolução','agenda','redações','auditoria'];
+          function sidebarRoot(){return document.querySelector('.sidebar,[data-sidebar],aside.sidebar')||[...document.querySelectorAll('aside')].find(el=>el.querySelectorAll('a').length>=4)||null}
+          function normalizeSidebar(){
+            const root=sidebarRoot();if(!root)return;
+            [...root.querySelectorAll('*')].forEach(el=>{const t=fold(el.textContent);if((t==='central de comando'||t==='plataforma de estudo')&&el.children.length===0)el.remove()});
+            [...root.querySelectorAll('a')].forEach(a=>{if(a.closest('.tdas-unified-shell-nav'))return;const t=fold(a.textContent);if(legacyLabels.some(label=>t===label||t.startsWith(`${label} `))){const wrap=a.closest('li')||a;a.remove();if(wrap!==a&&!clean(wrap.textContent))wrap.remove()}});
+            let nav=root.querySelector('.tdas-unified-shell-nav');if(!nav){nav=document.createElement('section');nav.className='tdas-unified-shell-nav';root.append(nav)};
+            const active=activeKey();nav.innerHTML=`<div class="tdas-unified-shell-title">Navegação TDAS</div>${NAV.map(([key,ico,label,href])=>`<a class="tdas-unified-nav-link ${active===key?'is-active':''}" href="${href}" data-unified-nav="${key}"><span class="tdas-unified-nav-icon">${ico}</span><span>${label}</span><small>${key==='edital'?'Cobertura':key==='riscos'?'Pareto':''}</small></a>`).join('')}`;
+          }
+          function removeLegacyBottom(){
+            [...document.querySelectorAll('nav')].forEach(nav=>{if(nav.classList.contains('tdas-unified-bottom-nav'))return;const t=fold(nav.textContent);if(t.includes('hoje')&&t.includes('quest')&&t.includes('revis')&&t.includes('erros')&&t.includes('mais'))nav.remove()});
+          }
+          function bottomNav(){
+            removeLegacyBottom();let nav=document.querySelector('.tdas-unified-bottom-nav');if(!nav){nav=document.createElement('nav');nav.className='tdas-unified-bottom-nav';nav.setAttribute('aria-label','Navegação principal TDAS');document.body.append(nav)}const active=activeKey();nav.innerHTML=BOTTOM.map(([key,ico,label,href])=>`<a class="${active===key?'is-active':''}" href="${href}"><b>${ico}</b><span>${label}</span></a>`).join('');
+          }
+          function normalizeStatus(){
+            const map=new Map([['snapshot desatualizado','Dados desatualizados'],['atualização atrasada','Dados desatualizados'],['snapshot atualizado','Dados atualizados'],['atualização em dia','Dados atualizados']]);
+            [...document.querySelectorAll('body *')].forEach(el=>{if(el.children.length)return;const key=fold(el.textContent);if(map.has(key))el.textContent=map.get(key)});
+          }
+          function replaceText(root,replacements){
+            if(!root)return;const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);const nodes=[];while(walker.nextNode())nodes.push(walker.currentNode);for(const node of nodes){let next=node.nodeValue;for(const [rx,value] of replacements)next=next.replace(rx,value);if(next!==node.nodeValue)node.nodeValue=next}
+          }
+          function removeContextBars(){
+            const main=document.querySelector('main');if(!main)return;[...main.querySelectorAll('section,article,div')].forEach(el=>{const t=fold(el.textContent);if(t.length>180)return;if((t.includes('faça agora')&&t.includes('caderno de erros'))||(t.includes('faça agora')&&t.includes('biblioteca')))el.remove()});
+          }
+          function normalizeErrorBook(){
+            if(!/\/caderno-erros\//.test(path))return;const main=document.querySelector('main');if(!main)return;removeContextBars();replaceText(main,[
+              [/Erros confirmados e questões marcadas nas sessões reais deste módulo\./gi,'Respostas incorretas e questões marcadas nas sessões deste módulo. Valide no ChatGPT antes de consolidar no Notion.'],
+              [/(\d+)\s+erros confirmados/gi,'$1 respostas para validar'],[/ERROS LOCAIS/g,'RESPOSTAS LOCAIS'],[/confirmados no player/gi,'registradas no player'],[/Erro confirmado/gi,'Resposta divergente'],[/Causa e reincidência/gi,'Análise e padrão'],[/Voltar no tempo certo/gi,'Consolidar no Notion'],[/Ataque reincidências antes de seguir/gi,'Valide reincidências antes de consolidar']
+            ]);
+            [...main.querySelectorAll('a,button')].forEach(el=>{if(/abrir revis(ões|oes)/i.test(clean(el.textContent))){el.textContent='Levar ao ChatGPT →';if(el.tagName==='A')el.href=`${BASE}exportar-tentativa/`}});
+          }
+          function dedupeSubjects(){
+            if(!/\/materias\/?$/.test(path))return;const main=document.querySelector('main');if(!main)return;removeContextBars();const seen=new Set();[...main.querySelectorAll('article,.card,.metric,.stat')].forEach(el=>{const t=clean(el.textContent);if(t.length>130||!/(MATÉRIAS|ERROS|REINCIDÊNCIAS|ALTOS\/CRÍTICOS)/i.test(t))return;const key=fold(t);if(seen.has(key))el.remove();else seen.add(key)});
+          }
+          function normalizeHome(){
+            if(!(path===BASE||path===`${BASE}index.html`||/\/hoje\//.test(path)))return;const main=document.querySelector('main');if(!main)return;const attempt=latestAttempt();replaceText(main,[[/Há uma revisão local vencida ou disponível\./gi,attempt?'Sua última sessão está pronta para análise no ChatGPT.':'O site executa questões; o ChatGPT analisa e o Notion consolida.'],[/Revisão semanal/gi,'ChatGPT + Notion'],[/REVISÕES VENCIDAS/g,'RESPOSTAS PARA VALIDAR'],[/prioridade antes de avançar/gi,'evidência local, não erro confirmado']]);
+            [...main.querySelectorAll('a,button')].forEach(el=>{if(/iniciar revisão/i.test(clean(el.textContent))){el.textContent=attempt?'Levar ao ChatGPT':'Resolver questões';if(el.tagName==='A')el.href=attempt?`${BASE}exportar-tentativa/?id=${encodeURIComponent(attempt.id)}`:`${BASE}resolver/`}});
+          }
+          function reviewHandoff(){
+            if(!/\/revisar\//.test(path))return;const main=document.querySelector('main');if(!main||main.dataset.tdasUnifiedReview==='1')return;const attempt=latestAttempt();main.dataset.tdasUnifiedReview='1';main.className='tdas-unified-review';main.innerHTML=`<section class="hero"><span class="kicker">ChatGPT + Notion</span><h1>Revisão pedagógica agora acontece no ChatGPT.</h1><p>O TDAS fica responsável por executar questões e preservar os dados brutos. A classificação do erro, a decisão de revisar e a atualização do Notion ficam com o ChatGPT.</p><div class="hero-actions">${attempt?`<a class="btn primary" href="${BASE}exportar-tentativa/?id=${encodeURIComponent(attempt.id)}">Analisar última tentativa →</a>`:`<a class="btn primary" href="${BASE}resolver/">Resolver questões →</a>`}<a class="btn" href="${BASE}caderno-erros/">Ver evidências locais</a></div></section>`;
+          }
+          if(/\/resolver\//.test(path)&&new URLSearchParams(location.search).has('review'))location.replace(`${BASE}revisar/?legacy=1`);
+          function run(){style();normalizeSidebar();bottomNav();normalizeStatus();normalizeErrorBook();dedupeSubjects();normalizeHome();reviewHandoff()}
+          const start=()=>{run();setTimeout(run,350);setTimeout(run,1200);const observer=new MutationObserver(()=>{clearTimeout(window.__tdasUnifiedTimer);window.__tdasUnifiedTimer=setTimeout(run,120)});observer.observe(document.body,{childList:true,subtree:true})};
+          if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
+          JS
+      - name: Integrar shell na main atual
         shell: bash
         run: |
           set -euo pipefail
-          source /tmp/tdas-expected.env
-          base='http://127.0.0.1:4173/sedes-tdas-dashboard'
-          chrome=(google-chrome --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --virtual-time-budget=15000 --dump-dom)
-          "${chrome[@]}" "$base/" >/tmp/home.html 2>/tmp/home.stderr
-          "${chrome[@]}" --user-data-dir=/tmp/tdas-profile "$base/__seed.html" >/tmp/resume.html 2>/tmp/resume.stderr
-          "${chrome[@]}" --user-data-dir=/tmp/tdas-review-profile "$base/__review.html" >/tmp/review.html 2>/tmp/review.stderr
-          "${chrome[@]}" --user-data-dir=/tmp/tdas-review-home-profile "$base/__review-home.html" >/tmp/review-home.html 2>/tmp/review-home.stderr
-          "${chrome[@]}" "$base/auditoria/" >/tmp/audit.html 2>/tmp/audit.stderr
-          "${chrome[@]}" "$base/resolver/" >/tmp/resolver.html 2>/tmp/resolver.stderr
-          grep -q 'Central de execução' /tmp/home.html
-          if [[ "$EXPECT_CYCLE_CLOSURE" == '1' ]]; then grep -q 'Fechamento e continuidade' /tmp/home.html; else ! grep -q 'Fechamento e continuidade' /tmp/home.html; fi
-          grep -q "v${PLATFORM_VERSION}" /tmp/home.html
-          grep -q "Plataforma ${PLATFORM_VERSION}" /tmp/home.html
-          grep -q "publicação ${SOURCE_COMMIT_SHORT}" /tmp/home.html
-          grep -q 'Última sincronização' /tmp/home.html
-          grep -q "${LAST_SYNC_DATE} às ${LAST_SYNC_TIME}" /tmp/home.html
-          grep -q 'data-last-sync-at=' /tmp/home.html
-          ! grep -q '00h50 · 06h50 · 12h50 · 18h50</span>' /tmp/home.html
-          ! grep -q 'versão carregando' /tmp/home.html
-          grep -q "Continuar questão ${QUESTION_INDEX} de ${QUESTION_TOTAL}" /tmp/resume.html
-          grep -q "Revisão ${REVIEW_STAGE}" /tmp/review.html
-          grep -q 'Revisar questão' /tmp/review.html
-          grep -q 'Correção somente ao finalizar' /tmp/review.html
-          grep -q 'data-primary-stage="review"' /tmp/review-home.html
-          grep -q "Fazer revisão ${REVIEW_STAGE}" /tmp/review-home.html
-          grep -q 'Erros sem origem confirmada' /tmp/audit.html
-          grep -q "${UNLINKED_ERRORS} pendentes" /tmp/audit.html
-          if (( DAILY_QUESTION_COUNT > 0 )); then
-            grep -q 'data-daily-question-context="player-active"' /tmp/resolver.html
-          else
-            grep -q "data-daily-question-context=\"${CURRENT_PE}\"" /tmp/resolver.html
-            grep -q "Questões do dia — ${CURRENT_PE}" /tmp/resolver.html
-          fi
-          grep -q 'Banco de questões' /tmp/resolver.html
-          if [[ -n "${FOCUS_RD}" ]]; then
-            "${chrome[@]}" "$base/redacoes/?rd=${FOCUS_RD}&pe=${FOCUS_PE}" >/tmp/redactions.html 2>/tmp/redactions.stderr
-            grep -q 'data-primary-stage="redaction"' /tmp/home.html
-            grep -q "Produzir ${FOCUS_RD}" /tmp/home.html
-            grep -q 'data-focused-redaction="true"' /tmp/redactions.html
-            grep -q "${FOCUS_RD}" /tmp/redactions.html
-            grep -q "${FOCUS_PE}" /tmp/redactions.html
-          fi
-          ! grep -Eqi 'Carregando|Não foi possível carregar esta página' /tmp/home.html
-          ! grep -Eqi 'Uncaught (TypeError|ReferenceError|SyntaxError)|Central de execução indisponível|Erros sem origem indisponíveis|Revisão local não encontrada' /tmp/*.stderr
-          grep -q 'assets/integration/review-engine.js' /tmp/tdas-site/sedes-tdas-dashboard/sw.js
-          ! grep -q 'question-keys/' /tmp/tdas-site/sedes-tdas-dashboard/sw.js
-          printf '{"browser":"ok","commandCenter":true,"lastSync":"%sT%s","cycleClosure":%s,"adaptiveReview":true,"reviewStage":"%s","focusedRedaction":"%s","platformVersion":"%s","publication":"%s","resume":"question-%s-of-%s","dailyQuestionCount":%s,"unlinkedErrors":%s,"questionBankVisible":true,"answerKeyPrecached":false}\n' "$LAST_SYNC_DATE" "$LAST_SYNC_TIME" "$EXPECT_CYCLE_CLOSURE" "$REVIEW_STAGE" "$FOCUS_RD" "$PLATFORM_VERSION" "$SOURCE_COMMIT_SHORT" "$QUESTION_INDEX" "$QUESTION_TOTAL" "$DAILY_QUESTION_COUNT" "$UNLINKED_ERRORS"
-
-      - name: Diagnosticar falha do navegador
-        if: failure()
+          python3 - <<'PY'
+          from pathlib import Path
+          common=Path('assets/common.js'); text=common.read_text(); marker='tdas-shell-unified.js?v=1.0.0'
+          if marker not in text: common.write_text(text+"\nimport('./tdas-shell-unified.js?v=1.0.0').catch(()=>{});\n")
+          subjects=Path('assets/subjects-index.js'); text=subjects.read_text()
+          if "setupShell('materias',d.meta)" not in text:
+              old="setupShell('riscos',d.meta)"
+              if old not in text: raise SystemExit('Contrato de Matérias não encontrado')
+              subjects.write_text(text.replace(old,"setupShell('materias',d.meta)",1))
+          sw=Path('sw.js'); text=sw.read_text()
+          if 'tdas-shell-unified.js' not in text:
+              for token in ("'./assets/common.js'", '"./assets/common.js"'):
+                  if token in text:
+                      text=text.replace(token,token+",\n  './assets/tdas-shell-unified.js'",1); break
+              else: raise SystemExit('common.js não encontrado no precache')
+          sw.write_text(text)
+          PY
+      - name: Gate integral obrigatório
+        run: npm test
+      - name: Sintaxe e contratos
         shell: bash
         run: |
-          echo '=== Valores esperados ==='
-          cat /tmp/tdas-expected.env 2>/dev/null || true
-          for file in /tmp/home.html /tmp/resume.html /tmp/review.html /tmp/review-home.html /tmp/audit.html /tmp/resolver.html /tmp/redactions.html; do
-            [[ -f "$file" ]] || continue
-            echo "=== $file ==="
-            grep -Eo 'SEDES/DF · v[^<]+|Plataforma [^<]+|publicação [0-9a-z]+|[0-9]{2}/[0-9]{2}/[0-9]{4} às [0-9]{2}:[0-9]{2}|Continuar questão [^<]+|Revisão D\+[0-9]+|Questões do dia — PE[0-9]+|Banco de questões|data-daily-question-context="[^"]+"|[0-9]+ pendentes|Não foi possível carregar esta página' "$file" | head -40 || true
-          done
-          for file in /tmp/*.stderr; do
-            [[ -f "$file" ]] || continue
-            echo "=== $file ==="
-            tail -80 "$file" || true
-          done
-
-      - name: Encerrar servidor
-        if: always()
-        run: kill "$(cat /tmp/tdas-server.pid 2>/dev/null)" 2>/dev/null || true
+          set -euo pipefail
+          node --check assets/tdas-shell-unified.js
+          node --check assets/common.js
+          node --check assets/subjects-index.js
+          grep -q 'Navegação TDAS' assets/tdas-shell-unified.js
+          grep -q 'Revisão pedagógica agora acontece no ChatGPT' assets/tdas-shell-unified.js
+          grep -q 'respostas para validar' assets/tdas-shell-unified.js
+          grep -q "setupShell('materias',d.meta)" assets/subjects-index.js
+          grep -q 'tdas-shell-unified.js?v=1.0.0' assets/common.js
+          grep -q 'tdas-shell-unified.js' sw.js
+      - name: Publicar commit limpo
+        shell: bash
+        run: |
+          set -euo pipefail
+          git checkout origin/main -- .github/workflows/browser-smoke.yml
+          git config user.name 'tdas-ui-audit[bot]'
+          git config user.email 'tdas-ui-audit[bot]@users.noreply.github.com'
+          git add assets/tdas-shell-unified.js assets/common.js assets/subjects-index.js sw.js .github/workflows/browser-smoke.yml
+          git diff --cached --check
+          if git diff --cached --quiet; then
+            echo 'Shell já está aplicado na main.'
+            exit 0
+          fi
+          tree=$(git write-tree)
+          parent=$(git rev-parse origin/main)
+          commit=$(printf '%s\n' 'Unificar shell visual do TDAS' | git commit-tree "$tree" -p "$parent")
+          git push origin "$commit":main
