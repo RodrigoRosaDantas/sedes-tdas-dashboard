@@ -78,11 +78,11 @@ assert.match(script,/edital-block/,'Página perdeu filtro por bloco.');
 assert.match(script,/edital-search/,'Página perdeu busca textual.');
 assert.match(more,/\$\{BASE\}edital\//,'Edital não está acessível pela navegação complementar.');
 assert.match(mobileUx,/edital:BASE\+'edital\/'/,'Navegação global não reconhece a rota do Edital.');
-assert.match(mobileUx,/\['edital','Edital'\]/,'Drawer não expõe o Edital em Progresso.');
-assert.match(mobileUx,/\['edital','Check do Edital','Cobertura'\]/,'Navegação desktop não aponta para a página do Edital.');
-assert.match(mobileUx,/\['riscos','Riscos','Pareto'\]/,'Correção do Edital não pode remover Riscos da navegação desktop.');
-assert.match(mobileUx,/active==='edital'\?'edital'/,'Edital não recebe estado ativo correto no desktop.');
-assert.match(mobileUx,/active==='riscos'\?'riscos'/,'Riscos não recebe estado ativo correto no desktop.');
+assert.match(mobileUx,/\['edital','Check do Edital','Cobertura',routes\.edital\]/,'Navegação canônica não aponta para a página do Edital.');
+assert.match(mobileUx,/\['riscos','Riscos','Pareto',routes\.riscos\]/,'Correção do Edital não pode remover Riscos da navegação canônica.');
+assert.match(mobileUx,/path\.startsWith\(routes\.edital\)\)return'edital'/,'Edital não recebe estado ativo correto.');
+assert.match(mobileUx,/path\.startsWith\(routes\.riscos\)\)return'riscos'/,'Riscos não recebe estado ativo correto.');
+assert.match(mobileUx,/\['TDAS',primary\.map/,'Drawer deve expor a navegação canônica TDAS, incluindo Check do Edital.');
 for(const source of[sw,pwaGenerator]){
  assert.match(source,/"edital\/"/,'Rota do edital está fora do PWA ou de seu gerador.');
  assert.match(source,/"assets\/edital\.js"/,'Script do edital está fora do PWA ou de seu gerador.');
@@ -91,4 +91,4 @@ for(const source of[sw,pwaGenerator]){
  assert.doesNotMatch(source,/question-keys\//,'Gabaritos individuais não podem entrar no precache ao adicionar a página do edital.');
 }
 
-console.log(`Página do Edital validada: ${data.summary.total}/${expected} tópicos; ${measuredCurrent} aferidos; ${data.summary.total-measuredCurrent} sem bateria; ${data.summary.risk.critical||0} críticos; ${data.summary.risk.attention||0} em atenção; navegação, contrato analítico e precache frio blindados.`);
+console.log(`Página do Edital validada: ${data.summary.total}/${expected} tópicos; ${measuredCurrent} aferidos; ${data.summary.total-measuredCurrent} sem bateria; ${data.summary.risk.critical||0} críticos; ${data.summary.risk.attention||0} em atenção; navegação canônica, contrato analítico e precache frio blindados.`);
