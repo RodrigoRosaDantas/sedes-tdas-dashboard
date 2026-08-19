@@ -2,6 +2,7 @@ import {BASE,escapeHTML,loadJSON,setupShell} from '../common.js?v=24.1';
 import {readModuleState} from './module-store.js?v=2.1.0';
 
 const HANDOFF_TITLE='A revisão pedagógica acontece no ChatGPT.';
+const HANDOFF_FLOW='TDAS → ChatGPT → Notion';
 const MENTOR_CONTEXT_LABEL='Contexto preservado do Mentor';
 const NOTION_HANDOFF_NOTE='O TDAS preserva a evidência, o ChatGPT faz a análise pedagógica e consolida no Notion somente o que precisa permanecer.';
 const clean=value=>String(value??'').trim();
@@ -13,7 +14,7 @@ const evidenceLabel=item=>clean(item?.subassunto||item?.assunto||item?.peId||'Ev
 
 document.documentElement.dataset.reviewHandoff='chatgpt-notion';
 const handoff=document.querySelector('[data-review-handoff]');
-if(handoff){handoff.dataset.reviewReady='1';const title=handoff.querySelector('h1');if(title&&!clean(title.textContent))title.textContent=HANDOFF_TITLE;}
+if(handoff){handoff.dataset.reviewReady='1';handoff.dataset.reviewFlow=HANDOFF_FLOW;const title=handoff.querySelector('h1');if(title&&!clean(title.textContent))title.textContent=HANDOFF_TITLE;}
 
 const params=new URLSearchParams(location.search),legacyReviewId=clean(params.get('review')),mentorFocus=clean(params.get('mentor')),subject=clean(params.get('subject')),focus=mentorFocus||subject;
 const contextNode=document.querySelector('[data-review-context]');
