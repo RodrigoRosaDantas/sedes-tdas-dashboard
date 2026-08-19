@@ -1,4 +1,4 @@
-const VERSION="tdas-28.0.0-20260816-pe91-tdas-pe91-empty-pro7";
+const VERSION="tdas-28.0.0-20260819-pe94-27da51ee2ec3-pro7";
 const BASE='/sedes-tdas-dashboard/';
 const USER_CACHE_PREFIXES=['tdas-redactions-user-'];
 const CORE_ROUTES=["","hoje/","evolucao/","edital/","mentor/","riscos/","agenda/","redacoes/","auditoria/","mais/","configuracoes/","dados-locais/","questoes-erros/","pe/","materias/","estudar/","resolver/","revisar/","caderno-erros/","desempenho/","fila-ia/","offline.html","manifest.webmanifest","redacoes/detalhe/","sincronizacao/","exportar-tentativa/","notion/"];
@@ -6,7 +6,7 @@ const ASSETS=["assets/styles.css","assets/v20.css","assets/common.js","assets/ho
 const DATA=["data/home.json","data/today.json","data/evolution.json","data/risks.json","data/agenda.json","data/redactions.json","data/audit.json","data/more.json","data/subjects.json","data/source-contract.json","data/edital-status.json","data/sync-history.json","data/live.json","data/live-v23.json","data/live-v24.json","data/error-questions/index.json","data/integration/navigation.json","data/integration/question-catalog.json","data/integration/daily-execution.json","data/integration/daily-material.json","data/platform-version.json","data/integration/question-archive/index.json","data/integration/question-archive/tdas-pe88-339d718d88c1.json","data/notion-mirror/summary.json","data/integration/master-question-bank.json"];
 const ICONS=['icons/icon.svg','icons/maskable.svg','icons/icon-192.png','icons/icon-512.png'];
 const SUBJECTS=["portugues","assistencia-social","lc-840-2011","arquivologia","direito-administrativo","materiais-e-patrimonio","compras-publicas-lei-14-133","redacao","direito-constitucional","lei-7-484-2024","primeiros-socorros","lei-maria-da-penha","atualidades-df-ride-pdpm"];
-const PRECACHE=[...CORE_ROUTES.map(path=>BASE+path),...ASSETS.map(path=>BASE+path),...DATA.map(path=>BASE+path),...ICONS.map(path=>BASE+path),...Array.from({length:112},(_,index)=>BASE+'pe/'+(index+1)+'/'),...SUBJECTS.map(slug=>BASE+'materias/'+slug+'/'),...Array.from({length:11},(_,index)=>BASE+'data/error-questions/part-'+String(index+1).padStart(2,'0')+'.json')];
+const PRECACHE=[...CORE_ROUTES.map(path=>BASE+path),...ASSETS.map(path=>BASE+path),...DATA.map(path=>BASE+path),...ICONS.map(path=>BASE+path),...Array.from({length:112},(_,index)=>BASE+'pe/'+(index+1)+'/'),...SUBJECTS.map(slug=>BASE+'materias/'+slug+'/'),...Array.from({length:12},(_,index)=>BASE+'data/error-questions/part-'+String(index+1).padStart(2,'0')+'.json')];
 const shouldPreserveCache=key=>key===VERSION||USER_CACHE_PREFIXES.some(prefix=>key.startsWith(prefix));
 const matchCached=request=>caches.match(request).then(cached=>cached||caches.match(request,{ignoreSearch:true}));
 const fetchAndCache=request=>fetch(request).then(response=>{if(response.ok){const copy=response.clone();caches.open(VERSION).then(cache=>cache.put(request,copy));}return response});
