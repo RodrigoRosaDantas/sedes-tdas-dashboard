@@ -32,7 +32,8 @@ assert.match(detailPage, /rd-section-nav/, 'A página individual deve possuir í
 assert.match(detailPage, /rewriteCompleted/, 'A página individual deve distinguir reescrita pendente de concluída.');
 assert.doesNotMatch(detailPage, /Abrir registro no Notion/, 'A interface pública não deve expor link direto do registro editorial.');
 const common = fs.readFileSync('assets/common.js', 'utf8');
-assert.match(common, /const mobile=\['home','estudar','resolver','desempenho','mais'\]/, 'A navegação móvel deve manter as cinco áreas essenciais.');
+assert.match(common, /const canonicalMobile=\[\['hoje','Hoje'\],\['resolver','Questões'\],\['caderno','Erros'\],\['mentor','Mentor'\],\['mais','Mais'\]\]/, 'A navegação móvel deve manter Hoje, Questões, Erros, Mentor e Mais como cinco áreas canônicas.');
+assert.doesNotMatch(common, /Plataforma de estudo/, 'O shell base não pode reintroduzir a identidade antiga da navegação.');
 const mobileUx = fs.readFileSync('assets/tdas-mobile-ux.js', 'utf8');
 assert.match(mobileUx, /\['redacoes','Redação'\]/, 'Redações deve permanecer acessível no drawer móvel.');
 assert.match(common, /data-last-sync/, 'O shell deve exibir a última sincronização real.');
@@ -76,4 +77,4 @@ if (strict) {
   for (const route of ['redacoes/detalhe/', 'assets/redaction-detail.js', 'assets/redactions-dashboard.css']) assert.ok(sw.includes(route), `Service worker não contempla ${route}.`);
   assert.match(sw,/USER_CACHE_PREFIXES=\['tdas-redactions-user-'\]/,'O service worker deve preservar caches pessoais de redação.');
 }
-console.log(`Banco Discursivo validado: ${details.length} RDs, cronologia, reescrita, navegação, leitura, privacidade e offline.`);
+console.log(`Banco Discursivo validado: ${details.length} RDs, cronologia, reescrita, navegação canônica, leitura, privacidade e offline.`);

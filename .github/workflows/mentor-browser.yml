@@ -81,7 +81,7 @@ jobs:
           python3 -m http.server 4176 >/tmp/mentor-server.log 2>&1 & echo $! >/tmp/mentor-server.pid
           for attempt in $(seq 1 30); do curl -fsS http://127.0.0.1:4176/sedes-tdas-dashboard/mentor/ >/dev/null && exit 0; sleep 1; done
           exit 1
-      - name: Validar Mentor e revisão dirigida em Chrome
+      - name: Validar Mentor e handoff ChatGPT + Notion em Chrome
         shell: bash
         run: |
           set -euo pipefail
@@ -98,20 +98,22 @@ jobs:
           assert_contains /tmp/mentor.html 'Pontos fracos e fragilidades' 'prioridades renderizadas'
           assert_contains /tmp/mentor.html 'Blocos de desempenho forte' 'blocos fortes rotulados corretamente'
           assert_contains /tmp/mentor.html 'Forças temáticas deste dispositivo' 'forças temáticas locais'
-          assert_contains /tmp/mentor.html 'Revisão dirigida' 'CTA de revisão dirigida'
+          assert_contains /tmp/mentor.html 'Revisão dirigida' 'CTA do Mentor para análise'
           assert_contains /tmp/mentor.html "${IMMEDIATE} de ${PRIORITIES} tópicos" 'foco padrão crítico + alto'
           assert_contains /tmp/mentor-all.html "${PRIORITIES} de ${PRIORITIES} tópicos" 'visão completa'
           assert_contains /tmp/mentor-critical.html "${CRITICAL} de ${PRIORITIES} tópicos" 'filtro crítico'
           assert_contains /tmp/mentor-mobile.html 'Mais' 'navegação mobile'
-          assert_contains /tmp/mentor-review.html 'Revisão dirigida pelo Mentor' 'página de revisão dirigida'
-          assert_contains /tmp/mentor-review.html 'data-mentor-focus="crase"' 'foco crase aplicado à revisão'
+          assert_contains /tmp/mentor-review.html 'A revisão pedagógica acontece no ChatGPT.' 'handoff pedagógico para ChatGPT'
+          assert_contains /tmp/mentor-review.html 'Contexto preservado do Mentor' 'contexto do Mentor preservado'
+          assert_contains /tmp/mentor-review.html 'Foco: crase' 'foco crase preservado no handoff'
+          assert_contains /tmp/mentor-review.html 'Notion' 'consolidação no Notion explícita'
 
           if grep -Eqi 'Construindo seu diagnóstico|Não foi possível carregar esta página|Uncaught (TypeError|ReferenceError|SyntaxError)' /tmp/mentor.html /tmp/mentor-mobile.html /tmp/mentor-review.html /tmp/mentor*.stderr; then
             echo '::error title=Mentor smoke::erro de carregamento ou JavaScript detectado';
             grep -Ein 'Construindo seu diagnóstico|Não foi possível carregar esta página|Uncaught (TypeError|ReferenceError|SyntaxError)' /tmp/mentor.html /tmp/mentor-mobile.html /tmp/mentor-review.html /tmp/mentor*.stderr || true;
             exit 1;
           fi
-          printf '{"mentorBrowser":"ok","errors":%s,"priorities":%s,"immediate":%s,"critical":%s,"high":%s,"directedReview":true,"mobile":true}\n' "$ERRORS" "$PRIORITIES" "$IMMEDIATE" "$CRITICAL" "$HIGH"
+          printf '{"mentorBrowser":"ok","errors":%s,"priorities":%s,"immediate":%s,"critical":%s,"high":%s,"chatgptHandoff":true,"notionConsolidation":true,"mobile":true}\n' "$ERRORS" "$PRIORITIES" "$IMMEDIATE" "$CRITICAL" "$HIGH"
       - name: Diagnosticar falha
         if: failure()
         run: |
