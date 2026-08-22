@@ -1,7 +1,12 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import path from 'node:path';
 
 const read = file => fs.readFileSync(file, 'utf8');
+const collectFiles = dir => fs.readdirSync(dir,{withFileTypes:true}).flatMap(entry=>{
+  const target=path.join(dir,entry.name);
+  return entry.isDirectory()?collectFiles(target):[target];
+});
 const packageData = JSON.parse(read('package.json'));
 const syncWorkflow = read('.github/workflows/notion-sync.yml');
 const publicationWatchdog = read('.github/workflows/tdas-publication-watchdog.yml');
@@ -47,6 +52,11 @@ for (const [label, workflow] of postSyncConsumers) {
   assert.match(workflow, /workflow_run:/, `${label} deve executar após a sincronização.`);
   assert.ok(workflow.includes(`workflows: ['${syncWorkflowName}']`), `${label} deve observar exatamente o nome do workflow de sincronização vigente.`);
 }
+const legacySyncWorkflowName='Sincronizar Plataforma TDAS '+'v26';
+const operationalFiles=[...collectFiles('.github/workflows'),...collectFiles('scripts')]
+  .filter(file=>/\.(?:ya?ml|mjs|js)$/i.test(file));
+const staleWorkflowReferences=operationalFiles.filter(file=>read(file).includes(legacySyncWorkflowName));
+assert.deepEqual(staleWorkflowReferences,[],`Referências operacionais ao workflow legado encontradas: ${staleWorkflowReferences.join(', ')}`);
 
 assert.match(publicationWatchdog, /\n  push:\n/, 'O watchdog deve se autoverificar após mudanças no próprio monitor integradas à main.');
 for (const dependency of ['.github/workflows/tdas-publication-watchdog.yml','scripts/monitor-tdas-publication.mjs','scripts/monitor-live-site.mjs','scripts/test-site-operations.mjs']) {
@@ -87,4 +97,4 @@ assert.match(documentation, /EDAS/, 'O manual deve cobrir o Cargo 400.');
 assert.match(readme, /OPERACAO_SITE_TDAS\.md/, 'O README deve apontar para o manual operacional.');
 assert.match(readme, /monitor:edas/, 'O README deve expor o monitor operacional do EDAS.');
 
-console.log('Rotinas operacionais validadas: TDAS, UX mobile, Banco Discursivo, EDAS, consumidores pós-sync v28, navegadores e GitHub Pages alinhados.');
+console.log('Rotinas operacionais validadas: TDAS, UX mobile, Banco Discursivo, EDAS, consumidores pós-sync v28, ausência de referências v26, navegadores e GitHub Pages alinhados.');
