@@ -4,5 +4,5 @@ Atualize este arquivo somente quando for necessário solicitar uma recuperação
 
 Última solicitação:
 - data: 2026-08-22
-- hora: 18:55 BRT
-- motivo: recuperação manual solicitada pelo monitor TDAS após confirmação de divergência entre o Notion vivo (corte PE96 concluído) e o snapshot da main (corte PE94), enquanto a janela automática das 18:50 ainda não havia iniciado. Solicitar nova sincronização oficial, validação integral e confirmação do GitHub Pages sem editar os dados gerados manualmente.
+- hora: 19:06 BRT
+- motivo: reexecutar a sincronização oficial após saneamento da fonte PE97. A versão auditada foi delimitada como seção ativa de 60 questões e recebeu gabarito auditado separado; o arquivo histórico permanece preservado e fora do escopo de importação. Validar Notion vivo, promover o corte PE96 e confirmar publicação sem edição manual dos snapshots gerados.
