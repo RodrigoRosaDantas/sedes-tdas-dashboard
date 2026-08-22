@@ -1,11 +1,18 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import path from 'node:path';
 
 const read = file => fs.readFileSync(file, 'utf8');
+const collectFiles = dir => fs.readdirSync(dir,{withFileTypes:true}).flatMap(entry=>{
+  const target=path.join(dir,entry.name);
+  return entry.isDirectory()?collectFiles(target):[target];
+});
 const packageData = JSON.parse(read('package.json'));
 const syncWorkflow = read('.github/workflows/notion-sync.yml');
 const publicationWatchdog = read('.github/workflows/tdas-publication-watchdog.yml');
 const redactionsWatchdog = read('.github/workflows/tdas-redactions-watchdog.yml');
+const notionMirrorPublish = read('.github/workflows/notion-mirror-publish.yml');
+const telemetryPwaPreserve = read('.github/workflows/tdas-telemetry-pwa-preserve.yml');
 const redactionsBrowser = read('.github/workflows/redactions-browser.yml');
 const tdasMobileBrowser = read('.github/workflows/tdas-mobile-browser.yml');
 const liveMonitor = read('scripts/monitor-live-site.mjs');
@@ -33,7 +40,24 @@ assert.equal(scripts['test:tdas-mobile-browser'],'node scripts/test-tdas-mobile-
 
 for (const dependency of ['scripts/postprocess-v23.mjs','scripts/postprocess-v24.mjs','scripts/postprocess-v26.mjs','scripts/postprocess-redactions.mjs','scripts/record-sync-error.mjs','scripts/test-site-operations.mjs']) assert.ok(syncWorkflow.includes(`- '${dependency}'`), `A sincronização deve reagir a mudanças em ${dependency}.`);
 
-assert.match(publicationWatchdog, /workflow_run:/, 'O watchdog de publicação deve executar após a sincronização.');
+const syncWorkflowName = syncWorkflow.match(/^name:\s*(.+)$/m)?.[1]?.trim();
+assert.ok(syncWorkflowName, 'A sincronização vigente deve declarar um nome de workflow.');
+const postSyncConsumers = [
+  ['watchdog de publicação', publicationWatchdog],
+  ['watchdog discursivo', redactionsWatchdog],
+  ['publicação do mapa seguro do Notion', notionMirrorPublish],
+  ['preservação de telemetria/PWA', telemetryPwaPreserve]
+];
+for (const [label, workflow] of postSyncConsumers) {
+  assert.match(workflow, /workflow_run:/, `${label} deve executar após a sincronização.`);
+  assert.ok(workflow.includes(`workflows: ['${syncWorkflowName}']`), `${label} deve observar exatamente o nome do workflow de sincronização vigente.`);
+}
+const legacySyncWorkflowName='Sincronizar Plataforma TDAS '+'v26';
+const operationalFiles=[...collectFiles('.github/workflows'),...collectFiles('scripts')]
+  .filter(file=>/\.(?:ya?ml|mjs|js)$/i.test(file));
+const staleWorkflowReferences=operationalFiles.filter(file=>read(file).includes(legacySyncWorkflowName));
+assert.deepEqual(staleWorkflowReferences,[],`Referências operacionais ao workflow legado encontradas: ${staleWorkflowReferences.join(', ')}`);
+
 assert.match(publicationWatchdog, /\n  push:\n/, 'O watchdog deve se autoverificar após mudanças no próprio monitor integradas à main.');
 for (const dependency of ['.github/workflows/tdas-publication-watchdog.yml','scripts/monitor-tdas-publication.mjs','scripts/monitor-live-site.mjs','scripts/test-site-operations.mjs']) {
   const occurrences = publicationWatchdog.split(`- '${dependency}'`).length - 1;
@@ -73,4 +97,4 @@ assert.match(documentation, /EDAS/, 'O manual deve cobrir o Cargo 400.');
 assert.match(readme, /OPERACAO_SITE_TDAS\.md/, 'O README deve apontar para o manual operacional.');
 assert.match(readme, /monitor:edas/, 'O README deve expor o monitor operacional do EDAS.');
 
-console.log('Rotinas operacionais validadas: TDAS, UX mobile, Banco Discursivo, EDAS, autoverificação de watchdogs, navegadores e GitHub Pages alinhados.');
+console.log('Rotinas operacionais validadas: TDAS, UX mobile, Banco Discursivo, EDAS, consumidores pós-sync v28, ausência de referências v26, navegadores e GitHub Pages alinhados.');

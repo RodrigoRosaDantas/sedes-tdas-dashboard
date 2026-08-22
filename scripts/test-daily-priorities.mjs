@@ -47,6 +47,10 @@ assert.equal(defaultAction.stage,'redaction');
 assert.equal(defaultAction.label,'Produzir RD23');
 assert.equal(defaultAction.button,'Abrir redação');
 
+const pendingPeAction=selectPrimaryAction({pe:'PE79',progress:{material:false,questions:false,registered:false},draft:null,attempt:null,nextPe,dueReview:null,officialCompleted:false,officialTasks:tasks,base});
+assert.equal(pendingPeAction.stage,'material','Redação vinculada não deve virar ação primária antes da conclusão oficial do PE.');
+assert.equal(pendingPeAction.label,'Começar material do PE79');
+
 const draftAction=selectPrimaryAction({pe:'PE79',progress:{},draft:{peId:'PE79',session:{currentIndex:2,questionIds:['a','b','c','d']}},attempt:null,nextPe,dueReview:null,officialCompleted:true,officialTasks:tasks,base});
 assert.equal(draftAction.stage,'questions');
 assert.equal(draftAction.label,'Continuar questão 3 de 4');
@@ -71,4 +75,4 @@ assert.equal(overdueAction.button,'Retomar PE atrasado');
 const startedCurrentAction=selectPrimaryAction({pe:'PE79',progress:{material:true,questions:false,registered:false},draft:null,attempt:null,nextPe,dueReview:null,overduePe,officialCompleted:false,officialTasks:tasks,base});
 assert.equal(startedCurrentAction.stage,'questions','Progresso local no PE atual não pode ser interrompido automaticamente pelo atraso anterior.');
 
-console.log(`Prioridades diárias validadas no snapshot ${publishedPe}: sessão e revisão prevalecem, atraso não some e progresso local iniciado é preservado.`);
+console.log(`Prioridades diárias validadas no snapshot ${publishedPe}: sessão e revisão prevalecem, redação aguarda fechamento oficial, atraso não some e progresso local iniciado é preservado.`);

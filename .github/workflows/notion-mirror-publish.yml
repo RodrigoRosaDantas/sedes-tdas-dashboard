@@ -3,7 +3,7 @@ name: Publicar mapa seguro do Notion
 on:
   workflow_dispatch:
   workflow_run:
-    workflows: ['Sincronizar Plataforma TDAS v26']
+    workflows: ['Sincronizar Plataforma TDAS v28']
     types: [completed]
 
 permissions:

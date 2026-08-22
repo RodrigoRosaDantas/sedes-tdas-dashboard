@@ -156,8 +156,12 @@ jobs:
           grep -q 'Banco de questões' /tmp/resolver.html
           if [[ -n "${FOCUS_RD}" ]]; then
             "${chrome[@]}" "$base/redacoes/?rd=${FOCUS_RD}&pe=${FOCUS_PE}" >/tmp/redactions.html 2>/tmp/redactions.stderr
-            grep -q 'data-primary-stage="redaction"' /tmp/home.html
-            grep -q "Produzir ${FOCUS_RD}" /tmp/home.html
+            if [[ "$EXPECT_CYCLE_CLOSURE" == '1' ]]; then
+              grep -q 'data-primary-stage="redaction"' /tmp/home.html
+              grep -q "Produzir ${FOCUS_RD}" /tmp/home.html
+            else
+              ! grep -q 'data-primary-stage="redaction"' /tmp/home.html
+            fi
             grep -q 'data-focused-redaction="true"' /tmp/redactions.html
             grep -q "${FOCUS_RD}" /tmp/redactions.html
             grep -q "${FOCUS_PE}" /tmp/redactions.html
@@ -177,7 +181,7 @@ jobs:
           for file in /tmp/home.html /tmp/resume.html /tmp/review.html /tmp/review-home.html /tmp/audit.html /tmp/resolver.html /tmp/redactions.html; do
             [[ -f "$file" ]] || continue
             echo "=== $file ==="
-            grep -Eo 'SEDES/DF · v[^<]+|Plataforma [^<]+|publicação [0-9a-z]+|[0-9]{2}/[0-9]{2}/[0-9]{4} às [0-9]{2}:[0-9]{2}|Continuar questão [^<]+|Revisão D\+[0-9]+|Questões do dia — PE[0-9]+|Banco de questões|data-daily-question-context="[^"]+"|[0-9]+ pendentes|Não foi possível carregar esta página' "$file" | head -40 || true
+            grep -Eo 'SEDES/DF · v[^<]+|Plataforma [^<]+|publicação [0-9a-z]+|[0-9]{2}/[0-9]{2}/[0-9]{4} às [0-9]{2}:[0-9]{2}|Continuar questão [^<]+|Revisão D\+[0-9]+|Questões do dia — PE[0-9]+|Banco de questões|data-primary-stage="[^"]+"|data-focused-redaction="[^"]+"|Produzir RD[0-9]+|data-daily-question-context="[^"]+"|[0-9]+ pendentes|Não foi possível carregar esta página' "$file" | head -40 || true
           done
           for file in /tmp/*.stderr; do
             [[ -f "$file" ]] || continue

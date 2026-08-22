@@ -18,6 +18,8 @@ const [engine,runner,front,home,html,homeHtml,more,syncWorkflow,publishWorkflow,
   'data/notion-mirror/index.json'
 ].map(read));
 const index=JSON.parse(indexRaw);
+const syncWorkflowName=syncWorkflow.match(/^name:\s*(.+)$/m)?.[1]?.trim();
+assert.ok(syncWorkflowName,'Sincronização operacional precisa declarar nome de workflow.');
 assert.equal(index.rootId,'363cf5a2-6731-816e-a702-c9a8c6ea11dc');
 assert.ok(engine.includes('child_page')&&engine.includes('child_database'),'Crawler precisa descobrir páginas e bancos.');
 assert.ok(engine.includes('PROTECTED_SUBTREES=new Map'),'Mapa público precisa definir fronteiras protegidas explícitas.');
@@ -33,7 +35,8 @@ assert.ok(engine.includes("publicScope:'safe'"),'Snapshot precisa declarar escop
 assert.ok(runner.includes('buildNotionMirror')&&runner.includes('writeNotionMirror'));
 assert.ok(!syncWorkflow.includes('node scripts/sync-notion-mirror.mjs'),'Sincronização operacional não deve executar o crawler do mapa.');
 assert.ok(publishWorkflow.includes('node scripts/sync-notion-mirror.mjs'),'Workflow dedicado precisa executar o mapa seguro.');
-assert.ok(publishWorkflow.includes("workflows: ['Sincronizar Plataforma TDAS v26']"),'Mapa precisa iniciar após sincronização operacional bem-sucedida.');
+assert.ok(publishWorkflow.includes(`workflows: ['${syncWorkflowName}']`),'Mapa precisa iniciar após a sincronização operacional vigente.');
+assert.ok(guard.includes(`workflows: ['${syncWorkflowName}']`),'Guard pós-sync precisa observar a sincronização operacional vigente.');
 assert.ok(publishWorkflow.includes("index.publicScope!=='safe'")&&publishWorkflow.includes('index.recordCount!==0'),'Publicação precisa bloquear escopo inseguro e linhas públicas.');
 assert.ok(publishWorkflow.includes('timeout-minutes: 60'),'Mapa precisa ter janela própria de execução.');
 assert.ok(guard.includes('preserve-notion-mirror-pwa.mjs'),'Guard pós-sync não preserva o mapa.');
@@ -55,4 +58,4 @@ if(!index.quarantined){
  assert.ok((index.pages||[]).every(page=>typeof page.protected==='boolean'),'Índice precisa classificar páginas públicas/protegidas.');
  assert.ok((index.databases||[]).every(db=>db.protected&&!(db.shards||[]).length),'Bancos publicados precisam estar protegidos e sem shards.');
 }
-console.log('Mapa seguro do Notion validado: navegação pública, áreas protegidas, zero linhas de banco, busca sob demanda e PWA leve.');
+console.log('Mapa seguro do Notion validado: navegação pública, áreas protegidas, zero linhas de banco, busca sob demanda, PWA leve e triggers pós-sync alinhados.');
