@@ -3,7 +3,7 @@ name: Monitorar Banco Discursivo TDAS
 on:
   workflow_dispatch:
   workflow_run:
-    workflows: ['Sincronizar Plataforma TDAS v26']
+    workflows: ['Sincronizar Plataforma TDAS v28']
     types: [completed]
   pull_request:
     branches: [main]
