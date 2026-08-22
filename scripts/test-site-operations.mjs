@@ -33,7 +33,10 @@ assert.equal(scripts['test:tdas-mobile-browser'],'node scripts/test-tdas-mobile-
 
 for (const dependency of ['scripts/postprocess-v23.mjs','scripts/postprocess-v24.mjs','scripts/postprocess-v26.mjs','scripts/postprocess-redactions.mjs','scripts/record-sync-error.mjs','scripts/test-site-operations.mjs']) assert.ok(syncWorkflow.includes(`- '${dependency}'`), `A sincronização deve reagir a mudanças em ${dependency}.`);
 
+const syncWorkflowName = syncWorkflow.match(/^name:\s*(.+)$/m)?.[1]?.trim();
+assert.ok(syncWorkflowName, 'A sincronização vigente deve declarar um nome de workflow.');
 assert.match(publicationWatchdog, /workflow_run:/, 'O watchdog de publicação deve executar após a sincronização.');
+assert.ok(publicationWatchdog.includes(`workflows: ['${syncWorkflowName}']`), 'O watchdog deve observar exatamente o nome do workflow de sincronização vigente.');
 assert.match(publicationWatchdog, /\n  push:\n/, 'O watchdog deve se autoverificar após mudanças no próprio monitor integradas à main.');
 for (const dependency of ['.github/workflows/tdas-publication-watchdog.yml','scripts/monitor-tdas-publication.mjs','scripts/monitor-live-site.mjs','scripts/test-site-operations.mjs']) {
   const occurrences = publicationWatchdog.split(`- '${dependency}'`).length - 1;
