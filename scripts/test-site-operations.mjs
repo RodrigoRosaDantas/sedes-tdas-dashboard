@@ -36,7 +36,7 @@ for (const dependency of ['scripts/postprocess-v23.mjs','scripts/postprocess-v24
 const syncWorkflowName = syncWorkflow.match(/^name:\s*(.+)$/m)?.[1]?.trim();
 assert.ok(syncWorkflowName, 'A sincronização vigente deve declarar um nome de workflow.');
 assert.match(publicationWatchdog, /workflow_run:/, 'O watchdog de publicação deve executar após a sincronização.');
-assert.ok(publicationWatchdog.includes(`workflows: ['${syncWorkflowName}']`), 'O watchdog deve observar exatamente o nome do workflow de sincronização vigente.');
+assert.ok(publicationWatchdog.includes(`workflows: ['${syncWorkflowName}']`), 'O watchdog de publicação deve observar exatamente o nome do workflow de sincronização vigente.');
 assert.match(publicationWatchdog, /\n  push:\n/, 'O watchdog deve se autoverificar após mudanças no próprio monitor integradas à main.');
 for (const dependency of ['.github/workflows/tdas-publication-watchdog.yml','scripts/monitor-tdas-publication.mjs','scripts/monitor-live-site.mjs','scripts/test-site-operations.mjs']) {
   const occurrences = publicationWatchdog.split(`- '${dependency}'`).length - 1;
@@ -47,6 +47,8 @@ assert.match(publicationWatchdog, /monitor:live-site/, 'O watchdog deve conferir
 assert.match(publicationWatchdog, /LIVE_SITE_REPORT_PATH/, 'O relatório do site implantado deve ser persistido no workflow.');
 assert.match(publicationWatchdog, /issues: write/, 'O watchdog deve poder manter um incidente técnico único.');
 
+assert.match(redactionsWatchdog, /workflow_run:/, 'O watchdog discursivo deve executar após a sincronização.');
+assert.ok(redactionsWatchdog.includes(`workflows: ['${syncWorkflowName}']`), 'O watchdog discursivo deve observar exatamente o nome do workflow de sincronização vigente.');
 for (const dependency of ['scripts/test-redactions-operational.mjs','scripts/test-redactions-browser.mjs','scripts/postprocess-v26.mjs','scripts/monitor-live-site.mjs','data/platform-version.json','sw.js']) assert.ok(redactionsWatchdog.includes(`- '${dependency}'`), `O monitor discursivo deve reagir a ${dependency}.`);
 assert.match(redactionsWatchdog, /monitor:redactions/, 'O monitor discursivo deve usar o comando oficial.');
 assert.match(redactionsBrowser, /workflow_dispatch:/, 'O teste dedicado deve permitir execução manual.');
@@ -76,4 +78,4 @@ assert.match(documentation, /EDAS/, 'O manual deve cobrir o Cargo 400.');
 assert.match(readme, /OPERACAO_SITE_TDAS\.md/, 'O README deve apontar para o manual operacional.');
 assert.match(readme, /monitor:edas/, 'O README deve expor o monitor operacional do EDAS.');
 
-console.log('Rotinas operacionais validadas: TDAS, UX mobile, Banco Discursivo, EDAS, autoverificação de watchdogs, navegadores e GitHub Pages alinhados.');
+console.log('Rotinas operacionais validadas: TDAS, UX mobile, Banco Discursivo, EDAS, triggers dos watchdogs, navegadores e GitHub Pages alinhados.');
