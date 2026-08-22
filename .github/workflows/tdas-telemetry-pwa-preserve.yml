@@ -3,7 +3,7 @@ name: Preservar telemetria local após sync
 on:
   workflow_dispatch:
   workflow_run:
-    workflows: ['Sincronizar Plataforma TDAS v26']
+    workflows: ['Sincronizar Plataforma TDAS v28']
     types: [completed]
 
 permissions:
