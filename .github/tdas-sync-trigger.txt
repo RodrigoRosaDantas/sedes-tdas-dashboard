@@ -3,5 +3,6 @@ Acionador técnico da sincronização TDAS.
 Atualize este arquivo somente quando for necessário solicitar uma recuperação manual da publicação automática.
 
 Última solicitação:
-- data: 2026-08-13
-- motivo: reexecutar a sincronização oficial após corrigir a condição de corrida entre a publicação do espelho completo do Notion e o guard do PWA. A geração do espelho já concluiu dentro da janela dedicada; esta rodada deve validar e publicar o snapshot real sem depender da ordem temporal do Service Worker.
+- data: 2026-08-22
+- hora: 18:55 BRT
+- motivo: recuperação manual solicitada pelo monitor TDAS após confirmação de divergência entre o Notion vivo (corte PE96 concluído) e o snapshot da main (corte PE94), enquanto a janela automática das 18:50 ainda não havia iniciado. Solicitar nova sincronização oficial, validação integral e confirmação do GitHub Pages sem editar os dados gerados manualmente.
