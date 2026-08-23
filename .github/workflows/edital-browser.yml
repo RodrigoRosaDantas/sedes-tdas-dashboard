@@ -137,11 +137,11 @@ jobs:
           grep -q 'Aferidos' /tmp/edital.html
           grep -q 'Sem bateria' /tmp/edital.html
           grep -q 'Próxima ação' /tmp/edital.html
-          grep -q 'Lacunas do snapshot oficial' /tmp/edital.html
-          grep -q 'O navegador não grava percentual privado' /tmp/edital.html
-          grep -q 'Próximas práticas sugeridas' /tmp/edital.html
-          grep -q 'Praticar 10 questões' /tmp/edital.html
-          grep -q 'Resultados de baterias resolvidas no navegador não são armazenados' /tmp/edital.html
+          grep -q 'Lacunas do Edital' /tmp/edital.html
+          grep -q 'Tópicos ainda sem bateria oficial' /tmp/edital.html
+          grep -q 'O site não grava mais aproveitamento privado por tópico' /tmp/edital.html
+          grep -q 'Praticar no Banco' /tmp/edital.html
+          grep -q 'Resolver uma bateria no site não altera estes indicadores' /tmp/edital.html
           grep -q 'Filtros avançados' /tmp/edital.html
           grep -q 'Entender os números e ver por disciplina' /tmp/edital.html
           grep -q 'Ausência de bateria não é 0%' /tmp/edital.html
@@ -174,7 +174,7 @@ jobs:
           for file in /tmp/edital.html /tmp/edital-mobile.html /tmp/edital-unmeasured.html /tmp/edital-attention.html /tmp/edital-consolidated.html /tmp/edital-review.html /tmp/edital-critical.html /tmp/edital-portugues.html /tmp/edital-block.html /tmp/edital-search.html; do
             [[ -f "$file" ]] || continue
             echo "=== $file ==="
-            grep -Eo '[0-9]+ de [0-9]+ itens|Não foi possível carregar esta página|Snapshot parcial|Seu edital, sem bagunça|Próxima ação|Praticar 10 questões|Lacunas do snapshot oficial|Aferidos|Sem bateria|Check do Edital</b>|Edital</b>|>Mais</span>' "$file" | head -50 || true
+            grep -Eo '[0-9]+ de [0-9]+ itens|Não foi possível carregar esta página|Snapshot parcial|Seu edital, sem bagunça|Próxima ação|Lacunas do Edital|Tópicos ainda sem bateria oficial|Praticar no Banco|Aferidos|Sem bateria|Check do Edital</b>|Edital</b>|>Mais</span>' "$file" | head -50 || true
           done
           for file in /tmp/edital*.stderr; do
             [[ -f "$file" ]] || continue
