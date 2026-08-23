@@ -25,6 +25,6 @@ required(moduleStore.includes('persisted:false')&&!moduleStore.includes('setItem
 required(!/firebase|getPrivateSession|readFirebaseHistory|putFirebase/i.test(privateSync)&&privateSync.includes("mode:'local-only'"),'Sincronização pessoal em nuvem voltou a ser ativa.');
 required(!/archiveLocalState|getPrivateSession|setInterval/i.test(privateRuntime)&&privateRuntime.includes("persistenceMode='local-only'"),'Runtime de histórico privado voltou a gravar dados.');
 required(privatePreserve.includes('REMOVE_ASSETS')&&privatePreserve.includes('firebase-history-store.js')&&privatePreserve.includes('local-only-result-policy.js'),'Rotina pós-sync não protege o modo local-only.');
-required(!v27Preserve.includes("'assets/integration/attempt-diagnostics.js'")&&v27Preserve.includes('local-only-result-policy.js'),'Preservação v27/v28 pode reintroduzir diagnóstico persistente.');
+required(v27Preserve.includes('BLOCKED')&&v27Preserve.includes('attempt-diagnostics.js')&&v27Preserve.includes("editArray(sw,'ASSETS',{remove:BLOCKED,add:REQUIRED})")&&v27Preserve.includes('local-only-result-policy.js'),'Preservação v27/v28 não remove explicitamente o diagnóstico persistente.');
 required(localOnlyPolicy.includes('não mantém aproveitamento')&&localOnlyPolicy.includes("persistenceMode='local-only'"),'Política visual local-only ausente.');
 console.log(`PWA validado: ${requiredRoutes.length} rotas críticas, ${requiredAssets.length} módulos, versão ${version}, geração visual ${visualCacheRev}, modo local-only protegido, fallback de cache ativo e gabarito fora do precache.`);
