@@ -1,8 +1,8 @@
-import assert from 'node:assert/strict';
-import { spawn } from 'node:child_process';
-import fs from 'node:fs/promises';
-import os from 'node:os';
-import path from 'node:path';
+import assert from'node:assert/strict';
+import { spawn } from'node:child_process';
+import fs from'node:fs/promises';
+import os from'node:os';
+import path from'node:path';
 
 const base=(process.env.TDAS_BASE_URL||'http://127.0.0.1:4173/sedes-tdas-dashboard').replace(/\/$/,'');
 const chromeBin=process.env.CHROME_BIN||'google-chrome';
@@ -58,8 +58,8 @@ try{
  assert.equal(await evaluate(mobile,"document.querySelector('[data-tab=bank]')?.getAttribute('aria-selected')"),'true');
  assert.equal(await evaluate(mobile,"getComputedStyle(document.querySelector('.rd-bank-table')).display"),'none');
  assert.notEqual(await evaluate(mobile,"getComputedStyle(document.querySelector('.rd-bank-cards')).display"),'none');
- await waitFor(mobile,"[...document.querySelectorAll('#mobile-nav a')].map(a=>a.querySelector('span:last-child')?.textContent.trim()||'').join('|')==='Hoje|Questões|Revisar|Erros|Mais'",'barra mobile orientada à execução');
- assert.equal(await evaluate(mobile,"[...document.querySelectorAll('#mobile-nav a')].map(a=>a.querySelector('span:last-child')?.textContent.trim()||'').join('|')"),'Hoje|Questões|Revisar|Erros|Mais');
+ await waitFor(mobile,"[...document.querySelectorAll('#mobile-nav a')].map(a=>a.querySelector('span:last-child')?.textContent.trim()||'').join('|')==='Hoje|Questões|Erros|Mentor|Mais'",'barra mobile orientada à execução');
+ assert.equal(await evaluate(mobile,"[...document.querySelectorAll('#mobile-nav a')].map(a=>a.querySelector('span:last-child')?.textContent.trim()||'').join('|')"),'Hoje|Questões|Erros|Mentor|Mais');
  await waitFor(mobile,"Boolean(document.querySelector('[data-menu-toggle]'))",'botão do menu móvel');
  await evaluate(mobile,"document.querySelector('[data-menu-toggle]').click();true");
  await waitFor(mobile,"!document.querySelector('[data-tdas-drawer]').hidden",'drawer móvel nas redações');
