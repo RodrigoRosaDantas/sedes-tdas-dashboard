@@ -47,8 +47,8 @@ assert.ok(redactions.includes('history.replaceState'),'Os filtros do Banco Discu
 assert.ok(player.includes('matchingSessionDraft'));
 assert.ok(player.includes('writeSessionDraft'));
 assert.ok(player.includes('clearSessionDraft'));
-assert.ok(player.includes('data-review-outcome'),'Compatibilidade histórica do player deve permanecer sem superfície ativa.');
-assert.ok(player.includes('Correção da revisão'),'Compatibilidade histórica do player deve permanecer sem superfície ativa.');
+assert.ok(!player.includes('data-review-outcome')&&!player.includes('Correção da revisão')&&!player.includes("mode:'review'"),'Player ativo não pode manter execução interna de revisão.');
+assert.ok(player.includes('não foi salvo como histórico pessoal'),'Resultado concluído precisa declarar o contrato efêmero.');
 assert.ok(audit.includes('audit-unlinked-errors.js?v=1.0.0'));
 assert.ok(unlinked.includes("section.id='erros-sem-origem'"));
 assert.ok(unlinked.includes('items.length'));
