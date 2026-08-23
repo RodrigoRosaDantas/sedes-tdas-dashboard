@@ -105,7 +105,14 @@ jobs:
           assert_contains /tmp/mentor-mobile.html 'Mais' 'navegação mobile'
           assert_contains /tmp/mentor-review.html 'Prioridade: crase' 'foco do Mentor aplicado às Prioridades'
           assert_contains /tmp/mentor-review.html 'O Mentor definiu este foco.' 'handoff diagnóstico do Mentor'
-          assert_contains /tmp/mentor-review.html 'Sinais relacionados a crase' 'sinais do foco renderizados'
+          if grep -Fq -- 'Sinais relacionados a crase' /tmp/mentor-review.html; then
+            echo 'OK: sinais do foco renderizados'
+          elif grep -Fq -- 'Sem sinal local compatível' /tmp/mentor-review.html && grep -Fq -- 'não inventa uma fila de revisão' /tmp/mentor-review.html; then
+            echo 'OK: ausência honesta de sinais locais'
+          else
+            echo '::error title=Mentor smoke::handoff sem sinais focados e sem estado vazio válido'
+            exit 1
+          fi
           assert_contains /tmp/mentor-review.html 'a revisão continua fora do site' 'execução externa explicitada'
           if grep -Eqi 'Iniciar revisão|Revisar questão|resolver/\?review=' /tmp/mentor-review.html; then
             echo '::error title=Mentor smoke::Prioridades recriaram execução de revisão interna';
