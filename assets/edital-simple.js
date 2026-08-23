@@ -40,9 +40,9 @@ function ensureVerticalizedGateway(metrics,catalog){
 function simplifyDiagnostic(section){
  if(!section||section.dataset.simpleDiagnostic)return;section.dataset.simpleDiagnostic='1';
  const kicker=section.querySelector('.kicker'),title=section.querySelector('h2'),description=section.querySelector('.section-head p'),headAction=section.querySelector('.section-head>.btn');
- if(kicker)kicker.textContent='Próxima ação';
- if(title)title.textContent='Pratique uma lacuna do snapshot oficial';
- if(description)description.textContent='A plataforma prioriza tópicos ainda sem bateria oficial. Resolver aqui não cria percentual privado por tópico; qualquer evolução oficial depende das fontes sincronizadas.';
+ if(kicker)kicker.textContent='Próxima ação · Lacunas do Edital';
+ if(title)title.textContent='Tópicos ainda sem bateria oficial';
+ if(description)description.textContent='O site não grava mais aproveitamento privado por tópico. Esta fila usa somente o snapshot oficial sincronizado para indicar onde praticar.';
  const summary=section.querySelector('.edital-diagnostic-summary'),grid=section.querySelector('.edital-diagnostic-grid'),note=section.querySelector('.edital-diagnostic-note');
  const summaryItems=summary?[...summary.children]:[],cards=grid?[...grid.children]:[],firstCard=cards[0]||null;
  const firstCardSecondaryActions=firstCard?[...firstCard.querySelectorAll('.edital-diagnostic-actions .btn:not(.primary)')]:[];
