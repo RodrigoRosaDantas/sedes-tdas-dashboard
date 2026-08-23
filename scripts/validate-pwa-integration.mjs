@@ -1,7 +1,8 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 const ROOT=process.cwd(),BASE='/sedes-tdas-dashboard/',read=file=>fs.readFile(path.join(ROOT,file),'utf8'),exists=file=>fs.access(path.join(ROOT,file)).then(()=>true).catch(()=>false),required=(condition,message)=>{if(!condition)throw new Error(`PWA da execução diária: ${message}`)};
-const sw=await read('sw.js'),postprocess=await read('scripts/postprocess-v26.mjs'),versionSync=await read('scripts/sync-platform-version.mjs'),manifest=JSON.parse(await read('manifest.webmanifest')),packageData=JSON.parse(await read('package.json')),platformVersion=JSON.parse(await read('data/platform-version.json'));
+const[sw,postprocess,versionSync,resolver,moduleStore,privateSync,privateRuntime,privatePreserve,v27Preserve,localOnlyPolicy,manifestRaw,packageRaw,platformRaw]=await Promise.all(['sw.js','scripts/postprocess-v26.mjs','scripts/sync-platform-version.mjs','assets/integration/resolver-bootstrap.js','assets/integration/module-store.js','assets/integration/private-history-sync-v3.js','assets/integration/private-history-runtime-v3.js','scripts/preserve-private-history-pwa.mjs','scripts/preserve-v27-pwa.mjs','assets/integration/local-only-result-policy.js','manifest.webmanifest','package.json','data/platform-version.json'].map(read));
+const manifest=JSON.parse(manifestRaw),packageData=JSON.parse(packageRaw),platformVersion=JSON.parse(platformRaw);
 const list=name=>{const match=sw.match(new RegExp(`const ${name}=\\[([\\s\\S]*?)\\];`));required(match,`lista ${name} ausente`);return[...match[1].matchAll(/(['"])(.*?)\1/g)].map(item=>item[2])};
 const routes=list('CORE_ROUTES'),assets=list('ASSETS'),data=list('DATA'),version=sw.match(/const VERSION=['"]([^'"]+)['"]/u)?.[1]||'',visualCacheRev=versionSync.match(/const VISUAL_CACHE_REV=['"]([^'"]+)['"]/u)?.[1]||'';
 const requiredRoutes=['configuracoes/','dados-locais/','estudar/','resolver/','revisar/','caderno-erros/','desempenho/','fila-ia/','mentor/'];
@@ -19,4 +20,11 @@ required(postprocess.includes('caches.match(request,{ignoreSearch:true})')&&post
 required(!data.some(file=>/pe76|pilot/i.test(file))&&!assets.some(file=>/pilot-catalog|real-study|pe-pilot-status/i.test(file)),'PWA ainda inclui conteúdo de exemplo.');
 required(manifest.start_url===BASE&&manifest.scope===BASE,'escopo do manifesto divergente');
 required(packageData.scripts?.['check:pwa']==='node scripts/validate-pwa-integration.mjs','comando check:pwa ausente');
-console.log(`PWA validado: ${requiredRoutes.length} rotas críticas, ${requiredAssets.length} módulos, versão ${version}, geração visual ${visualCacheRev}, fallback de cache versionado ativo, Dashboard PRO, Mentor e hotfix mobile disponíveis offline, correção fora do precache.`);
+required(resolver.includes('local-only-result-policy.js')&&!resolver.includes('attempt-diagnostics.js'),'Resolver deve exibir resultado transitório sem diagnóstico persistente.');
+required(moduleStore.includes('persisted:false')&&!moduleStore.includes('setItem(STORAGE_KEY'),'Conclusão de questões voltou a persistir histórico pessoal.');
+required(!/firebase|getPrivateSession|readFirebaseHistory|putFirebase/i.test(privateSync)&&privateSync.includes("mode:'local-only'"),'Sincronização pessoal em nuvem voltou a ser ativa.');
+required(!/archiveLocalState|getPrivateSession|setInterval/i.test(privateRuntime)&&privateRuntime.includes("persistenceMode='local-only'"),'Runtime de histórico privado voltou a gravar dados.');
+required(privatePreserve.includes('REMOVE_ASSETS')&&privatePreserve.includes('firebase-history-store.js')&&privatePreserve.includes('local-only-result-policy.js'),'Rotina pós-sync não protege o modo local-only.');
+required(!v27Preserve.includes("'assets/integration/attempt-diagnostics.js'")&&v27Preserve.includes('local-only-result-policy.js'),'Preservação v27/v28 pode reintroduzir diagnóstico persistente.');
+required(localOnlyPolicy.includes('não mantém aproveitamento')&&localOnlyPolicy.includes("persistenceMode='local-only'"),'Política visual local-only ausente.');
+console.log(`PWA validado: ${requiredRoutes.length} rotas críticas, ${requiredAssets.length} módulos, versão ${version}, geração visual ${visualCacheRev}, modo local-only protegido, fallback de cache ativo e gabarito fora do precache.`);
