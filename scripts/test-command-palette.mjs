@@ -5,8 +5,10 @@ const readJson=file=>fs.readFile(file,'utf8').then(JSON.parse);
 const[palette,css,shell,sw,postprocess,version]=await Promise.all([
  read('assets/tdas-command-palette.js'),read('assets/tdas-command-palette.css'),read('assets/tdas-mobile-ux.js'),read('sw.js'),read('scripts/postprocess-v26.mjs'),readJson('data/platform-version.json')
 ]);
-for(const label of ['Faça agora','Resolver questões','Revisões','Caderno de erros','Progresso','Check do Edital','Plano PE01–PE112','Biblioteca','Redações','Bancos de dados','Configurações'])assert.ok(palette.includes(label),`Palette deve indexar ${label}.`);
-for(const marker of ['readSessionDraft','Continuar ${draft.peId','Revisar agora','Tratar ${errors.length','Array.from({length:112},','data/subjects.json','data/agenda.json','data/home.json'])assert.ok(palette.includes(marker),`Palette deve preservar ${marker}.`);
+for(const label of ['Faça agora','Resolver questões','Prioridades','Caderno de erros','Progresso','Check do Edital','Plano PE01–PE112','Biblioteca','Redações','Bancos de dados','Configurações'])assert.ok(palette.includes(label),`Palette deve indexar ${label}.`);
+for(const marker of ['readSessionDraft','Continuar ${draft.peId','Ver prioridades','Tratar ${errors.length','Array.from({length:112},','data/subjects.json','data/agenda.json','data/home.json'])assert.ok(palette.includes(marker),`Palette deve preservar ${marker}.`);
+assert.ok(!palette.includes('resolver/?review='),'Palette não pode abrir sessão interna de revisão.');
+assert.match(palette,/href:`\$\{BASE\}revisar\/`/,'Sinais locais devem encaminhar para Prioridades.');
 assert.match(palette,/event\.metaKey\|\|event\.ctrlKey/,'Palette deve aceitar Cmd/Ctrl+K.');
 assert.match(palette,/event\.key==='\/'/,'Palette deve aceitar atalho /.');
 assert.match(palette,/ArrowDown/,'Palette deve navegar por seta para baixo.');
@@ -25,4 +27,4 @@ for(const item of ['assets/tdas-command-palette.css','assets/tdas-command-palett
 assert.match(version.serviceWorkerVersion,/pro7$/,'Manifesto deve usar cache PRO7.');
 assert.match(sw,/pro7/,'Service worker deve usar cache PRO7.');
 assert.ok(!sw.includes('question-keys/'),'Gabarito continua fora do precache inicial.');
-console.log('Command Palette TDAS validada: ações, PE01–PE112, matérias, sessão/revisão local, teclado, foco, PWA PRO7 e blindagem do gabarito.');
+console.log('Command Palette TDAS validada: ações, PE01–PE112, matérias, prioridades externas, teclado, foco, PWA PRO7 e blindagem do gabarito.');
