@@ -1,4 +1,4 @@
-const VERSION="tdas-28.0.0-20260823-pe98-tdas-pe98-empty-pro7";
+const VERSION="tdas-28.0.0-20260823-pe98-tdas-pe98-empty-cachefix1-pro7";
 const BASE='/sedes-tdas-dashboard/';
 const USER_CACHE_PREFIXES=['tdas-redactions-user-'];
 const CORE_ROUTES=["","hoje/","evolucao/","edital/","mentor/","riscos/","agenda/","redacoes/","auditoria/","mais/","configuracoes/","dados-locais/","questoes-erros/","pe/","materias/","estudar/","resolver/","revisar/","caderno-erros/","desempenho/","fila-ia/","offline.html","manifest.webmanifest","redacoes/detalhe/","sincronizacao/","exportar-tentativa/","notion/"];
