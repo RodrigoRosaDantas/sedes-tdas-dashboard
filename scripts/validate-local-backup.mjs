@@ -1,38 +1,9 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-
-const ROOT = process.cwd();
-const read = file => fs.readFile(path.join(ROOT, file), 'utf8');
-const exists = file => fs.access(path.join(ROOT, file)).then(() => true).catch(() => false);
-const required = (condition, message) => { if (!condition) throw new Error(`Backup local: ${message}`); };
-
-const [page, script, more, sw, packageText] = await Promise.all([
-  read('dados-locais/index.html'),
-  read('assets/integration/local-backup.js'),
-  read('assets/more.js'),
-  read('sw.js'),
-  read('package.json'),
-]);
-const packageData = JSON.parse(packageText);
-
-required(await exists('dados-locais/index.html'), 'rota dados-locais ausente');
-required(page.includes('assets/integration/local-backup.js'), 'página não carrega o módulo de backup');
-required(page.includes('Nenhum arquivo será enviado'), 'garantia de privacidade ausente');
-required(more.includes("dados-locais/"), 'atalho ausente na página Mais');
-for (const token of [
-  'tdas-local-backup',
-  'tdas.202.daily-execution.v1',
-  'tdas.202.question-module.v2.state',
-  'Baixar backup JSON',
-  'Restaurar backup',
-  'substituir os dados locais atuais',
-  'A restauração foi revertida',
-]) required(script.includes(token), `contrato ausente: ${token}`);
-required(!/api\.notion|fetch\s*\(|XMLHttpRequest|navigator\.sendBeacon/i.test(script), 'módulo contém acesso de rede');
-required(!/method\s*:\s*['"](?:POST|PUT|PATCH|DELETE)/i.test(script), 'módulo contém escrita remota');
-required(sw.includes('"dados-locais/"'), 'rota fora do cache do PWA');
-required(sw.includes('"assets/integration/local-backup.js"'), 'módulo fora do cache do PWA');
-required(packageData.scripts?.['check:backup'] === 'node scripts/validate-local-backup.mjs', 'comando check:backup ausente');
-required(packageData.scripts?.['test:backup'] === 'node scripts/test-local-backup.mjs', 'comando test:backup ausente');
-
-console.log('Backup local validado: dois armazenamentos, confirmação, rollback e zero acesso de rede.');
+const ROOT=process.cwd(),read=file=>fs.readFile(path.join(ROOT,file),'utf8'),exists=file=>fs.access(path.join(ROOT,file)).then(()=>true).catch(()=>false),required=(condition,message)=>{if(!condition)throw new Error(`Backup local: ${message}`)};
+const[page,script,more,sw,packageText]=await Promise.all([read('dados-locais/index.html'),read('assets/integration/local-backup.js'),read('assets/more.js'),read('sw.js'),read('package.json')]);const packageData=JSON.parse(packageText);
+required(await exists('dados-locais/index.html'),'rota dados-locais ausente');required(page.includes('assets/integration/local-backup.js'),'página não carrega o módulo de backup');required(page.includes('Nenhum arquivo será enviado'),'garantia de privacidade ausente');required(more.includes("dados-locais/"),'atalho ausente na página Mais');
+for(const token of ['tdas-local-backup','tdas.202.daily-execution.v1','tdas.202.question-module.v2.draft','Backup mínimo do dispositivo','Baixar backup JSON','Restaurar','A restauração foi revertida'])required(script.includes(token),`contrato ausente: ${token}`);
+required(script.includes("MODULE_STORAGE_KEY='tdas.202.question-module.v2.state'")&&script.includes('target.removeItem?.(MODULE_STORAGE_KEY)'),'histórico legado precisa ser excluído na restauração sem ser exportado');
+required(!script.includes('questionModule:parse')&&!script.includes('attempts: module'),'backup não pode incluir tentativas concluídas');required(!/api\.notion|fetch\s*\(|XMLHttpRequest|navigator\.sendBeacon/i.test(script),'módulo contém acesso de rede');required(!/method\s*:\s*['"](?:POST|PUT|PATCH|DELETE)/i.test(script),'módulo contém escrita remota');required(sw.includes('"dados-locais/"'),'rota fora do cache do PWA');required(sw.includes('"assets/integration/local-backup.js"'),'módulo fora do cache do PWA');required(packageData.scripts?.['check:backup']==='node scripts/validate-local-backup.mjs','comando check:backup ausente');required(packageData.scripts?.['test:backup']==='node scripts/test-local-backup.mjs','comando test:backup ausente');
+console.log('Backup local validado: progresso operacional e sessão ativa, sem histórico pessoal e sem acesso de rede.');

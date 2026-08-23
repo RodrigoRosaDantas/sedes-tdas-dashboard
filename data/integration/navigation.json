@@ -1,15 +1,15 @@
 {
-  "schemaVersion": "2.3.0",
+  "schemaVersion": "2.4.0",
   "phase": "operational",
-  "mode": "daily-execution-integrated",
+  "mode": "daily-execution-local-session-only",
   "basePath": "/sedes-tdas-dashboard/",
   "routes": [
     {"key":"estudar","path":"/sedes-tdas-dashboard/estudar/","title":"Estudar","description":"Material Premium Diário trazido da página filha oficial do PE vigente.","status":"Sincronizado do Notion"},
-    {"key":"resolver","path":"/sedes-tdas-dashboard/resolver/","title":"Questões e Banco","description":"Questões do dia e snapshot local publicado do Banco Mestre TDAS, sempre com correção separada até a finalização.","status":"Notion → GitHub → site"},
-    {"key":"revisar","path":"/sedes-tdas-dashboard/revisar/","title":"Revisar","description":"Agenda local D+1, D+7 e D+20 gerada pelas sessões concluídas.","status":"Operacional"},
-    {"key":"caderno-erros","path":"/sedes-tdas-dashboard/caderno-erros/","title":"Caderno de erros","description":"Erros confirmados e marcações produzidos pelas sessões locais.","status":"Operacional"},
-    {"key":"desempenho","path":"/sedes-tdas-dashboard/desempenho/","title":"Desempenho","description":"Métricas locais de tentativas, acertos, tempo, confiança e revisões.","status":"Operacional"},
-    {"key":"fila-ia","path":"/sedes-tdas-dashboard/fila-ia/","title":"Fila de IA","description":"Ressalvas de possível anulação ou erro de fonte que exigem análise.","status":"Operacional"}
+    {"key":"resolver","path":"/sedes-tdas-dashboard/resolver/","title":"Questões e Banco","description":"Questões do dia e snapshot publicado do Banco Mestre TDAS, com correção separada até a finalização e rascunho temporário somente neste dispositivo.","status":"Notion → GitHub → site"},
+    {"key":"revisar","path":"/sedes-tdas-dashboard/revisar/","title":"Prioridades","description":"Diagnóstico que orienta o que merece revisão fora da plataforma; não executa sessão de revisão nem cria D+1/D+7/D+20.","status":"Diagnóstico"},
+    {"key":"caderno-erros","path":"/sedes-tdas-dashboard/caderno-erros/","title":"Caderno de erros","description":"Gateway para o Caderno oficial sincronizado, Prioridades e Mentor. Não mantém histórico pessoal de erros ou marcações no site.","status":"Sem histórico pessoal"},
+    {"key":"desempenho","path":"/sedes-tdas-dashboard/desempenho/","title":"Desempenho","description":"Direciona para os indicadores oficiais sincronizados; tentativas concluídas no navegador não são acumuladas como desempenho pessoal.","status":"Fonte oficial"},
+    {"key":"fila-ia","path":"/sedes-tdas-dashboard/fila-ia/","title":"Fila de IA","description":"Ressalvas editoriais da plataforma; não depende de histórico pessoal sincronizado em nuvem.","status":"Operacional"}
   ],
-  "invariants": ["daily-execution-pe-links","children-discovered-from-official-roots","theory-and-questions-separated","question-content-authorized-by-user","answer-key-loaded-after-finish","no-example-question-bank","master-bank-local-snapshot-only","no-master-bank-remote-runtime-read","local-storage-v2-only","no-notion-writeback","single-dashboard-service-worker"]
+  "invariants": ["daily-execution-pe-links","children-discovered-from-official-roots","theory-and-questions-separated","question-content-authorized-by-user","answer-key-loaded-after-finish","no-example-question-bank","master-bank-local-snapshot-only","no-master-bank-remote-runtime-read","active-session-draft-local-only","no-completed-attempt-history","no-personal-cloud-sync","no-internal-review-session","no-notion-writeback","single-dashboard-service-worker"]
 }

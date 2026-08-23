@@ -1,11 +1,18 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 const ROOT=process.cwd();
-const ASSETS=['assets/integration/history-db-core.js','assets/integration/persistence-contract.js','assets/integration/persistence-queue.js','assets/integration/question-catalog-archive.js','assets/integration/persistence-local-v2.js','assets/integration/private-history-config.js','assets/integration/private-history-auth.js','assets/integration/firebase-history-store.js','assets/integration/private-history-sync-v3.js','assets/integration/private-history-runtime-v3.js','assets/integration/private-history-materialize.js','assets/integration/private-history-login.js','assets/integration/private-history-page.js','assets/integration/attempt-export.js','assets/integration/attempt-history-v2.js','assets/integration/attempt-export-page-v2.js','assets/integration/error-book-export.js','assets/integration/error-book-enhancer-v2.js','assets/integration/module-error-book-v3.js','assets/integration/module-performance-v6.js','assets/integration/performance-history-links-v2.js','assets/integration/result-persistence-links-v2.js','assets/integration/result-persistence-links.js'];
-const ARCHIVE_INDEX='data/integration/question-archive/index.json';
-const ROUTES=['sincronizacao/','exportar-tentativa/'];
-function add(source,name,value){const pattern=new RegExp(`const ${name}=(\\[[^;]*\\]);`),match=source.match(pattern);if(!match)throw new Error(`Histórico PWA: ${name} ausente.`);const list=JSON.parse(match[1]);if(!list.includes(value))list.push(value);return source.replace(pattern,`const ${name}=${JSON.stringify(list)};`)}
-const archive=JSON.parse(await fs.readFile(path.join(ROOT,ARCHIVE_INDEX),'utf8'));
-const archiveFiles=[ARCHIVE_INDEX,...Object.values(archive.catalogs||{}).map(entry=>String(entry?.path||'')).filter(value=>/^data\/integration\/question-archive\/[a-z0-9._-]+\.json$/i.test(value))];
-const DATA=[...new Set(archiveFiles)];
-const swPath=path.join(ROOT,'sw.js');let sw=await fs.readFile(swPath,'utf8');for(const x of ASSETS)sw=add(sw,'ASSETS',x);for(const x of DATA)sw=add(sw,'DATA',x);for(const x of ROUTES)sw=add(sw,'CORE_ROUTES',x);await fs.writeFile(swPath,sw);for(const file of [...ASSETS,...DATA])await fs.access(path.join(ROOT,file));console.log(`Histórico privado preservado no PWA: ${DATA.length-1} catálogo(s) arquivado(s).`);
+const retired=[
+ 'assets/integration/private-history-config.js','assets/integration/private-history-auth.js','assets/integration/firebase-history-store.js',
+ 'assets/integration/private-history-sync.js','assets/integration/private-history-sync-v2.js','assets/integration/private-history-sync-v3.js',
+ 'assets/integration/private-history-runtime.js','assets/integration/private-history-runtime-v2.js','assets/integration/private-history-runtime-v3.js',
+ 'assets/integration/private-history-materialize.js','assets/integration/private-history-login.js','assets/integration/private-history-page.js'
+];
+const localOnlyAssets=['assets/integration/module-error-book-v3.js','assets/integration/module-error-book-base.js','assets/integration/module-performance-v6.js','assets/integration/attempt-diagnostics.js','assets/integration/attempt-diagnostics.css'];
+function rewriteList(source,name,mutate){const pattern=new RegExp(`const ${name}=(\\[[^;]*\\]);`),match=source.match(pattern);if(!match)throw new Error(`Persistência local-only: lista ${name} ausente.`);const list=mutate(JSON.parse(match[1]));return source.replace(pattern,`const ${name}=${JSON.stringify(list)};`)}
+const swPath=path.join(ROOT,'sw.js');let sw=await fs.readFile(swPath,'utf8');
+sw=rewriteList(sw,'ASSETS',list=>[...new Set([...list.filter(item=>!retired.includes(item)),...localOnlyAssets])]);
+await fs.writeFile(swPath,sw,'utf8');
+for(const asset of retired){try{await fs.access(path.join(ROOT,asset));throw new Error(`Persistência pessoal aposentada ainda presente: ${asset}`)}catch(error){if(error?.code!=='ENOENT')throw error}}
+for(const asset of localOnlyAssets)await fs.access(path.join(ROOT,asset));
+if(/firebase-history|private-history-(?:auth|sync|runtime|materialize|login|page|config)/i.test(sw))throw new Error('Service worker ainda referencia persistência pessoal em nuvem.');
+console.log('Contrato local-only validado: PWA preserva somente sessão/diagnóstico efêmero, sem histórico pessoal ou Firebase.');
