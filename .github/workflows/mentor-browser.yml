@@ -81,7 +81,7 @@ jobs:
           python3 -m http.server 4176 >/tmp/mentor-server.log 2>&1 & echo $! >/tmp/mentor-server.pid
           for attempt in $(seq 1 30); do curl -fsS http://127.0.0.1:4176/sedes-tdas-dashboard/mentor/ >/dev/null && exit 0; sleep 1; done
           exit 1
-      - name: Validar Mentor e revisão dirigida em Chrome
+      - name: Validar Mentor e prioridades externas em Chrome
         shell: bash
         run: |
           set -euo pipefail
@@ -98,20 +98,33 @@ jobs:
           assert_contains /tmp/mentor.html 'Pontos fracos e fragilidades' 'prioridades renderizadas'
           assert_contains /tmp/mentor.html 'Blocos de desempenho forte' 'blocos fortes rotulados corretamente'
           assert_contains /tmp/mentor.html 'Forças temáticas deste dispositivo' 'forças temáticas locais'
-          assert_contains /tmp/mentor.html 'Revisão dirigida' 'CTA de revisão dirigida'
+          assert_contains /tmp/mentor.html 'Revisão dirigida' 'CTA diagnóstico do Mentor'
           assert_contains /tmp/mentor.html "${IMMEDIATE} de ${PRIORITIES} tópicos" 'foco padrão crítico + alto'
           assert_contains /tmp/mentor-all.html "${PRIORITIES} de ${PRIORITIES} tópicos" 'visão completa'
           assert_contains /tmp/mentor-critical.html "${CRITICAL} de ${PRIORITIES} tópicos" 'filtro crítico'
           assert_contains /tmp/mentor-mobile.html 'Mais' 'navegação mobile'
-          assert_contains /tmp/mentor-review.html 'Revisão dirigida pelo Mentor' 'página de revisão dirigida'
-          assert_contains /tmp/mentor-review.html 'data-mentor-focus="crase"' 'foco crase aplicado à revisão'
+          assert_contains /tmp/mentor-review.html 'Prioridade: crase' 'foco do Mentor aplicado às Prioridades'
+          assert_contains /tmp/mentor-review.html 'O Mentor definiu este foco.' 'handoff diagnóstico do Mentor'
+          if grep -Fq -- 'Sinais relacionados a crase' /tmp/mentor-review.html; then
+            echo 'OK: sinais do foco renderizados'
+          elif grep -Fq -- 'Sem sinal local compatível' /tmp/mentor-review.html && grep -Fq -- 'não inventa uma fila de revisão' /tmp/mentor-review.html; then
+            echo 'OK: ausência honesta de sinais locais'
+          else
+            echo '::error title=Mentor smoke::handoff sem sinais focados e sem estado vazio válido'
+            exit 1
+          fi
+          assert_contains /tmp/mentor-review.html 'a revisão continua fora do site' 'execução externa explicitada'
+          if grep -Eqi 'Iniciar revisão|Revisar questão|resolver/\?review=' /tmp/mentor-review.html; then
+            echo '::error title=Mentor smoke::Prioridades recriaram execução de revisão interna';
+            exit 1;
+          fi
 
           if grep -Eqi 'Construindo seu diagnóstico|Não foi possível carregar esta página|Uncaught (TypeError|ReferenceError|SyntaxError)' /tmp/mentor.html /tmp/mentor-mobile.html /tmp/mentor-review.html /tmp/mentor*.stderr; then
             echo '::error title=Mentor smoke::erro de carregamento ou JavaScript detectado';
             grep -Ein 'Construindo seu diagnóstico|Não foi possível carregar esta página|Uncaught (TypeError|ReferenceError|SyntaxError)' /tmp/mentor.html /tmp/mentor-mobile.html /tmp/mentor-review.html /tmp/mentor*.stderr || true;
             exit 1;
           fi
-          printf '{"mentorBrowser":"ok","errors":%s,"priorities":%s,"immediate":%s,"critical":%s,"high":%s,"directedReview":true,"mobile":true}\n' "$ERRORS" "$PRIORITIES" "$IMMEDIATE" "$CRITICAL" "$HIGH"
+          printf '{"mentorBrowser":"ok","errors":%s,"priorities":%s,"immediate":%s,"critical":%s,"high":%s,"priorityHandoff":true,"internalReview":false,"mobile":true}\n' "$ERRORS" "$PRIORITIES" "$IMMEDIATE" "$CRITICAL" "$HIGH"
       - name: Diagnosticar falha
         if: failure()
         run: |
