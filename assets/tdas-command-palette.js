@@ -9,7 +9,7 @@ let items=[],matches=[],selected=0,lastFocus=null;
 const staticItems=[
  {group:'Ações',kind:'action',icon:'⌂',label:'Faça agora',meta:'Voltar à Central de Comando',href:BASE,keywords:'inicio home central comando hoje'},
  {group:'Ações',kind:'action',icon:'▶',label:'Resolver questões',meta:'Abrir o player de questões',href:BASE+'resolver/',keywords:'questoes simulado resolver executar player'},
- {group:'Ações',kind:'action',icon:'↻',label:'Revisões',meta:'Abrir a fila adaptativa',href:BASE+'revisar/',keywords:'revisao revisar d1 d7 d20 fila'},
+ {group:'Ações',kind:'action',icon:'↻',label:'Prioridades',meta:'Ver focos para revisão externa',href:BASE+'revisar/',keywords:'prioridade revisao revisar diagnostico externo'},
  {group:'Ações',kind:'risk',icon:'!',label:'Caderno de erros',meta:'Reincidências, causas e marcações',href:BASE+'caderno-erros/',keywords:'erro erros reincidencia causa caderno'},
  {group:'Ações',kind:'action',icon:'▥',label:'Progresso',meta:'Desempenho local e diagnóstico',href:BASE+'desempenho/',keywords:'desempenho progresso estatistica diagnostico'},
  {group:'Navegação',kind:'route',icon:'✓',label:'Check do Edital',meta:'Raio-X do Cargo 202',href:BASE+'riscos/',keywords:'edital raio x risco topicos cobertura'},
@@ -22,10 +22,10 @@ const staticItems=[
 const peItems=Array.from({length:112},(_,index)=>{const number=index+1,pe=`PE${String(number).padStart(2,'0')}`;return{group:'PEs',kind:'pe',icon:'◎',label:pe,meta:'Abrir execução diária',href:`${BASE}estudar/?pe=${pe}`,keywords:`pe ${number} plano execucao material questoes`}});
 
 function localActionItems(){
- const state=readModuleState(),draft=readSessionDraft(),now=Date.now(),due=(state.reviews||[]).filter(item=>item.status==='pending'&&Number(item.dueAt)<=now).sort((a,b)=>Number(a.dueAt)-Number(b.dueAt)),errors=state.errors||[];
+ const state=readModuleState(),draft=readSessionDraft(),now=Date.now(),signals=(state.reviews||[]).filter(item=>item.status==='pending'&&Number(item.dueAt)<=now),errors=state.errors||[];
  const out=[];
  if(draft){const progress=Object.keys(draft.session?.answers||{}).length,total=draft.session?.questionIds?.length||0;out.push({group:'Continuar',kind:'action',icon:'▶',label:`Continuar ${draft.peId||'sessão'}`,meta:`Questão ${Math.min(total,(draft.session?.currentIndex||0)+1)} de ${total} · ${progress} respondidas`,href:`${BASE}resolver/?resume=1${draft.peId?`&pe=${encodeURIComponent(draft.peId)}`:''}`,keywords:'continuar retomar sessao interrompida rascunho'})}
- if(due[0])out.push({group:'Continuar',kind:'action',icon:'↻',label:`Revisar agora · ${due.length} ${due.length===1?'item':'itens'}`,meta:'Fila local vencida, priorizada por atraso e risco',href:`${BASE}resolver/?review=${encodeURIComponent(due[0].id)}`,keywords:'revisar agora fila pendente vencida'});
+ if(signals.length)out.push({group:'Continuar',kind:'action',icon:'↻',label:`Ver prioridades · ${signals.length} ${signals.length===1?'sinal':'sinais'}`,meta:'Sinais locais para direcionar a revisão fora do TDAS',href:`${BASE}revisar/`,keywords:'prioridade revisao externa sinal pendente'});
  if(errors.length)out.push({group:'Continuar',kind:'risk',icon:'!',label:`Tratar ${errors.length} ${errors.length===1?'erro local':'erros locais'}`,meta:'Abrir reincidências e causas classificadas',href:BASE+'caderno-erros/',keywords:'tratar erros reincidencias causa'});
  return out;
 }
@@ -47,7 +47,7 @@ function render(query=''){
  const results=document.querySelector('[data-command-results]');if(!results)return;
  const ranked=items.map(item=>({item,score:scoreItem(item,query)})).filter(row=>row.score>=0).sort((a,b)=>b.score-a.score||a.item.group.localeCompare(b.item.group,'pt-BR')||a.item.label.localeCompare(b.item.label,'pt-BR'));
  matches=ranked.slice(0,query?18:10).map(row=>row.item);selected=Math.min(selected,Math.max(0,matches.length-1));
- results.innerHTML=matches.length?groupedMarkup(matches):'<div class="tdas-command-empty"><b>Nada encontrado</b><span>Tente PE88, Português, revisão, redação ou edital.</span></div>';
+ results.innerHTML=matches.length?groupedMarkup(matches):'<div class="tdas-command-empty"><b>Nada encontrado</b><span>Tente PE88, Português, prioridade, redação ou edital.</span></div>';
  const counter=document.querySelector('[data-command-count]');if(counter)counter.textContent=query?`${ranked.length} resultado${ranked.length===1?'':'s'}`:'Ações e atalhos mais úteis';
 }
 function setSelected(index){if(!matches.length)return;selected=(index+matches.length)%matches.length;document.querySelectorAll('[data-command-index]').forEach((node,i)=>node.classList.toggle('active',i===selected));document.querySelector(`[data-command-index="${selected}"]`)?.scrollIntoView({block:'nearest'})}
