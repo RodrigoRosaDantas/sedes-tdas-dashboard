@@ -71,6 +71,8 @@ npm run test:tdas-mobile-browser
 - `test:tdas-mobile-ux`: valida o contrato estrutural da experiência mobile, Configurações, separação de versões e PWA.
 - `test:tdas-mobile-browser`: executa Chrome real em viewport mobile e valida header, navegação, drawer, preferências e gabarito fora do cache inicial.
 
+O workflow **Validar persistência local TDAS** protege o contrato atual: sessão ativa local, tentativa concluída efêmera, sem Firebase/histórico pessoal e sem revisão interna.
+
 ### EDAS
 
 ```bash
@@ -128,17 +130,45 @@ A experiência do Cargo 202 é orientada à **execução diária**, sem comparti
 - A barra inferior mobile possui exatamente cinco áreas: **Hoje, Questões, Erros, Mentor e Mais**.
 - A navegação desktop prioriza **Faça agora, Resolver questões, Prioridades, Caderno de erros, Mentor, Check do Edital, Riscos, Plano PE01–PE112, Biblioteca e Bancos de dados**; opções administrativas não disputam prioridade com a execução diária.
 - O drawer organiza as demais rotas em **Hoje, Conteúdo, Praticar, Progresso e Sistema**.
-- Informações técnicas, instalação, sincronização, backup, fontes e preferências ficam em **Configurações**; a Auditoria permanece técnica.
-- Durante uma questão ativa, o player entra em modo focado: navegação periférica é escondida, resposta/confiança continuam persistidas questão a questão e a correção permanece reservada até a finalização.
+- Informações técnicas, instalação, publicação, backup, fontes e preferências ficam em **Configurações**; a Auditoria permanece técnica.
+- Durante uma questão ativa, o player entra em modo focado: navegação periférica é escondida, resposta/confiança e posição ficam no **rascunho local da sessão ativa** e a correção permanece reservada até a finalização.
 - A confiança usa linguagem direta: **Sei, Tenho dúvida e Chute**.
-- Após a finalização, erros podem receber causa local — **Não sabia, Confundi conceitos, Esqueci a regra, Interpretei errado, Pressa ou Pegadinha** — armazenada separadamente em `tdas.202.error-causes.v1`, sem alterar gabarito ou Notion.
-- **Prioridades** organiza sinais locais de erro, reincidência, dúvida/chute e marcação para indicar onde concentrar a revisão. A revisão acontece fora do TDAS; o motor D+1/D+7/D+20 e seus estados permanecem apenas como compatibilidade histórica e não podem iniciar sessão interna nem preemptar a ação diária.
+- Ao finalizar uma bateria, o resultado e a correção ficam disponíveis **somente na página atual, em memória**, para conferência imediata. A tentativa concluída não é gravada como histórico pessoal, não alimenta desempenho do navegador e não é enviada para nuvem.
+- O TDAS não mantém mais histórico pessoal de **acertos, erros, marcações, causas de erro, revisões, telemetria consolidada ou aferições privadas do Edital**. Metadados transitórios usados durante a sessão devem ser consumidos/descartados no fechamento.
+- **Prioridades** é diagnóstico/direcionamento para revisão externa. O motor D+1/D+7/D+20 e seus estados permanecem apenas como compatibilidade histórica e não podem iniciar sessão interna, preemptar a ação diária ou voltar a ser fonte operacional.
+- O **Check do Edital** usa o snapshot oficial para apontar lacunas e sugerir prática. Baterias feitas no navegador não criam percentual privado por tópico nem fecham lacunas oficiais.
+- O **Caderno de erros** do site funciona como gateway para o caderno oficial sincronizado, Prioridades e Mentor; não recompõe um caderno pessoal a partir do navegador.
+- O **Desempenho** do site aponta para indicadores oficiais sincronizados; não acumula tentativas concluídas localmente.
 - O estado de dados deve distinguir claramente a **publicação já sincronizada** de uma nova leitura do Notion. No navegador, `Verificar publicação` consulta o manifesto publicado; não chama a API do Notion nem expõe token.
 - O badge de publicação é derivado do manifesto real e deve ser revalidado ao reconectar.
 - Modo confortável e Texto ampliado são preferências locais isoladas pelas chaves `tdas.202.*`.
 - `prefers-reduced-motion` deve ser respeitado.
 - `platformVersion`, `dataVersion` e `syncAt` têm significados independentes; mudança visual não pode simular nova leitura do Notion.
-- O cache técnico pode mudar entre releases, mas tentativas, revisões, rascunhos, caderno local, redações e backups pessoais não podem ser apagados pela atualização.
+- O backup local TDAS contém somente **progresso operacional local e sessão ativa**, nunca tentativas concluídas/revisões. Ele é manual e não envia arquivos para servidor.
+- Atualizações do cache técnico devem preservar o rascunho da sessão ativa, preferências e dados operacionais permitidos, mas não devem reintroduzir histórico pessoal aposentado.
+
+### Contrato de persistência TDAS
+
+**Permitido no dispositivo:**
+
+- rascunho de uma bateria não finalizada;
+- posição e respostas da sessão ativa;
+- preferências de interface;
+- progresso operacional diário necessário para continuidade;
+- cache técnico/PWA e caches pessoais específicos do Banco Discursivo já governados separadamente.
+
+**Aposentado no TDAS:**
+
+- Firebase/Firestore de histórico pessoal;
+- sincronização entre dispositivos de tentativas ou rascunhos;
+- histórico persistente de tentativas concluídas;
+- desempenho pessoal derivado das baterias do navegador;
+- caderno local acumulado de erros/marcações/causas;
+- revisão interna e fila D+1/D+7/D+20;
+- aferição privada persistente do Check do Edital;
+- exportação de tentativa concluída como histórico do site.
+
+A publicação oficial **Notion → GitHub → site** continua normalmente e não deve ser confundida com sincronização de dados pessoais.
 
 ## 5. Rotina antes de alterar o site
 
@@ -195,7 +225,8 @@ Uma verificação posterior saudável registra a recuperação e fecha o inciden
 - O catálogo público EDAS não pode conter campos `gabarito` ou `justificativa`.
 - Propostas futuras do Banco Discursivo permanecem sem comando, texto, nota, feedback ou modelo até a liberação.
 - Caches pessoais `tdas-redactions-user-*` não podem ser apagadas por atualização técnica.
-- Estado local do módulo de questões TDAS (`tdas.202.*`) não pode ser apagado por atualização do cache técnico.
+- No TDAS, **somente o rascunho da sessão ativa, preferências e progresso operacional permitido** podem sobreviver como persistência local de execução. O histórico antigo `tdas.202.question-module.v2.state`, causas de erro e aferições privadas não podem voltar a ser fonte operacional.
+- Nenhum workflow, pós-processador ou service worker pode reintroduzir `private-history-*`, `firebase-history-store` ou regras Firestore do histórico pessoal TDAS.
 - O Notion não recebe writeback do site.
 - A camada privada completa das redações permanece acompanhada pela issue #86.
 - Como o repositório é público, o arquivo de correção EDAS ainda é tecnicamente acessível por URL direta; a retirada total desse risco exige backend/autorização e deve ser tratada como melhoria arquitetural separada.
