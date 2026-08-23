@@ -5,8 +5,9 @@ required(resolver.includes('resolver-bootstrap.js?v=1.0.0'),'roteador v27 não e
 const runtimeImports=(bootstrap.match(/question-telemetry-runtime\.js\?v=1\.0\.0/g)||[]).length;
 required(runtimeImports===2,'runtime deve ser carregado depois do player nos modos Banco e diário.');
 required(bootstrap.includes("dataset.questionMode='review-handoff'")&&bootstrap.includes('location.replace(target.href)'),'links legados de revisão devem fazer handoff para Prioridades sem reinstalar player interno.');
-required(bootstrap.indexOf('module-player.js?v=2.1.0')<bootstrap.indexOf('question-telemetry-runtime.js?v=1.0.0'),'runtime diário deve entrar depois do player.');
-required(bootstrap.indexOf('question-bank-player.js?v=1.0.0')<bootstrap.lastIndexOf('question-telemetry-runtime.js?v=1.0.0'),'runtime do Banco deve entrar depois do player do Banco.');
+const firstRuntime=bootstrap.indexOf('question-telemetry-runtime.js?v=1.0.0'),lastRuntime=bootstrap.lastIndexOf('question-telemetry-runtime.js?v=1.0.0');
+required(bootstrap.indexOf('question-bank-player.js?v=1.0.0')<firstRuntime,'runtime do Banco deve entrar depois do player do Banco.');
+required(bootstrap.indexOf('module-player.js?v=2.1.0')<lastRuntime,'runtime diário deve entrar depois do player.');
 required(engine.includes("tdas.202.question-module.v2.telemetry")&&engine.includes('activeMs')&&engine.includes('visits')&&engine.includes('answerChanges')&&engine.includes('firstAnswer'),'motor não cobre todos os sinais granulares.');
 required(engine.includes('setTelemetryActive')&&runtime.includes('visibilitychange')&&runtime.includes("addEventListener('blur'")&&runtime.includes("addEventListener('focus'"),'tempo ativo não pausa/retoma com a visibilidade.');
 required(store.includes('consumeCompletedTelemetry')&&store.includes('telemetryVersion')&&store.includes('activeElapsedMs')&&store.includes('telemetryQuestionCount')&&store.includes('answerChangeCount')&&store.includes('revisitCount'),'tentativa local não incorpora a telemetria.');
