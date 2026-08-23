@@ -97,7 +97,7 @@ assert.match(documentation, /GitHub Pages/, 'O manual deve explicar a validaçã
 assert.match(documentation, /EDAS/, 'O manual deve cobrir o Cargo 400.');
 assert.match(documentation, /\*\*Hoje, Questões, Erros, Mentor e Mais\*\*/, 'O manual deve refletir a barra mobile vigente.');
 assert.doesNotMatch(documentation, /\*\*Hoje, Questões, Revisar, Erros e Mais\*\*/, 'O manual não pode restaurar a navegação de revisão interna legada.');
-assert.match(documentation, /A revisão acontece fora do TDAS/, 'O manual deve registrar que Prioridades é diagnóstico, não execução de revisão.');
+assert.match(documentation, /\*\*Prioridades\*\* é diagnóstico\/direcionamento para revisão externa/, 'O manual deve registrar que Prioridades é diagnóstico, não execução de revisão.');
 assert.match(documentation, /push[^\n]*480 minutos/, 'O manual deve explicar a tolerância de frescor específica do push técnico.');
 assert.match(readme, /OPERACAO_SITE_TDAS\.md/, 'O README deve apontar para o manual operacional.');
 assert.match(readme, /monitor:edas/, 'O README deve expor o monitor operacional do EDAS.');
