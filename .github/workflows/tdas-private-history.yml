@@ -3,13 +3,14 @@ on:
   pull_request:
     paths:
       - 'assets/integration/**'
-      - 'data/integration/question-archive/**'
       - 'exportar-tentativa/**'
       - 'sincronizacao/**'
-      - 'firestore.rules'
       - 'scripts/*history*.mjs'
       - 'scripts/*export*.mjs'
       - 'scripts/preserve-private-history-pwa.mjs'
+      - 'scripts/preserve-v27-pwa.mjs'
+      - 'scripts/validate-pwa-integration.mjs'
+      - 'docs/PERSISTENCIA_LOCAL_ONLY_TDAS.md'
       - '.github/workflows/tdas-private-history.yml'
   workflow_dispatch:
 permissions:
@@ -23,69 +24,38 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Validar sintaxe da persistência
+      - name: Validar sintaxe local-only
         run: |
-          node --check assets/integration/attempt-export.js
-          node --check assets/integration/attempt-history-v2.js
-          node --check assets/integration/answer-history.js
-          node --check assets/integration/answer-history-runtime-v2.js
-          node --check assets/integration/error-book-export.js
-          node --check assets/integration/error-book-enhancer-v2.js
-          node --check assets/integration/firebase-history-store.js
-          node --check assets/integration/history-db-core.js
-          node --check assets/integration/persistence-contract.js
-          node --check assets/integration/persistence-queue.js
+          node --check assets/integration/module-store.js
           node --check assets/integration/persistence-local-v2.js
-          node --check assets/integration/private-history-auth.js
-          node --check assets/integration/private-history-login.js
-          node --check assets/integration/private-history-page.js
-          node --check assets/integration/private-history-materialize.js
           node --check assets/integration/private-history-runtime-v3.js
           node --check assets/integration/private-history-sync-v3.js
-          node --check assets/integration/question-catalog-archive.js
-          node --check assets/integration/result-persistence-links-v2.js
-          node --check assets/integration/module-error-book-v3.js
-          node --check assets/integration/module-performance-v6.js
-          node --check scripts/test-private-history-firebase.mjs
-          node --check scripts/test-private-history-firestore.mjs
-      - name: Validar contrato Firebase
+          node --check assets/integration/local-only-result-policy.js
+          node --check scripts/preserve-private-history-pwa.mjs
+          node --check scripts/preserve-v27-pwa.mjs
+          node --check scripts/validate-pwa-integration.mjs
+      - name: Validar nuvem pessoal desativada
         run: |
-          grep -F "provider:'firebase'" assets/integration/private-history-config.js
-          grep -F "APP_NAME='tdas-private-history'" assets/integration/private-history-auth.js
-          grep -F "private-history-config.js?v=1.2.0" assets/integration/private-history-auth.js
-          grep -F "request.auth.uid == userId" firestore.rules
-          grep -F "'users',String(userId),'attempts'" assets/integration/firebase-history-store.js
-          grep -F "writeBatch" assets/integration/firebase-history-store.js
-      - name: Validar Firebase Authentication real
-        run: node scripts/test-private-history-firebase.mjs
-      - name: Validar Firestore e regras reais
-        run: node scripts/test-private-history-firestore.mjs
-      - name: Validar semântica e concorrência da central de histórico
+          ! grep -E 'firebase-history-store|getPrivateSession|readFirebaseHistory|putFirebase' assets/integration/private-history-sync-v3.js
+          ! grep -E 'archiveLocalState|getPrivateSession|setInterval' assets/integration/private-history-runtime-v3.js
+          grep -F "mode:'local-only'" assets/integration/private-history-sync-v3.js
+          grep -F "persistenceMode='local-only'" assets/integration/private-history-runtime-v3.js
+          grep -F 'persisted:false' assets/integration/module-store.js
+          ! grep -F 'setItem(STORAGE_KEY' assets/integration/module-store.js
+          ! grep -F 'attempt-diagnostics.js' assets/integration/resolver-bootstrap.js
+          grep -F 'local-only-result-policy.js' assets/integration/resolver-bootstrap.js
+      - name: Validar rascunho local e legado preservado
         run: |
-          grep -F 'Histórico pessoal TDAS' assets/integration/private-history-page.js
-          grep -F 'PEs já concluídos são tratados somente como histórico de resolução' assets/integration/private-history-page.js
-          grep -F 'snapshot das questões respondidas' assets/integration/private-history-page.js
-          grep -F "private-history-sync-v3.js?v=3.1.0" assets/integration/private-history-page.js
-          grep -F "private-history-sync-v3.js?v=3.1.0" assets/integration/private-history-login.js
-          grep -F "private-history-auth.js?v=1.2.0" assets/integration/private-history-login.js
-          grep -F "let syncPromise=null,forceAfterCurrent=false" assets/integration/private-history-sync-v3.js
-          grep -F "syncPrivateHistory({force:true})" assets/integration/private-history-login.js
-          ! grep -F 'private-history-sync-v2' assets/integration/private-history-login.js
-          ! grep -F 'PE88 localizado neste navegador' assets/integration/private-history-page.js
-          ! grep -F 'Migração local pronta' assets/integration/private-history-page.js
-          ! grep -Fi 'Supabase' assets/integration/private-history-page.js
-      - name: Testar sequência de respostas
-        run: node scripts/test-answer-sequence.mjs
-      - name: Testar contrato JSON
-        run: node scripts/test-attempt-export-contract.mjs
-      - name: Testar catálogo histórico
-        run: node scripts/test-history-archive.mjs
-      - name: Testar blindagem PWA privada
+          node scripts/test-session-draft.mjs
+          node scripts/test-cross-project-convergence.mjs
+          grep -Fi 'dados pessoais legados' docs/PERSISTENCIA_LOCAL_ONLY_TDAS.md
+          grep -Fi 'rascunho local' docs/PERSISTENCIA_LOCAL_ONLY_TDAS.md
+      - name: Validar blindagem PWA local-only
         run: |
           node scripts/preserve-private-history-pwa.mjs
-          grep -F 'assets/integration/private-history-sync-v3.js' sw.js
-          grep -F 'assets/integration/private-history-page.js' sw.js
-          grep -F 'data/integration/question-archive/tdas-pe88-339d718d88c1.json' sw.js
-          grep -F 'exportar-tentativa/' sw.js
+          node scripts/preserve-v27-pwa.mjs
+          ! grep -E 'private-history|firebase-history|attempt-diagnostics' sw.js
+          grep -F 'assets/integration/local-only-result-policy.js' sw.js
+          node scripts/validate-pwa-integration.mjs
       - name: Executar gate integral TDAS
         run: npm run check
