@@ -105,7 +105,7 @@ jobs:
         continue-on-error: true
         env:
           TZ: America/Sao_Paulo
-          MAX_SYNC_AGE_MINUTES: '180'
+          MAX_SYNC_AGE_MINUTES: ${{ github.event_name == 'push' && '480' || '180' }}
           MONITOR_REPORT_PATH: /tmp/tdas-publication-monitor.json
         run: npm run monitor:publication
 

@@ -67,6 +67,7 @@ assert.match(publicationWatchdog, /monitor:publication/, 'O watchdog deve usar o
 assert.match(publicationWatchdog, /monitor:live-site/, 'O watchdog deve conferir o GitHub Pages implantado.');
 assert.match(publicationWatchdog, /LIVE_SITE_REPORT_PATH/, 'O relatório do site implantado deve ser persistido no workflow.');
 assert.match(publicationWatchdog, /issues: write/, 'O watchdog deve poder manter um incidente técnico único.');
+assert.match(publicationWatchdog, /MAX_SYNC_AGE_MINUTES:\s*\$\{\{\s*github\.event_name == 'push' && '480' \|\| '180'\s*\}\}/, 'Push técnico deve tolerar a janela entre sincronizações sem enfraquecer o gate agendado de 180 minutos.');
 
 for (const dependency of ['scripts/test-redactions-operational.mjs','scripts/test-redactions-browser.mjs','scripts/postprocess-v26.mjs','scripts/monitor-live-site.mjs','data/platform-version.json','sw.js']) assert.ok(redactionsWatchdog.includes(`- '${dependency}'`), `O monitor discursivo deve reagir a ${dependency}.`);
 assert.match(redactionsWatchdog, /monitor:redactions/, 'O monitor discursivo deve usar o comando oficial.');
@@ -94,7 +95,11 @@ for (const command of Object.keys(expectedCommands)) assert.ok(documentation.inc
 assert.match(documentation, /00h50/, 'O manual deve registrar os horários de sincronização.');
 assert.match(documentation, /GitHub Pages/, 'O manual deve explicar a validação do site implantado.');
 assert.match(documentation, /EDAS/, 'O manual deve cobrir o Cargo 400.');
+assert.match(documentation, /\*\*Hoje, Questões, Erros, Mentor e Mais\*\*/, 'O manual deve refletir a barra mobile vigente.');
+assert.doesNotMatch(documentation, /\*\*Hoje, Questões, Revisar, Erros e Mais\*\*/, 'O manual não pode restaurar a navegação de revisão interna legada.');
+assert.match(documentation, /A revisão acontece fora do TDAS/, 'O manual deve registrar que Prioridades é diagnóstico, não execução de revisão.');
+assert.match(documentation, /push[^\n]*480 minutos/, 'O manual deve explicar a tolerância de frescor específica do push técnico.');
 assert.match(readme, /OPERACAO_SITE_TDAS\.md/, 'O README deve apontar para o manual operacional.');
 assert.match(readme, /monitor:edas/, 'O README deve expor o monitor operacional do EDAS.');
 
-console.log('Rotinas operacionais validadas: TDAS, UX mobile, Banco Discursivo, EDAS, consumidores pós-sync v28, ausência de referências v26, navegadores e GitHub Pages alinhados.');
+console.log('Rotinas operacionais validadas: TDAS, UX mobile, Prioridades externas, Banco Discursivo, EDAS, consumidores pós-sync v28, ausência de referências v26, navegadores e GitHub Pages alinhados.');

@@ -18,12 +18,14 @@ O site não deve reconstruir nem corrigir informações do Notion. Toda publica�
 | Monitor do Banco Discursivo | 01h20, 07h20, 13h20 e 19h20 | Confere sequência, contrato, arquivos individuais, aplicação cega e integração offline. |
 | Monitor da publicação TDAS e GitHub Pages | 02h20, 08h20, 14h20 e 20h20 | Compara calendário, manifesto, material, questões, histórico e a publicação implantada. |
 | Auditoria preventiva PE79–PE112 | 02h20 | Audita as páginas futuras oficiais do TDAS sem escrever nelas. |
-| Navegador geral TDAS | 06h15 | Testa central, retomada, revisão, auditoria, questões, versão e proteção do gabarito. |
+| Navegador geral TDAS | 06h15 | Testa central, retomada, Prioridades, auditoria, questões, versão e proteção do gabarito. |
 | Navegador mobile TDAS | 07h05 | Testa Home orientada ao PE, header compacto, cinco ações inferiores, drawer, Configurações, preferências locais, PWA e gabarito fora do cache inicial. |
 | Navegador do Banco Discursivo | 07h35 | Testa mobile, filtros, abas, parágrafos, bloqueio futuro e persistência offline. |
 | Revalidação editorial EDAS | 01h20, 07h20, 13h20 e 19h20 | Horários oficiais registrados no snapshot EDAS para releitura das fontes e atualização controlada do Cargo 400. |
 | Watchdog EDAS + GitHub Pages | 01h45, 07h45, 13h45 e 19h45 | Confere versão, Sprint, catálogo, quantidade, histórico, PWA, correção reservada e publicação implantada. |
 | Navegador EDAS | 07h50 | Testa home, mobile, player, ausência do gabarito antes do fechamento, carga da correção após finalizar e service worker. |
+
+Nas verificações agendadas e nas execuções originadas pela sincronização oficial, o watchdog TDAS exige no máximo **180 minutos** desde a última sincronização válida. Em `push` técnico na `main`, a tolerância de frescor é **480 minutos**, porque o merge pode ocorrer entre duas janelas oficiais de sincronização; nesse caso, paridade entre `main`, GitHub Pages e shell continua obrigatória e o próximo monitor agendado mantém o gate estrito de 180 minutos.
 
 As rotinas agendadas ligadas ao ciclo até a prova podem ser dispensadas após 6 de setembro de 2026 quando essa regra estiver prevista no workflow. O último snapshot válido deve ser preservado.
 
@@ -123,14 +125,14 @@ A experiência do Cargo 202 é orientada à **execução diária**, sem comparti
 - A Home responde primeiro **o que fazer agora**, usando o PE vigente, a Central de Execução e uma única ação primária coerente com o estado local/oficial.
 - PE vencido e ainda não concluído permanece explícito na Home e na Agenda até a conclusão oficial; o avanço da data não pode descartá-lo do total pendente.
 - O PE atual, o último PE concluído e as pendências anteriores são conceitos separados. O ritmo considera atrasos mais o calendário de hoje em diante.
-- A barra inferior mobile possui exatamente cinco áreas: **Hoje, Questões, Revisar, Erros e Mais**.
-- A navegação desktop destaca **Hoje, Questões, Revisar, Erros, Progresso e Conteúdo**; opções administrativas não disputam prioridade com a execução diária.
+- A barra inferior mobile possui exatamente cinco áreas: **Hoje, Questões, Erros, Mentor e Mais**.
+- A navegação desktop prioriza **Faça agora, Resolver questões, Prioridades, Caderno de erros, Mentor, Check do Edital, Riscos, Plano PE01–PE112, Biblioteca e Bancos de dados**; opções administrativas não disputam prioridade com a execução diária.
 - O drawer organiza as demais rotas em **Hoje, Conteúdo, Praticar, Progresso e Sistema**.
 - Informações técnicas, instalação, sincronização, backup, fontes e preferências ficam em **Configurações**; a Auditoria permanece técnica.
 - Durante uma questão ativa, o player entra em modo focado: navegação periférica é escondida, resposta/confiança continuam persistidas questão a questão e a correção permanece reservada até a finalização.
 - A confiança usa linguagem direta: **Sei, Tenho dúvida e Chute**.
 - Após a finalização, erros podem receber causa local — **Não sabia, Confundi conceitos, Esqueci a regra, Interpretei errado, Pressa ou Pegadinha** — armazenada separadamente em `tdas.202.error-causes.v1`, sem alterar gabarito ou Notion.
-- Revisões vencidas podem ser resumidas como uma fila do dia com estimativa de tempo; o motor D+1/D+7/D+20 e os estados de domínio continuam sendo a fonte da ordem de revisão.
+- **Prioridades** organiza sinais locais de erro, reincidência, dúvida/chute e marcação para indicar onde concentrar a revisão. A revisão acontece fora do TDAS; o motor D+1/D+7/D+20 e seus estados permanecem apenas como compatibilidade histórica e não podem iniciar sessão interna nem preemptar a ação diária.
 - O estado de dados deve distinguir claramente a **publicação já sincronizada** de uma nova leitura do Notion. No navegador, `Verificar publicação` consulta o manifesto publicado; não chama a API do Notion nem expõe token.
 - O badge de publicação é derivado do manifesto real e deve ser revalidado ao reconectar.
 - Modo confortável e Texto ampliado são preferências locais isoladas pelas chaves `tdas.202.*`.
