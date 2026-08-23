@@ -1,22 +1,76 @@
-import {BASE,escapeHTML,loadJSON,setupShell,setLoadingError} from '../common.js?v=24.1';
+import {BASE,escapeHTML,loadJSON,setupShell} from '../common.js?v=24.1';
 import {readModuleState} from './module-store.js?v=2.1.0';
-import {outcomeLabel,sortReviewsByPriority} from './review-engine.js?v=1.0.0';
-const norm=value=>String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
-const tokens=value=>new Set(norm(value).split(/\s+/).filter(token=>token.length>=4));
-const formatDate=value=>new Intl.DateTimeFormat('pt-BR',{dateStyle:'short',timeStyle:'short'}).format(new Date(value));
-const signalLabel=item=>item.sourceOutcome==='wrong_again'?'Novo erro':item.sourceOutcome==='unsure'?'Dúvida persistente':item.classification==='incorrect_confirmed'?'Erro confirmado':item.classification==='correct_by_guess'?'Acerto por chute':item.classification==='correct_with_doubt'?'Acerto com dúvida':item.marked?'Marcada':'Revisão programada';
-function topicMatch(item,focus){if(!focus)return true;const source=tokens(`${item.subassunto||''} ${item.assunto||''}`),target=tokens(focus);if(!target.size)return true;const shared=[...target].filter(token=>source.has(token));return shared.length>=1}
-async function loadOfficialErrors(){const index=await loadJSON('data/error-questions/index.json'),parts=await Promise.all((index.parts||[]).map(part=>loadJSON(`data/error-questions/${part.file}`)));return parts.flat()}
-function officialMatch(item,focus,subject){if(subject&&item.materia!==subject)return false;if(!focus)return true;const hay=norm(`${item.tema||''} ${item.subtema||''} ${item.questaoErro||''} ${(item.padraoErro||[]).join(' ')}`),needle=norm(focus);if(hay.includes(needle))return true;const target=tokens(focus);return[...target].filter(token=>hay.includes(token)).length>=Math.min(2,target.size)}
+
+const normalize=value=>String(value??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+const topicLabel=item=>String(item?.subassunto||item?.assunto||'Sem assunto').trim()||'Sem assunto';
+const subjectLabel=item=>String(item?.materia||'Matéria não informada').trim()||'Matéria não informada';
+const signalKind=item=>{
+ const classification=String(item?.classification||item?.sourceOutcome||'');
+ if(classification==='incorrect_confirmed'||classification==='wrong_again'||item?.correct===false)return'error';
+ if(classification==='correct_with_doubt'||classification==='correct_by_guess'||item?.confidence==='doubt'||item?.confidence==='guess')return'uncertainty';
+ if(classification==='marked'||item?.marked===true)return'marked';
+ return null;
+};
+const matchesFocus=(group,focus)=>!focus||normalize(`${group.subject} ${group.topic}`).includes(normalize(focus))||normalize(focus).split(' ').filter(Boolean).some(token=>normalize(`${group.subject} ${group.topic}`).includes(token));
+
+function collectSignals(state){
+ const attempts=[...(state.attempts||[])].filter(item=>item?.mode==='study').sort((a,b)=>Number(b.finishedAt||0)-Number(a.finishedAt||0)).slice(0,60);
+ const signals=[];
+ for(const attempt of attempts){
+  for(const result of attempt.questionResults||[]){const kind=signalKind(result);if(kind)signals.push({...result,kind,peId:attempt.peId||result.peId||null,at:attempt.finishedAt||0})}
+ }
+ if(!signals.length){
+  for(const item of state.errors||[])signals.push({...item,kind:'error',at:item.createdAt||0});
+  for(const item of state.marked||[])signals.push({...item,kind:signalKind(item)||'marked',at:item.createdAt||0});
+  const unique=new Set();
+  for(const item of state.reviews||[]){
+   if(item?.status!=='pending')continue;
+   const id=`${item.sourceAttemptId||''}:${item.questionId||item.id||''}`;
+   if(unique.has(id))continue;unique.add(id);
+   const kind=signalKind(item);if(kind)signals.push({...item,kind,at:item.createdAt||0});
+  }
+ }
+ return signals;
+}
+
+function groupSignals(signals){
+ const groups=new Map();
+ for(const item of signals){
+  const topic=topicLabel(item),subject=subjectLabel(item),key=`${normalize(subject)}|${normalize(topic)}`;
+  const group=groups.get(key)||{subject,topic,total:0,errors:0,uncertainty:0,marked:0,recurrent:0,lastAt:0,pes:new Set()};
+  group.total+=1;group.lastAt=Math.max(group.lastAt,Number(item.at||item.createdAt||0));if(item.peId)group.pes.add(item.peId);
+  if(item.kind==='error')group.errors+=1;else if(item.kind==='uncertainty')group.uncertainty+=1;else if(item.kind==='marked')group.marked+=1;
+  groups.set(key,group);
+ }
+ return [...groups.values()].map(group=>({...group,recurrent:Math.max(0,group.errors-1),score:group.errors*4+group.uncertainty*2+group.marked+Math.max(0,group.errors-1)*3})).sort((a,b)=>b.score-a.score||b.errors-a.errors||b.uncertainty-a.uncertainty||b.lastAt-a.lastAt);
+}
+
+function reasons(group){const out=[];if(group.errors)out.push(`${group.errors} erro${group.errors===1?'':'s'}`);if(group.recurrent)out.push(`${group.recurrent} reincidência${group.recurrent===1?'':'s'}`);if(group.uncertainty)out.push(`${group.uncertainty} dúvida/chute${group.uncertainty===1?'':'s'}`);if(group.marked)out.push(`${group.marked} marcação${group.marked===1?'':'ões'}`);return out}
+function card(group,index){const why=reasons(group);return `<article class="card panel review-card" data-priority-rank="${index+1}"><small>Prioridade ${index+1} · ${escapeHTML(group.subject)}</small><h3>${escapeHTML(group.topic)}</h3><div class="tags">${why.map(item=>`<span class="tag">${escapeHTML(item)}</span>`).join('')}</div><p>${group.recurrent?'Reincidência elevou este assunto na ordem de atenção.':'Prioridade calculada pelos sinais reais das sessões locais.'}</p><p><strong>Próximo passo:</strong> revise este tópico no seu fluxo externo e depois volte às questões para validar a retenção.</p></article>`}
+
+function updateHero(groups,signals,focus){
+ const hero=document.querySelector('[data-review-priorities]');if(!hero)return;
+ hero.dataset.uxReviewToday='1';
+ const heading=hero.querySelector('h1');if(heading)heading.textContent=focus?`Prioridade: ${focus}`:'Prioridades para revisar';
+ const copy=hero.querySelector('p');if(copy)copy.textContent=focus?'O Mentor definiu este foco. O TDAS mostra apenas os sinais que justificam a prioridade; a revisão continua fora do site.':'O TDAS não executa mais a revisão. Ele organiza erros, reincidências, dúvidas e marcações para indicar onde concentrar sua revisão fora do site.';
+ let tags=hero.querySelector('.tags');if(!tags){tags=document.createElement('div');tags.className='tags';hero.querySelector('.hero-actions')?.before(tags)}
+ const errors=signals.filter(item=>item.kind==='error').length,uncertainty=signals.filter(item=>item.kind==='uncertainty').length,recurrent=groups.reduce((sum,item)=>sum+item.recurrent,0);
+ tags.innerHTML=`<span class="tag">${groups.length} assunto${groups.length===1?'':'s'} priorizado${groups.length===1?'':'s'}</span><span class="tag">${errors} erro${errors===1?'':'s'}</span><span class="tag">${uncertainty} dúvida/chute${uncertainty===1?'':'s'}</span>${recurrent?`<span class="tag">${recurrent} reincidência${recurrent===1?'':'s'}</span>`:''}`;
+}
+
+function render(groups,focus){
+ const root=document.querySelector('[data-review-priority-list]');if(!root)return;
+ if(!groups.length){root.innerHTML=`<div class="section-head"><div><h2>${focus?'Sem sinal local compatível':'Nenhuma prioridade local relevante'}</h2><p>${focus?'Não há evidência local suficiente para este foco. O TDAS não inventa uma fila de revisão.':'Quando surgirem erros, dúvidas, chutes ou marcações, eles aparecerão aqui como sinais de prioridade — sem criar uma sessão de revisão.'}</p></div></div><article class="card panel"><div class="hero-actions"><a class="btn primary" href="${BASE}mentor/">Abrir Mentor</a><a class="btn" href="${BASE}resolver/">Resolver questões</a></div></article>`;return}
+ root.innerHTML=`<div class="section-head"><div><span class="kicker">Prioridade pedagógica</span><h2>${focus?`Sinais relacionados a ${escapeHTML(focus)}`:'O que merece atenção'}</h2><p>Ordenação por erro, reincidência, dúvida/chute e marcação. Não existe botão de “iniciar revisão” porque a revisão não é executada no TDAS.</p></div>${focus?`<a class="btn" href="${BASE}revisar/">Ver todas</a>`:''}</div><div class="grid two">${groups.slice(0,12).map(card).join('')}</div>`;
+}
+
 try{
+ document.documentElement.dataset.reviewMode='priorities-only';
  const shell=await loadJSON('data/more.json');setupShell('mais',shell.meta);
- const params=new URLSearchParams(location.search),focus=params.get('mentor')||'',subject=params.get('subject')||'';
- const now=Date.now(),reviews=[...readModuleState().reviews],due=sortReviewsByPriority(reviews.filter(item=>item.status==='pending'&&item.dueAt<=now),now),upcoming=reviews.filter(item=>item.status==='pending'&&item.dueAt>now).sort((a,b)=>a.dueAt-b.dueAt),completed=reviews.filter(item=>item.status==='completed').sort((a,b)=>Number(b.completedAt||0)-Number(a.completedAt||0));
- const dueView=focus?due.filter(item=>topicMatch(item,focus)):due,upcomingView=focus?upcoming.filter(item=>topicMatch(item,focus)):upcoming,completedView=focus?completed.filter(item=>topicMatch(item,focus)):completed;
- const official=focus?(await loadOfficialErrors()).filter(item=>officialMatch(item,focus,subject)).sort((a,b)=>String(b.data||'').localeCompare(String(a.data||''))):[];
- const card=item=>`<article class="card panel review-card"><small>${escapeHTML(item.stage)} · ${item.peId?escapeHTML(item.peId):'Sessão local'} · questão ${item.numeroOriginal??'—'}</small><h3>${escapeHTML(item.subassunto||item.assunto||'Questão')}</h3><div class="tags"><span class="tag">${escapeHTML(signalLabel(item))}</span>${Number(item.recurrenceCount||0)>0?`<span class="tag">Reincidência ${Number(item.recurrenceCount)}</span>`:''}</div><p>${item.status==='completed'?`${escapeHTML(outcomeLabel(item.outcome))} · concluída em ${formatDate(item.completedAt)}`:item.dueAt<=now?'Disponível agora · priorizada por risco e atraso':`Agendada para ${formatDate(item.dueAt)}`}</p>${item.status==='pending'&&item.dueAt<=now?`<a class="btn primary" href="${BASE}resolver/?review=${encodeURIComponent(item.id)}">Revisar questão</a>`:''}</article>`;
- const officialCard=item=>`<article class="card panel"><small>${escapeHTML(item.origem||'Origem não informada')} · ${escapeHTML(item.data||'sem data')} · ${escapeHTML(item.gravidade||'sem gravidade')}</small><h3>${escapeHTML(item.subtema||item.tema||item.questaoErro||'Erro')}</h3><p>Reincidência ${Number(item.reincidencia||0)}${item.janelaReaparecimento?` · ${escapeHTML(item.janelaReaparecimento)}`:''}${item.precisaRevisar?` · ${escapeHTML(item.precisaRevisar)}`:''}</p><a class="btn" href="${escapeHTML(item.url)}" target="_blank" rel="noopener">Abrir histórico oficial ↗</a></article>`;
- const first=dueView[0]||null,heroPrimary=first?`${BASE}resolver/?review=${encodeURIComponent(first.id)}`:focus?'#mentor-directed':due[0]?`${BASE}resolver/?review=${encodeURIComponent(due[0].id)}`:`${BASE}resolver/`;
- const focusSection=focus?`<section class="section" id="mentor-directed" data-mentor-focus="${escapeHTML(focus)}"><div class="section-head"><div><span class="kicker">Revisão dirigida pelo Mentor</span><h2>${escapeHTML(focus)}</h2><p>${escapeHTML(subject||'Tópico priorizado')} · ${official.length} erro${official.length===1?'':'s'} oficial${official.length===1?'':'is'} relacionado${official.length===1?'':'s'} · ${dueView.length} revisão${dueView.length===1?'':'ões'} local${dueView.length===1?'':'is'} disponível${dueView.length===1?'':'is'} agora.</p></div><a class="btn" href="${BASE}revisar/">Sair do foco</a></div>${official.length?`<div class="grid two">${official.slice(0,8).map(officialCard).join('')}</div>`:'<article class="card panel"><p>Não encontrei erro oficial com correspondência textual suficiente. O Mentor não inventou uma revisão.</p></article>'}${!dueView.length?`<article class="card panel"><h3>Sem questão local compatível vencida</h3><p>Use o histórico oficial acima para recuperar a regra e, em seguida, faça questões do bloco atual. A fila local só será filtrada quando existir questão compatível salva neste dispositivo.</p><a class="btn primary" href="${BASE}resolver/">Abrir Resolver</a></article>`:''}</section>`:'';
- document.querySelector('main').innerHTML=`<section class="hero"><span class="kicker">Revisão adaptativa local${focus?' · foco do Mentor':''}</span><h1>${focus?`Revisar ${escapeHTML(focus)}`:'Revisar'}</h1><p>${focus?'A tela foi filtrada pela fragilidade escolhida no Mentor e combina histórico oficial com a fila local compatível.':'A agenda combina D+1, D+7 e D+20 com reforços automáticos após dúvida persistente ou novo erro.'}</p><div class="tags"><span class="tag">${dueView.length} disponíveis${focus?' no foco':''}</span><span class="tag">${upcomingView.length} futuras${focus?' no foco':''}</span><span class="tag">${completedView.length} concluídas${focus?' no foco':''}</span></div><div class="hero-actions"><a class="btn primary" href="${heroPrimary}">${first?'Iniciar revisão compatível':focus?'Ver histórico dirigido':due.length?'Iniciar revisão prioritária':'Abrir Resolver'}</a><a class="btn" href="${BASE}mentor/">Voltar ao Mentor</a></div></section>${focusSection}<section class="section"><div class="section-head"><div><h2>${focus?'Revisões locais compatíveis':'Disponíveis agora'}</h2><p>${focus?'Somente itens locais cujo assunto/subassunto corresponde ao foco do Mentor.':'Reincidências e novos erros aparecem antes das revisões de menor risco.'}</p></div></div>${dueView.length?`<div class="grid two">${dueView.map(card).join('')}</div>`:'<article class="card panel"><p>Nenhuma revisão local disponível neste recorte.</p></article>'}</section><section class="section"><div class="section-head"><div><h2>Próximas revisões${focus?' compatíveis':''}</h2></div></div>${upcomingView.length?`<div class="grid two">${upcomingView.map(card).join('')}</div>`:'<article class="card panel"><p>Nenhuma revisão futura neste recorte.</p></article>'}</section><section class="section"><div class="section-head"><div><h2>Concluídas${focus?' no foco':''}</h2></div></div>${completedView.length?`<div class="grid two">${completedView.slice(0,20).map(card).join('')}</div>`:'<article class="card panel"><p>Nenhuma revisão concluída neste recorte.</p></article>'}</section><footer class="footer"><span>Revisões adaptativas · dados locais + histórico oficial dirigido</span><span>Sem writeback</span></footer>`;
-}catch(error){setLoadingError(error)}
+ const params=new URLSearchParams(location.search),focus=(params.get('mentor')||params.get('subject')||'').trim();
+ const state=readModuleState(),signals=collectSignals(state),allGroups=groupSignals(signals),groups=focus?allGroups.filter(group=>matchesFocus(group,focus)):allGroups;
+ updateHero(groups,signals,focus);render(groups,focus);
+}catch(error){
+ console.warn('TDAS Prioridades: dados locais indisponíveis; fallback estático preservado.',error);
+ const root=document.querySelector('[data-review-priority-list]');if(root)root.innerHTML='<article class="card panel"><h2>Prioridades locais indisponíveis</h2><p>O site não abriu uma sessão de revisão. Use o Mentor ou o Caderno de erros para escolher o foco e siga a revisão fora do TDAS.</p></article>';
+}
