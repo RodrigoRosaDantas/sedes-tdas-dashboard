@@ -1,0 +1,3 @@
+TDAS local-only migration audit 2026-08-23
+Base governance: Notion live -> GitHub snapshot -> published site.
+Personal cloud disabled; active draft remains local-only; legacy data preserved without new writes.
