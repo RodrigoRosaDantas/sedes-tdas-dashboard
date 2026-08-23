@@ -24,10 +24,10 @@ export function buildOfficialCycleTasks({today,nextPe,base='/'}={}){
   const done=reviewItem?reviewItem.done===true:Boolean(current.review24&&current.review72);
   tasks.push({
    id:'official-reviews',
-   label:'Revisões de 24h e 72h',
-   detail:text(reviewItem?.detail)||text(current.action)||'Execute e registre as revisões nos momentos previstos.',
+   label:'Prioridade de revisão externa',
+   detail:'O ciclo registra a necessidade de revisão, mas a execução acontece fora do TDAS. Use Prioridades para escolher o foco.',
    done,
-   href:`${base}hoje/`
+   href:`${base}revisar/`
   });
  }
  if(nextPe){
@@ -42,12 +42,11 @@ export function buildOfficialCycleTasks({today,nextPe,base='/'}={}){
  return tasks;
 }
 
-export function selectPrimaryAction({pe,progress={},draft,attempt,nextPe,dueReview,overduePe,officialCompleted,officialTasks=[],base='/'}={}){
+export function selectPrimaryAction({pe,progress={},draft,attempt,nextPe,overduePe,officialCompleted,officialTasks=[],base='/'}={}){
  if(draft&&text(draft.peId).toUpperCase()===text(pe).toUpperCase()){
   const index=Number(draft.session?.currentIndex||0)+1,total=Array.isArray(draft.session?.questionIds)?draft.session.questionIds.length:0;
   return{stage:'questions',label:`Continuar questão ${index} de ${total}`,detail:'Existe uma sessão interrompida neste dispositivo.',href:`${base}resolver/?pe=${encodeURIComponent(pe)}&resume=1`,button:'Continuar de onde parei'};
  }
- if(dueReview)return{stage:'review',label:`Fazer revisão ${dueReview.stage}`,detail:'Há uma revisão local vencida ou disponível.',href:`${base}resolver/?review=${encodeURIComponent(dueReview.id)}`,button:'Iniciar revisão'};
  const currentStarted=Boolean(progress.material||progress.questions||progress.registered||attempt);
  if(!officialCompleted&&overduePe&&!currentStarted){
   const overdueId=text(overduePe.pe),status=text(overduePe.status)||'pendente';
@@ -58,7 +57,7 @@ export function selectPrimaryAction({pe,progress={},draft,attempt,nextPe,dueRevi
  if(officialCompleted&&nextPe)return{stage:'next',label:`Preparar ${nextPe.pe}`,detail:`${pe} foi concluído oficialmente. Próxima atividade: ${nextPe.title||nextPe.pe}.`,href:`${base}estudar/?pe=${encodeURIComponent(nextPe.pe)}`,button:'Abrir próximo PE'};
  if(officialCompleted){
   const pendingOfficial=officialTasks.find(item=>pending(item));
-  if(pendingOfficial)return{stage:pendingOfficial.id,label:pendingOfficial.label,detail:pendingOfficial.detail,href:pendingOfficial.href,button:'Abrir pendência'};
+  if(pendingOfficial)return{stage:pendingOfficial.id,label:pendingOfficial.label,detail:pendingOfficial.detail,href:pendingOfficial.href,button:pendingOfficial.id==='official-reviews'?'Ver prioridades':'Abrir pendência'};
   return{stage:'done',label:'Ciclo concluído',detail:`${pe} foi concluído oficialmente.`,href:`${base}desempenho/`,button:'Ver desempenho'};
  }
  if(!progress.material)return{stage:'material',label:`Começar material do ${pe}`,detail:'Primeiro passo: material premium e Lei Seca indicada.',href:`${base}estudar/?pe=${encodeURIComponent(pe)}`,button:'Começar material'};
