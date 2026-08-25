@@ -224,12 +224,12 @@ html[data-dashboard-pro-2026="1"] .brand-mark{background:var(--pro26-lime);color
   .pro26-chart-grid.wide-left{grid-template-columns:1fr}
 }
 
-@media(orientation:portrait) and (min-width:781px) and (max-width:900px){
+@media(orientation:portrait) and (min-width:781px) and (max-width:1024px){
   html[data-dashboard-pro-2026="1"] .app{display:block}
   html[data-dashboard-pro-2026="1"] .sidebar{display:none!important}
   html[data-dashboard-pro-2026="1"] .content{width:100%;padding:22px 20px calc(104px + env(safe-area-inset-bottom))}
   html[data-dashboard-pro-2026="1"] .mobile-nav{position:fixed;left:10px;right:10px;bottom:max(8px,env(safe-area-inset-bottom));z-index:120;display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr));height:72px;padding:6px;border:1px solid var(--line);border-radius:22px;background:color-mix(in srgb,var(--bg) 90%,transparent);box-shadow:0 18px 48px rgba(0,0,0,.26);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
-  .pro26-operational-bridge{grid-template-columns:1fr auto}.pro26-operational-meta{grid-column:1/-1;grid-row:2}.pro26-decision-grid{grid-template-columns:1fr}.pro26-pulse{min-height:390px}.pro26-metrics{grid-template-columns:repeat(3,minmax(0,1fr))}.pro26-chart-grid,.pro26-chart-grid.wide-left{grid-template-columns:1fr}.pro26-recent-errors>div{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .pro26-operational-bridge{grid-template-columns:1fr auto}.pro26-operational-meta{grid-column:1/-1;grid-row:2}html[data-dashboard-pro-2026="1"] .pro26-decision-grid{grid-template-columns:minmax(0,1fr)!important}html[data-dashboard-pro-2026="1"] .pro26-decision{width:100%;min-width:0}html[data-dashboard-pro-2026="1"] .pro26-orbit{display:none}html[data-dashboard-pro-2026="1"] .pro26-decision-actions{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important}html[data-dashboard-pro-2026="1"] .pro26-decision-actions .pro26-btn{width:100%!important;min-width:0}.pro26-pulse{min-height:390px}.pro26-metrics{grid-template-columns:repeat(3,minmax(0,1fr))}.pro26-chart-grid,.pro26-chart-grid.wide-left{grid-template-columns:1fr}.pro26-recent-errors>div{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
 
 @media(max-width:780px){

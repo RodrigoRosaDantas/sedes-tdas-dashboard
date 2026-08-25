@@ -55,7 +55,7 @@ for (const marker of [
   '.pro26-donut',
   '.pro26-volume',
   '.pro26-tabs',
-  '@media(orientation:portrait) and (min-width:781px) and (max-width:900px)',
+  '@media(orientation:portrait) and (min-width:781px) and (max-width:1024px)',
   '@media(max-width:780px)',
   '@media(max-width:430px)',
   'env(safe-area-inset-bottom)',
