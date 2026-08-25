@@ -1,5 +1,6 @@
 const BASE='/sedes-tdas-dashboard/';
 const SOURCE_SITE_VERSION='v11';
+let clockTimer=null;
 
 const navItems=[
  {id:'overview',label:'Faça agora',hint:'Comando',icon:'⌂',href:BASE},
@@ -85,7 +86,8 @@ function init(){
  ensureStyle();document.documentElement.dataset.siteParity=SOURCE_SITE_VERSION;
  if(!document.documentElement.dataset.theme)document.documentElement.dataset.theme=localStorage.getItem('tdas-theme')||'light';
  const active=resolveSection(),label=pageLabel();rebuildSidebar(active);rebuildTopbar(label);rebuildMobileNav(active);updateClock();updateThemeMeta();bind();
- setInterval(updateClock,30000);
+ if(!clockTimer)clockTimer=setInterval(updateClock,30000);
 }
 
+export function refreshSiteParity(){init()}
 init();
