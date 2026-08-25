@@ -3,6 +3,11 @@ html[data-site-parity="v11"]{--blue:#3f6df3}
 html[data-site-parity="v11"][data-theme="dark"]{--blue:#86a2ff}
 html[data-site-parity="v11"] .site-sr-only{position:absolute!important;width:1px!important;height:1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;clip-path:inset(50%)!important}
 
+/* A Home PRO precisa manter busca e sincronização disponíveis em todas as larguras.
+   A camada de paridade escondia a utility row; este override preserva o layout
+   responsivo definido em dashboard-pro-2026.css e mantém Atualizar dados acessível. */
+html[data-site-parity="v11"] .pro26-utility-row{display:grid!important}
+
 /* Fora do breakpoint móvel do site v11, nenhuma regra antiga pode ressuscitar a barra inferior/fixa. */
 html[data-site-parity="v11"] .mobile-nav{display:none!important;position:static;inset:auto;width:auto;max-width:none;margin:0;border-radius:0;box-shadow:none}
 
