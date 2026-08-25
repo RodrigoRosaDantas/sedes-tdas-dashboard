@@ -92,7 +92,7 @@ html[data-dashboard-pro-2026="1"] .mobile-nav a.active{color:var(--pro26-accent)
 .pro26-priority h2{margin:6px 0;color:#dbe8ed;font-size:17px;letter-spacing:-.025em;overflow-wrap:anywhere}
 .pro26-priority p{max-width:780px;margin:0;color:#8498a3;font-size:11px;line-height:1.55}
 .pro26-priority .tdas-home-actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:13px}
-.pro26-priority .tdas-home-actions a{border:1px solid var(--pro26-line);border-radius:9px;background:rgba(255,255,255,.025);color:#9eb1ba;padding:8px 10px;font-size:9px;font-weight:720}
+.pro26-priority .tdas-home-actions a{display:inline-flex;min-height:44px;align-items:center;justify-content:center;border:1px solid var(--pro26-line);border-radius:9px;background:rgba(255,255,255,.025);color:#9eb1ba;padding:8px 10px;font-size:9px;font-weight:720;text-align:center}
 .pro26-priority .tdas-home-actions a:hover{border-color:rgba(139,216,247,.24);color:var(--pro26-accent)}
 .tdas-home-quick{position:relative;z-index:1;display:flex;flex-wrap:wrap;gap:6px;margin-top:14px}.tdas-home-quick span{border-radius:99px;background:rgba(255,255,255,.035);color:#738792;padding:5px 8px;font-size:8px}
 
