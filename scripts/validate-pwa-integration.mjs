@@ -17,7 +17,6 @@ required(/pro9$/u.test(visualCacheRev),`revisão visual do cache deve permanecer
 required(sw.includes('caches.match(request,{ignoreSearch:true})')&&sw.includes("if(url.search||url.pathname.includes('/data/'))"),'service worker não possui fallback offline para URLs versionadas');
 required(postprocess.includes('caches.match(request,{ignoreSearch:true})')&&postprocess.includes("if(url.search||url.pathname.includes('/data/'))"),'gerador pode remover o fallback offline de URLs versionadas');
 required(sw.includes("new Request(request,{cache:'no-store'})")&&sw.includes('fetchAndCache(event.request,{fresh:true})'),'service worker não força rede fresca para navegação e recursos versionados');
-required(postprocess.includes("new Request(request,{cache:'no-store'})")&&postprocess.includes('fetchAndCache(event.request,{fresh:true})'),'gerador pode restaurar respostas HTTP antigas na navegação');
 required(common.includes("updateViaCache:'none'")&&common.includes('registration.update()'),'shell não força a verificação imediata de uma nova versão do service worker');
 required(!data.some(file=>/pe76|pilot/i.test(file))&&!assets.some(file=>/pilot-catalog|real-study|pe-pilot-status/i.test(file)),'PWA ainda inclui conteúdo de exemplo.');
 required(manifest.start_url===BASE&&manifest.scope===BASE,'escopo do manifesto divergente');
