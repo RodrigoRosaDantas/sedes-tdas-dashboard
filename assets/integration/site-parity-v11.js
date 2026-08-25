@@ -40,8 +40,8 @@ function pageLabel(){
  return document.querySelector('.topbar strong')?.textContent?.trim()||'TDAS';
 }
 function ensureStyle(){
- if(document.querySelector('link[data-site-parity-v11]'))return;
- const link=document.createElement('link');link.rel='stylesheet';link.href=BASE+'assets/site-parity-v11.css?v=1.0.0';link.dataset.siteParityV11='1';document.head.appendChild(link);
+ const styles=[['site-parity-v11','assets/site-parity-v11.css?v=1.0.0'],['site-parity-v11-fixes','assets/site-parity-v11-fixes.css?v=1.0.0']];
+ for(const[key,href]of styles){if(document.querySelector(`link[data-${key}]`))continue;const link=document.createElement('link');link.rel='stylesheet';link.href=BASE+href;link.dataset[key.replace(/-([a-z])/g,(_,letter)=>letter.toUpperCase())]='1';document.head.appendChild(link)}
 }
 function brasiliaNow(){return new Date(new Date().toLocaleString('en-US',{timeZone:'America/Sao_Paulo'}));}
 function examState(){
@@ -59,7 +59,7 @@ function rebuildSidebar(active){
 }
 function rebuildTopbar(label){
  const topbar=document.querySelector('.topbar');if(!topbar)return;
- topbar.innerHTML=`<div class="breadcrumb"><span>SEDES/DF</span><b>/</b><strong>${esc(label)}</strong></div><button class="global-search tdas-shell-search" type="button" data-site-search aria-label="Buscar em todo o projeto"><span>⌕</span><span>Buscar páginas, leis, questões...</span><kbd>⌘K</kbd></button><div class="topbar-tools"><a class="publication-chip" href="${BASE}sincronizacao/" title="Abrir status de publicação"><i class="live-dot"></i><span><b data-publication-status>Verificando</b><small data-brasilia-clock>Brasília</small></span></a><button class="icon-btn" data-theme-toggle aria-label="Alternar tema">◐</button><button class="btn install-btn" data-install-button data-install>Instalar</button></div>`;
+ topbar.innerHTML=`<span class="site-sr-only tdas-app-identity">TDAS · SEDES/DF · Técnico Administrativo · Cargo 202</span><div class="breadcrumb"><span>SEDES/DF</span><b>/</b><strong>${esc(label)}</strong></div><button class="global-search tdas-shell-search" type="button" data-site-search aria-label="Buscar em todo o projeto"><span>⌕</span><span>Buscar páginas, leis, questões...</span><kbd>⌘K</kbd></button><div class="topbar-tools"><a class="publication-chip" href="${BASE}sincronizacao/" title="Abrir status de publicação"><i class="live-dot"></i><span><b data-publication-status>Verificando</b><small data-brasilia-clock>Brasília</small></span></a><button class="icon-btn" data-theme-toggle aria-label="Alternar tema">◐</button><button class="btn install-btn" data-install-button data-install>Instalar</button></div>`;
 }
 function rebuildMobileNav(active){
  const nav=document.querySelector('#mobile-nav');if(!nav)return;
