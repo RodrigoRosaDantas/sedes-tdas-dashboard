@@ -64,7 +64,7 @@ function rebuildTopbar(label){
 function rebuildMobileNav(active){
  const nav=document.querySelector('#mobile-nav');if(!nav)return;
  nav.className='mobile-nav';nav.innerHTML=renderMobileNav(active);
- const shell=document.querySelector('.shell'),main=shell?.querySelector('main');if(shell&&main&&nav.previousElementSibling!==main) shell.insertBefore(nav,main);
+ const shell=document.querySelector('.shell'),main=shell?.querySelector('main');if(shell&&main) shell.insertBefore(nav,main);
 }
 function updateClock(){
  const now=new Intl.DateTimeFormat('pt-BR',{timeZone:'America/Sao_Paulo',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date());
