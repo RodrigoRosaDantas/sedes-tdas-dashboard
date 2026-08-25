@@ -40,7 +40,9 @@ for (const marker of [
   'Notion → validação GitHub → site'
 ]) assert.ok(dashboard.includes(marker), `Dashboard deve preservar ${marker}.`);
 
-for (const contract of ['data-command-center', 'data-primary-stage', 'data-last-sync-at', 'data-continue-action', 'data-ux-home-summary', 'tdas-home-focus']) assert.ok(dashboard.includes(contract), `Dashboard deve preservar o contrato operacional ${contract}.`);
+for (const contract of ['data-command-center', 'data-primary-stage', 'data-last-sync-at', 'data-continue-action', 'data-v27-continuity', 'data-ux-home-summary', 'tdas-home-focus', 'tdas-home-focus-copy', 'tdas-home-actions', 'tdas-home-quick', 'tdas-hero-aside', 'tdas-performance-svg']) assert.ok(dashboard.includes(contract), `Dashboard deve preservar o contrato operacional ${contract}.`);
+assert.match(dashboard, /readSessionDraft/, 'A Central portada deve preservar a retomada da sessão local.');
+assert.match(dashboard, /Continuar questão/, 'A Central portada deve apresentar posição e total da sessão interrompida.');
 
 assert.match(dashboard, /actions\/workflows\/notion-sync\.yml/, 'Atualização deve abrir o workflow Notion existente.');
 assert.match(dashboard, /api\.github\.com\/repos\/\$\{REPOSITORY\}\/actions\/workflows\/notion-sync\.yml\/runs/, 'Dashboard deve acompanhar o status público do workflow.');

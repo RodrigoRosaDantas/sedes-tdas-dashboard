@@ -1,4 +1,5 @@
 import { loadJSON, fmtNumber, fmtPct, fmtDate, escapeHTML } from '../common.js?v=28.0.0';
+import { readSessionDraft } from './session-draft.js?v=1.0.0';
 
 const BASE = '/sedes-tdas-dashboard/';
 const REPOSITORY = 'RodrigoRosaDantas/sedes-tdas-dashboard';
@@ -10,6 +11,18 @@ const clamp = (value, min, max) => Math.max(min, Math.min(max, number(value)));
 const completed = value => /conclu|finaliz|feito|realiz/i.test(String(value || ''));
 const short = (value, size = 34) => String(value || '').length > size ? `${String(value).slice(0, size - 1)}…` : String(value || '');
 const safeUrl = value => /^https:\/\//i.test(String(value || '')) ? String(value) : BASE;
+
+async function waitForLegacyCenter(timeout = 4000) {
+  const started = Date.now();
+  while (Date.now() - started < timeout) {
+    const center = document.querySelector('[data-command-center]');
+    const continuity = document.querySelector('[data-v27-continuity]');
+    const v28 = document.querySelector('[data-v28-block]');
+    if (center && continuity && v28) return center;
+    await new Promise(resolve => setTimeout(resolve, 40));
+  }
+  return null;
+}
 
 function brasiliaParts(date = new Date()) {
   const parts = new Intl.DateTimeFormat('en-CA', {
@@ -36,7 +49,7 @@ function formatSync(value) {
 }
 
 function metric(label, value, detail, tone = '') {
-  return `<article class="pro26-metric ${tone}"><span>${escapeHTML(label)}</span><strong>${escapeHTML(value)}</strong><small>${escapeHTML(detail)}</small></article>`;
+  return `<article class="pro26-metric metric ${tone}"><span>${escapeHTML(label)}</span><strong>${escapeHTML(value)}</strong><small>${escapeHTML(detail)}</small></article>`;
 }
 
 function horizontalBars(items = [], suffix = 'erros') {
@@ -62,7 +75,7 @@ function lineChart(rows = []) {
   const area = `${padX},${height - padY} ${points} ${x(data.length - 1).toFixed(1)},${height - padY}`;
   const grid = [70, 80, 90, 100].map(value => `<line x1="${padX}" x2="${width - padX}" y1="${y(value)}" y2="${y(value)}"></line><text class="pro26-axis-y" x="${padX - 8}" y="${y(value) + 3}">${value}%</text>`).join('');
   const dots = data.map((item, index) => `<g><circle class="${number(item.accuracy) < 80 ? 'risk' : ''}" cx="${x(index)}" cy="${y(item.accuracy)}" r="5"><title>${escapeHTML(item.pe)} · ${fmtPct(item.accuracy)}</title></circle><text x="${x(index)}" y="${height - 7}">${escapeHTML(item.pe)}</text></g>`).join('');
-  return `<div class="pro26-chart-wrap"><svg class="pro26-line-chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="Aproveitamento das últimas execuções"><defs><linearGradient id="pro26-trend-fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#89b82c" stop-opacity=".35"></stop><stop offset="1" stop-color="#89b82c" stop-opacity="0"></stop></linearGradient></defs>${grid}<line class="pro26-goal" x1="${padX}" x2="${width - padX}" y1="${y(80)}" y2="${y(80)}"></line><polygon points="${area}" class="pro26-chart-area"></polygon><polyline points="${points}"></polyline>${dots}</svg><span class="pro26-goal-label">meta visual · 80%</span></div>`;
+  return `<div class="pro26-chart-wrap"><svg class="pro26-line-chart tdas-performance-svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="Aproveitamento das últimas execuções"><defs><linearGradient id="pro26-trend-fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#89b82c" stop-opacity=".35"></stop><stop offset="1" stop-color="#89b82c" stop-opacity="0"></stop></linearGradient></defs>${grid}<line class="pro26-goal" x1="${padX}" x2="${width - padX}" y1="${y(80)}" y2="${y(80)}"></line><polygon points="${area}" class="pro26-chart-area"></polygon><polyline points="${points}"></polyline>${dots}</svg><span class="pro26-goal-label">meta visual · 80%</span></div>`;
 }
 
 function volumeChart(rows = []) {
@@ -193,7 +206,7 @@ try {
   ]);
   const main = document.querySelector('main');
   if (!main) throw new Error('Área principal não encontrada.');
-  const legacyCenter = main.querySelector('[data-command-center]');
+  const legacyCenter = await waitForLegacyCenter();
   const metrics = home.metrics || {};
   const current = today.current || home.today || {};
   const subjects = [...(subjectsData.subjects || [])].sort((a, b) => number(b.errors) - number(a.errors));
@@ -222,11 +235,26 @@ try {
   const notionUrl = safeUrl(today.notionUrl || current.url);
   const sourceSync = platform.syncAt || latestHistory.at || home.meta?.snapshotDate;
   const legacyAction = legacyCenter?.querySelector('[data-continue-action]');
-  const operationalHref = legacyAction?.getAttribute('href') || `${BASE}resolver/?pe=${encodeURIComponent(current.pe || home.today?.pe || '')}`;
-  const operationalLabel = legacyAction?.textContent?.replace(/\s*→\s*$/u, '').trim() || 'Continuar estudo';
-  const operationalTitle = legacyCenter?.querySelector('.section-head h2')?.textContent?.trim() || 'Continuar o ciclo oficial';
-  const operationalStage = legacyCenter?.dataset.primaryStage || 'questions';
-  const operationalPe = (() => { try { return new URL(operationalHref, location.origin).searchParams.get('pe') || current.pe || home.today?.pe || 'TDAS'; } catch { return current.pe || home.today?.pe || 'TDAS'; } })();
+  const draft = readSessionDraft();
+  const currentPe = String(current.pe || home.today?.pe || 'TDAS');
+  const matchingDraft = draft && String(draft.peId || '') === currentPe ? draft : null;
+  const overdueFallback = !matchingDraft && (home.overdue || [])[0];
+  let operationalHref = legacyAction?.getAttribute('href') || `${BASE}resolver/?pe=${encodeURIComponent(currentPe)}`;
+  let operationalLabel = legacyAction?.textContent?.replace(/\s*→\s*$/u, '').trim() || 'Continuar estudo';
+  let operationalTitle = legacyCenter?.querySelector('.command-primary h2')?.textContent?.trim() || legacyCenter?.querySelector('.section-head h2')?.textContent?.trim() || 'Continuar o ciclo oficial';
+  let operationalStage = legacyCenter?.dataset.primaryStage || 'questions';
+  if (!legacyAction && matchingDraft) {
+    operationalHref = `${BASE}resolver/`;
+    operationalLabel = `Continuar questão ${number(matchingDraft.session?.currentIndex) + 1} de ${number(matchingDraft.session?.questionIds?.length)}`;
+    operationalTitle = operationalLabel;
+    operationalStage = 'resume';
+  } else if (!legacyAction && overdueFallback?.pe) {
+    operationalHref = `${BASE}estudar/?pe=${encodeURIComponent(overdueFallback.pe)}`;
+    operationalLabel = `Retomar ${overdueFallback.pe}`;
+    operationalTitle = `${overdueFallback.pe} atrasado · retomar agora`;
+    operationalStage = 'overdue';
+  }
+  const operationalPe = (() => { try { return new URL(operationalHref, location.origin).searchParams.get('pe') || matchingDraft?.peId || currentPe; } catch { return matchingDraft?.peId || currentPe; } })();
   const operationalItem = (home.overdue || []).find(item => String(item.pe || item.id || '') === operationalPe) || current;
   const operationalFocus = operationalItem.title || operationalItem.label || 'próxima ação do ciclo';
   const sourceCommit = String(platform.sourceCommit || 'local').slice(0, 7);
@@ -238,15 +266,15 @@ try {
   document.documentElement.dataset.homeV28 = '1';
   document.body.classList.add('tdas-dashboard-pro-2026');
   main.innerHTML = `<div class="pro26-dashboard">
-    <header class="pro26-top"><div><span class="pro26-kicker">DASHBOARD PRO · CARGO 202</span><h1>Hoje, sem ruído.</h1><p>Dados do Notion transformados em decisão: o que revisar, quanto praticar e onde você ainda pode perder ponto.</p></div><div class="pro26-top-side"><span data-pro26-clock>Horário de Brasília</span><strong>Prova em ${fmtNumber(examDays)} dia${examDays === 1 ? '' : 's'}</strong><small>${fmtDate(home.meta?.examDate || '2026-09-06')} · SEDES/DF</small></div></header>
+    <header class="pro26-top"><div><span class="pro26-kicker">DASHBOARD PRO · CARGO 202</span><h2>Hoje, sem ruído.</h2><p>Dados do Notion transformados em decisão: o que revisar, quanto praticar e onde você ainda pode perder ponto.</p></div><div class="pro26-top-side"><span data-pro26-clock>Horário de Brasília</span><strong>Prova em ${fmtNumber(examDays)} dia${examDays === 1 ? '' : 's'}</strong><small>${fmtDate(home.meta?.examDate || '2026-09-06')} · SEDES/DF</small></div></header>
 
     <section class="pro26-sync-card" aria-label="Atualização dos dados"><div class="pro26-sync-copy"><span class="pro26-kicker">NOTION → GITHUB → SITE</span><h2>Dados oficiais e atualização segura</h2><p>Último snapshot do site: <strong>${escapeHTML(formatSync(sourceSync))}</strong>. O token do Notion permanece somente nos Secrets do GitHub.</p></div><div class="pro26-sync-state" data-pro26-sync-status data-tone="neutral"><i></i><span><strong>Consultando o GitHub…</strong><small>Verificando a última execução do sincronizador.</small></span></div><div class="pro26-sync-actions"><button class="pro26-btn primary" type="button" data-pro26-sync-open><b>↻</b> Atualizar dados</button><button class="pro26-btn ghost" type="button" data-pro26-sync-check>Verificar status</button></div><div class="pro26-sync-guide" data-pro26-sync-guide hidden></div></section>
 
     <section class="pro26-operational-bridge" data-command-center="${escapeHTML(operationalPe)}" data-primary-stage="${escapeHTML(operationalStage)}" data-publication-id="${escapeHTML(platform.publicationId || '')}" data-last-sync-at="${escapeHTML(platform.syncAt || '')}" data-ux-home-summary><div class="pro26-operational-copy"><span class="pro26-kicker">Central de execução</span><strong>${escapeHTML(operationalTitle)}</strong><small>${escapeHTML(operationalPe)} · ${escapeHTML(operationalFocus)}</small></div><div class="pro26-operational-meta"><span>Plataforma ${escapeHTML(platform.platformVersion || '—')}</span><span>publicação ${escapeHTML(sourceCommit)}</span><span>Última sincronização ${escapeHTML(formatSync(platform.syncAt || sourceSync))}</span><span>Notion → validação GitHub → site</span>${cycleClosure ? '<span>Fechamento e continuidade</span>' : ''}</div><a class="pro26-btn primary" data-continue-action href="${escapeHTML(operationalHref)}">${escapeHTML(operationalLabel)} →</a></section>
 
-    <section class="pro26-decision-grid"><article class="pro26-decision tdas-home-focus"><div class="pro26-orbit"><i></i><i></i><i></i></div><div class="pro26-mode"><span>MODO RETA FINAL</span><span>${escapeHTML(current.pe || 'TDAS')}</span><span>${escapeHTML(current.status || 'Em andamento')}</span></div><span class="pro26-eyebrow">ORIENTAÇÃO DE HOJE</span><h2><small>Prioridade:</small> ${escapeHTML(recommendation?.topic || `${topPattern} em ${topSubject.subject || 'seu Caderno de Erros'}`)}</h2><p>${escapeHTML(recommendation?.evidence || topSubject.recommendation || home.alerts?.[0]?.detail || 'Comece pelo erro mais recorrente, pratique e registre o resultado no Notion.')}</p><div class="pro26-why"><span>POR QUE ISSO VEM PRIMEIRO</span><p>${fmtNumber(topSubject.errors || metrics.errors)} erros em ${escapeHTML(topSubject.subject || 'áreas monitoradas')} · ${fmtNumber(topSubject.recurrent || 0)} reincidências · ${fmtNumber(critical)} tópicos críticos no edital.</p></div><div class="pro26-decision-actions"><a class="pro26-btn lime" href="${BASE}caderno-erros/">Abrir Caderno de Erros</a><a class="pro26-btn lime btn primary" href="${escapeHTML(operationalHref)}">${escapeHTML(operationalLabel)}</a><a class="pro26-btn dark" href="${escapeHTML(notionUrl)}" target="_blank" rel="noopener noreferrer">Registrar no Notion ↗</a></div></article><aside class="pro26-pulse"><header><div><span>PULSO RECENTE</span><strong>${escapeHTML(last.pe || 'Últimas execuções')}</strong></div><b>${last.accuracy ? fmtPct(last.accuracy) : '—'}</b></header>${lineChart(recent.slice(-8))}<div class="pro26-delta ${delta < 0 ? 'negative' : ''}"><span>${delta < 0 ? '↓' : '↑'}</span><p><strong>${delta >= 0 ? '+' : ''}${fmtPct(delta)}</strong> em relação à execução anterior.</p></div><button type="button" data-pro26-open-questions>Painel completo abaixo ↓</button></aside></section>
+    <section class="pro26-decision-grid"><article class="pro26-decision tdas-home-focus"><div class="pro26-orbit"><i></i><i></i><i></i></div><div class="pro26-mode tdas-home-quick"><span>MODO RETA FINAL</span><span>${escapeHTML(current.pe || 'TDAS')}</span><span>${escapeHTML(current.status || 'Em andamento')}</span></div><span class="pro26-eyebrow">ORIENTAÇÃO DE HOJE</span><h1><small>Prioridade:</small> ${escapeHTML(recommendation?.topic || `${topPattern} em ${topSubject.subject || 'seu Caderno de Erros'}`)}</h1><p class="tdas-home-focus-copy">${escapeHTML(recommendation?.evidence || topSubject.recommendation || home.alerts?.[0]?.detail || 'Comece pelo erro mais recorrente, pratique e registre o resultado no Notion.')}</p><div class="pro26-why"><span>POR QUE ISSO VEM PRIMEIRO</span><p>${fmtNumber(topSubject.errors || metrics.errors)} erros em ${escapeHTML(topSubject.subject || 'áreas monitoradas')} · ${fmtNumber(topSubject.recurrent || 0)} reincidências · ${fmtNumber(critical)} tópicos críticos no edital.</p></div><div class="pro26-decision-actions tdas-home-actions"><a class="pro26-btn lime" href="${BASE}caderno-erros/">Abrir Caderno de Erros</a><a class="pro26-btn lime btn primary" href="${escapeHTML(operationalHref)}">${escapeHTML(operationalLabel)}</a><a class="pro26-btn dark" href="${escapeHTML(notionUrl)}" target="_blank" rel="noopener noreferrer">Registrar no Notion ↗</a></div></article><aside class="pro26-pulse tdas-hero-aside tdas-performance-card"><header><div><span>PULSO RECENTE</span><strong>${escapeHTML(last.pe || 'Últimas execuções')}</strong></div><b>${last.accuracy ? fmtPct(last.accuracy) : '—'}</b></header>${lineChart(recent.slice(-8))}<div class="pro26-delta ${delta < 0 ? 'negative' : ''}"><span>${delta < 0 ? '↓' : '↑'}</span><p><strong>${delta >= 0 ? '+' : ''}${fmtPct(delta)}</strong> em relação à execução anterior.</p></div><button type="button" data-pro26-open-questions>Painel completo abaixo ↓</button></aside></section>
 
-    <section class="pro26-metrics" aria-label="Indicadores principais">
+    <section class="pro26-metrics tdas-home-metrics" aria-label="Indicadores principais">
       ${metric('Questões', fmtNumber(metrics.questions), `${fmtNumber(correct)} acertos publicados`, 'blue')}
       ${metric('Aproveitamento', fmtPct(metrics.accuracy || 0), `${fmtNumber(evolution.summary?.resultDays || 0)} dias com resultado`, 'green')}
       ${metric('Caderno de erros', fmtNumber(metrics.errors), `${fmtNumber(topSubject.recurrent || 0)} reincidências na maior matéria`, 'orange')}
@@ -261,7 +289,7 @@ try {
       <div class="pro26-panel" data-pro26-panel="questions" hidden><div class="pro26-panel-metrics">${metric('Com resultado', fmtNumber(totalResults), 'questões contabilizadas', 'blue')}${metric('Acertos', fmtNumber(correct), fmtPct(metrics.accuracy || 0), 'green')}${metric('Erros nas execuções', fmtNumber(wrong), 'calculados por resultado', 'orange')}${metric('Tendência recente', `${delta >= 0 ? '+' : ''}${fmtPct(delta)}`, `${escapeHTML(last.pe || 'última execução')}`, delta < 0 ? 'red' : 'lime')}</div><div class="pro26-chart-grid wide-left"><article class="pro26-chart-card"><header><h3>Aproveitamento por execução</h3><p>Curva recente com linha de referência em 80%.</p></header>${lineChart(recent)}</article><article class="pro26-chart-card"><header><h3>Acertos x erros</h3><p>Distribuição das questões com resultado.</p></header>${errorDonut(correct, wrong)}</article><article class="pro26-chart-card"><header><h3>Ritmo semanal</h3><p>Volume total e aproveitamento.</p></header>${volumeChart(evolution.weekly || [])}</article><article class="pro26-chart-card"><header><h3>Aproveitamento por bloco</h3><p>Os blocos mais frágeis aparecem primeiro.</p></header>${percentBars(blockBars)}</article></div></div>
       <div class="pro26-panel" data-pro26-panel="readiness" hidden><div class="pro26-readiness"><article class="pro26-countdown"><span>PROVA OFICIAL</span><div><strong>${fmtNumber(examDays)}</strong><small>DIAS</small></div><h3>${fmtDate(home.meta?.examDate || '2026-09-06')}</h3><p>${examDays <= 7 ? 'Reta final: priorize recorrência, tópicos críticos e descanso.' : 'Tempo suficiente para corrigir os principais padrões sem dispersão.'}</p></article><article class="pro26-edital"><header><div><span>CHECK DO EDITAL</span><h3>${fmtNumber(editalStudied)} de ${fmtNumber(editalTotal)} tópicos estudados</h3></div><strong>${editalTotal ? fmtPct(editalStudied / editalTotal * 100) : '—'}</strong></header><div class="pro26-edital-track"><i style="width:${editalTotal ? clamp(editalStudied / editalTotal * 100,0,100) : 0}%"></i></div><div><span><b>${fmtNumber(critical)}</b> críticos</span><span><b>${fmtNumber(attention)}</b> atenção</span><span><b>${fmtNumber(editalSummary.risk?.strong || 0)}</b> fortes</span></div></article></div><article class="pro26-priorities"><header><div><h3>Tópicos prioritários do edital</h3><p>Ranqueados pelo histórico real de questões e erros.</p></div><a href="${BASE}riscos/">Abrir raio-X →</a></header><div>${priorityCards(edital.priorityTopics || [])}</div></article></div>
     </section>
-    <footer class="pro26-footer"><span>TDAS Cargo 202 · Dashboard PRO</span><span>${todayDone ? `${escapeHTML(current.pe || '')} concluído` : `${escapeHTML(current.pe || '')} em andamento`} · snapshot ${escapeHTML(home.meta?.snapshotDate || '')}</span></footer>
+    <span data-v27-continuity hidden></span><footer class="pro26-footer"><span>TDAS Cargo 202 · Dashboard PRO</span><span>${todayDone ? `${escapeHTML(current.pe || '')} concluído` : `${escapeHTML(current.pe || '')} em andamento`} · snapshot ${escapeHTML(home.meta?.snapshotDate || '')}</span></footer>
   </div>`;
 
   setupTabs(); setupPlan(); setupClock(); setupWorkflowStatus();
