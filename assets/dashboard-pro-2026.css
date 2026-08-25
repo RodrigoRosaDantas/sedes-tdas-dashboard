@@ -63,7 +63,6 @@ html[data-dashboard-pro-2026="1"] .brand-mark{background:var(--pro26-lime);color
 .pro26-sync-guide a,.pro26-sync-guide button{border:0;border-radius:8px;background:#fff;color:#50651b;padding:8px 10px;font:750 9px inherit;text-decoration:none;cursor:pointer}
 
 .pro26-operational-bridge{display:grid;grid-template-columns:minmax(250px,.85fr) minmax(0,1.35fr) auto;align-items:center;gap:18px;border:1px solid #dfe5de;border-left:4px solid var(--pro26-lime);border-radius:17px;background:#fff;padding:15px 17px;box-shadow:0 9px 28px rgba(38,59,45,.055)}
-html[data-dashboard-pro-2026="1"][data-home-v28="1"] .pro26-operational-bridge[data-command-center]{display:grid!important}
 .pro26-operational-copy{display:flex;min-width:0;flex-direction:column}
 .pro26-operational-copy strong{overflow:hidden;margin-top:3px;color:#35483e;font-size:14px;text-overflow:ellipsis;white-space:nowrap}
 .pro26-operational-copy small{overflow:hidden;margin-top:3px;color:#7a8880;font-size:9px;text-overflow:ellipsis;white-space:nowrap}

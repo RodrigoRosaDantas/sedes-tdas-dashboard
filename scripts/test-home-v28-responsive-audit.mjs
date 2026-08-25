@@ -67,7 +67,7 @@ async function inspect(p){
   const headings=[...document.querySelectorAll('.pro26-dashboard h1,.pro26-dashboard h2')].filter(visible).map(n=>({text:n.textContent.trim(),client:n.clientHeight,scroll:n.scrollHeight,overflow:getComputedStyle(n).overflow}));
   const mainOffenders=[...document.querySelectorAll('main *')].filter(visible).map(n=>({node:n.tagName.toLowerCase(),cls:String(n.className||'').slice(0,90),...rect(n)})).filter(r=>r.left<-1||r.right>innerWidth+1).slice(0,12);
   const primary=hero?.querySelector('.tdas-home-actions .btn.primary');
-  const center=document.querySelector('[data-command-center]');
+  const center=document.querySelector('[data-operational-center]');
   const centerPrimary=center?.querySelector('[data-continue-action]');
   const mobileNav=document.querySelector('#mobile-nav');
   const sidebar=document.querySelector('.sidebar');
