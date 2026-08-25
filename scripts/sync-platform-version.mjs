@@ -5,7 +5,7 @@ import {promisify} from 'node:util';
 import {fileURLToPath} from 'node:url';
 
 const execFileAsync=promisify(execFile);
-const VISUAL_CACHE_REV='cachefix1-pro7';
+const VISUAL_CACHE_REV='cachefix1-pro8';
 const readJSON=async(root,file)=>JSON.parse(await fs.readFile(path.join(root,file),'utf8'));
 const sanitize=value=>String(value||'unknown').trim().toLowerCase().replace(/[^a-z0-9.-]+/g,'-').replace(/^-+|-+$/g,'')||'unknown';
 const compactDate=value=>String(value||'').replace(/\D/g,'').slice(0,8)||'undated';
