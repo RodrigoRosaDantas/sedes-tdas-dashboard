@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 
 const read=file=>fs.readFile(file,'utf8');
-const [engine,runner,front,home,html,homeHtml,more,syncWorkflow,publishWorkflow,guard,pwaPreserver,sw,indexRaw]=await Promise.all([
+const [engine,runner,front,home,html,homeHtml,more,syncWorkflow,publishWorkflow,guard,pwaPreserver,sw,indexRaw,parity]=await Promise.all([
   'scripts/notion/mirror.mjs',
   'scripts/sync-notion-mirror.mjs',
   'assets/notion-mirror.js',
@@ -15,7 +15,8 @@ const [engine,runner,front,home,html,homeHtml,more,syncWorkflow,publishWorkflow,
   '.github/workflows/tdas-telemetry-pwa-preserve.yml',
   'scripts/preserve-notion-mirror-pwa.mjs',
   'sw.js',
-  'data/notion-mirror/index.json'
+  'data/notion-mirror/index.json',
+  'assets/integration/site-parity-v11.js'
 ].map(read));
 const index=JSON.parse(indexRaw);
 const syncWorkflowName=syncWorkflow.match(/^name:\s*(.+)$/m)?.[1]?.trim();
@@ -47,15 +48,17 @@ assert.ok(!sw.includes('data/notion-mirror/index.json'),'Índice do Notion não 
 assert.ok(html.includes('assets/notion-mirror.js?v=1.2.0')&&home.includes('Mapa seguro da fonte oficial'));
 assert.ok(home.includes("data/notion-mirror/summary.json")&&home.indexOf('summary.json')<home.indexOf('index.json'),'Home precisa usar resumo leve antes do fallback legado.');
 assert.ok(home.includes('áreas protegidas')&&home.includes('respostas, gabaritos'),'Home precisa explicar o limite público.');
-assert.ok(homeHtml.includes('home-notion-mirror.js?v=1.3.0'),'Home precisa carregar a integração segura atualizada.');
+assert.ok(homeHtml.includes('home-dashboard-pro-2026.js?v=30.0.0'),'Home operacional precisa usar a experiência consolidada.');
+assert.ok(!homeHtml.includes('home-notion-mirror.js'),'Home consolidada não deve reempilhar o antigo bloco visual do mapa do Notion.');
+assert.ok(parity.includes('Abrir espelho do Notion')&&parity.includes("BASE+'notion/'"),'Shell v11 precisa manter acesso explícito ao espelho seguro do Notion.');
 assert.ok(more.includes("title:'Meu Notion'")&&more.includes("href:`${BASE}notion/`"),'Mais precisa manter acesso ao mapa.');
 assert.ok(front.includes('protectedView')&&front.includes('Banco referenciado'),'Front precisa representar páginas e bancos protegidos sem linhas.');
 assert.ok(front.includes('data/notion-mirror/search.json')&&front.includes('loadSearchIndex'),'Busca deve continuar sob demanda.');
-assert.ok(!/NOTION_TOKEN|api\.notion\.com/i.test(front+home+html+more),'O navegador não pode conter token nem chamar a API do Notion.');
+assert.ok(!/NOTION_TOKEN|api\.notion\.com/i.test(front+home+html+more+parity),'O navegador não pode conter token nem chamar a API do Notion.');
 if(!index.quarantined){
  assert.equal(index.publicScope,'safe','Snapshot real publicado precisa declarar publicScope=safe.');
  assert.equal(index.recordCount,0,'Snapshot público não pode conter linhas de banco.');
  assert.ok((index.pages||[]).every(page=>typeof page.protected==='boolean'),'Índice precisa classificar páginas públicas/protegidas.');
  assert.ok((index.databases||[]).every(db=>db.protected&&!(db.shards||[]).length),'Bancos publicados precisam estar protegidos e sem shards.');
 }
-console.log('Mapa seguro do Notion validado: navegação pública, áreas protegidas, zero linhas de banco, busca sob demanda, PWA leve e triggers pós-sync alinhados.');
+console.log('Mapa seguro do Notion validado: rota explícita no shell v11, zero linhas de banco, busca sob demanda, PWA leve e triggers pós-sync alinhados.');
