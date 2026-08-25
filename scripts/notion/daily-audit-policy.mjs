@@ -1,4 +1,13 @@
 const COMPLETED_PATTERN=/conclu|finaliz|feito|realiz/i;
+const FUTURE_EDITORIAL_PATTERNS=Object.freeze([
+ /: nenhuma questão reconhecida na página diária\.$/i,
+ /: foram reconhecidas \d+ questões; (?:meta oficial|esperado) \d+\.$/i,
+ /: gabarito possui \d+ respostas para \d+ questões\.$/i,
+ /: questão \d+ sem enunciado suficiente\.$/i,
+ /: questão \d+ deve possuir entre duas e cinco alternativas\.$/i,
+ /: questão \d+ possui alternativas descontínuas\.$/i,
+ /: questão \d+ sem conteúdo na alternativa [A-E]\.$/i
+]);
 
 export function canUseHistoricalExecution(control,today){
  const date=String(control?.date||'');
@@ -27,4 +36,14 @@ export function correctionPolicy({control,answerCount,today}){
  if(Number(answerCount)===expected)return{mode:'answer-key',accepted:true};
  if(canUseHistoricalExecution(control,today))return{mode:'historical-execution',accepted:true};
  return{mode:'blocked',accepted:false};
+}
+
+export function auditFailurePolicy({control,error,today}){
+ const date=String(control?.date||'');
+ const reference=String(today||'');
+ const reason=String(error?.message||error||'');
+ const future=/^\d{4}-\d{2}-\d{2}$/.test(date)&&/^\d{4}-\d{2}-\d{2}$/.test(reference)&&date>reference;
+ const editorialPending=FUTURE_EDITORIAL_PATTERNS.some(pattern=>pattern.test(reason));
+ if(future&&editorialPending)return{mode:'future-editorial-pending',blocking:false,reason};
+ return{mode:'blocked',blocking:true,reason};
 }

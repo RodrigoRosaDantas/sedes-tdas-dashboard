@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {isAuxiliaryDailyPage, parseDailyQuestions, peCode, renderMaterialMarkdown} from './notion/daily-content.mjs';
+import {isAuxiliaryDailyPage, pageReferencesPe, parseDailyQuestions, peCode, renderMaterialMarkdown, selectDailyQuestionSource} from './notion/daily-content.mjs';
 
 assert.equal(peCode('PE01 — 18/05/2026 — Virada pós-edital'), 'PE01');
 assert.equal(peCode('PE78 — Revisão administrativa'), 'PE78');
@@ -7,6 +7,8 @@ assert.equal(peCode('PE01–PE07'), null);
 assert.equal(peCode('PE01-07'), null);
 assert.equal(peCode('PE01 — 07'), null);
 assert.equal(peCode('01 — Micro PE01–PE07 | Semana 1'), null);
+assert.equal(pageReferencesPe('✅ Bateria PE100 validada — 60 A–E', 'PE100'), true);
+assert.equal(pageReferencesPe('✅ Bateria PE100 validada — 60 A–E', 'PE101'), false);
 assert.equal(isAuxiliaryDailyPage('PE27 — Auditoria do simulado parcial 1 + RD08'), true);
 assert.equal(isAuxiliaryDailyPage('PE27 — Simulado parcial 1 + RD08'), false);
 
@@ -195,6 +197,52 @@ assert.equal(compactLayoutCatalog.questions[0].alternativas.C,'sistema de segura
 assert.equal(compactLayoutKey.answers.length,2);
 assert.equal(compactLayoutKey.answers[0].gabarito,'C');
 assert.equal(compactLayoutKey.answers[1].gabarito,'B');
+
+const sourceFixture = count => `# Questões
+${Array.from({length:count},(_,index)=>`**${index+1}.** Questão válida número ${index+1}.
+A) Alternativa correta ou plausível A.
+B) Alternativa correta ou plausível B.`).join('\n')}
+# Gabarito
+${Array.from({length:count},(_,index)=>`${index+1}-${index%2?'B':'A'}`).join('; ')}
+`;
+const canonicalSource = selectDailyQuestionSource([
+  {id:'parent-pe100',title:'PE100 — página principal histórica',markdown:sourceFixture(1),isPrimary:true},
+  {id:'historical-pe100',title:'Bateria PE100 anterior — 2 A–E',markdown:sourceFixture(2),isPrimary:false},
+  {id:'child-pe100',title:'✅ Bateria PE100 validada — 2 A–E',markdown:sourceFixture(2),isPrimary:false}
+],{pe:'PE100',title:'Português',expectedCount:2});
+assert.equal(canonicalSource.id,'child-pe100','A subpágina canônica deve prevalecer quando a página-pai contém uma bateria histórica incompleta.');
+assert.equal(canonicalSource.parsed.catalog.questionCount,2);
+
+const preferredFinalSource = selectDailyQuestionSource([
+  {id:'parent-pe102',title:'PE102 — página principal',markdown:sourceFixture(2),isPrimary:true},
+  {id:'final-pe102',title:'✅ Bateria FINAL auditada — PE102 — 2 A–E',markdown:sourceFixture(2),isPrimary:false}
+],{pe:'PE102',title:'Jurídico-administrativo',expectedCount:2});
+assert.equal(preferredFinalSource.id,'final-pe102','Uma subpágina FINAL validada deve prevalecer sobre uma bateria histórica também completa.');
+
+assert.throws(()=>selectDailyQuestionSource([
+  {id:'final-a',title:'Bateria FINAL PE103 A',markdown:sourceFixture(2),isPrimary:false},
+  {id:'final-b',title:'Bateria FINAL PE103 B',markdown:sourceFixture(2),isPrimary:false}
+],{pe:'PE103',title:'Cargo 202',expectedCount:2}),/mais de uma fonte de questões válida/,'Duas fontes finais equivalentes devem bloquear a publicação por ambiguidade.');
+
+const contextualDetailsMarkdown = `## Texto — questões 1 a 2
+O atendimento público exige informação clara, registro adequado e respeito aos limites legais.
+**1.** A ideia central do texto é
+A) informação e registro integram um atendimento responsável.
+B) limites legais podem ser afastados por conveniência.
+**2.** Segundo o texto, o registro
+A) é incompatível com informação clara.
+B) integra o atendimento responsável.
+<details>
+<summary>Gabarito — abrir somente após concluir</summary>
+1-A; 2-B.
+</details>
+## Registro pós-bateria
+Este conteúdo não pertence à alternativa B da questão 2.`;
+const {catalog:contextualCatalog,key:contextualKey}=parseDailyQuestions(contextualDetailsMarkdown,{pe:'PE100',title:'Português',expectedCount:2,sourcePageId:'details'});
+assert.match(contextualCatalog.questions[0].enunciado,/Texto-base: O atendimento público exige informação clara/,'O texto compartilhado deve acompanhar as questões que dependem dele.');
+assert.match(contextualCatalog.questions[1].enunciado,/Texto-base: O atendimento público exige informação clara/);
+assert.equal(contextualCatalog.questions[1].alternativas.B,'integra o atendimento responsável.','Seções pós-bateria não podem contaminar a última alternativa.');
+assert.deepEqual(contextualKey.answers.map(item=>item.gabarito),['A','B'],'Gabarito recolhido em details deve continuar separado do catálogo público.');
 
 const html=renderMaterialMarkdown(`# Material\n## Objetivo\n**Estudar** com clareza.\n- Primeiro item\n- Segundo item\n<table header-row="true"><tr><td>Campo</td><td>Valor</td></tr><tr><td>PE</td><td>78</td></tr></table>`);
 assert.match(html,/<h2>Material<\/h2>/);
