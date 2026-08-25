@@ -35,8 +35,12 @@ for (const marker of [
   'Reta final',
   'Aproveitamento por execução',
   'Padrões de erro',
-  'Check do Edital'
+  'Check do Edital',
+  'Central de execução',
+  'Notion → validação GitHub → site'
 ]) assert.ok(dashboard.includes(marker), `Dashboard deve preservar ${marker}.`);
+
+for (const contract of ['data-command-center', 'data-primary-stage', 'data-last-sync-at', 'data-continue-action', 'data-ux-home-summary', 'tdas-home-focus']) assert.ok(dashboard.includes(contract), `Dashboard deve preservar o contrato operacional ${contract}.`);
 
 assert.match(dashboard, /actions\/workflows\/notion-sync\.yml/, 'Atualização deve abrir o workflow Notion existente.');
 assert.match(dashboard, /api\.github\.com\/repos\/\$\{REPOSITORY\}\/actions\/workflows\/notion-sync\.yml\/runs/, 'Dashboard deve acompanhar o status público do workflow.');
