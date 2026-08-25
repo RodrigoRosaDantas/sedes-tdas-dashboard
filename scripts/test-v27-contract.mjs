@@ -8,7 +8,7 @@ const homeRefs=[...homeHtml.matchAll(/(?:src|href)="([^"]+)"/g)].map(match=>matc
 assert.ok(homeRefs.some(ref=>ref.includes('home-dashboard-pro-2026.js')),'Home não carrega a experiência operacional unificada.');
 assert.ok(!homeRefs.some(ref=>ref.includes('home-v27.js')||ref.includes('v27.css')),'Home não pode reempilhar a camada visual v27 após a consolidação.');
 assert.ok(homeUnified.includes('selectPrimaryAction')&&homeUnified.includes('readSessionDraft')&&homeUnified.includes('data-v27-continuity'),'Home unificada precisa absorver continuidade, retomada e contrato v27.');
-assert.ok(homeUnified.includes('buildOfficialCycleTasks')&&homeUnified.includes('Prioridades'),'Home unificada deve manter o handoff de prioridades externas do ciclo.');
+assert.ok(homeUnified.includes('buildOfficialCycleTasks')&&homeUnified.includes('selectPrimaryAction'),'Home unificada deve manter o handoff do ciclo oficial sem reintroduzir uma revisão interna paralela.');
 assert.ok(resolverHtml.includes('assets/v27.css')&&resolverHtml.includes('resolver-bootstrap.js'),'Resolver não usa o bootstrap v27.');
 assert.ok(!resolverHtml.includes('src="/sedes-tdas-dashboard/assets/integration/module-player.js'),'Player diário não pode ser carregado em paralelo ao roteador.');
 assert.ok(bootstrap.includes("params.get('modo')==='banco'")&&bootstrap.includes('question-bank-player.js'),'Modo Banco não está roteado.');
