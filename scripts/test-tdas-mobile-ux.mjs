@@ -99,5 +99,5 @@ const lastValidSync=(history.entries||[]).find(item=>['success','no_changes'].in
 assert.equal(platform.dataVersion,homeData.meta?.version,'dataVersion deve continuar derivada do snapshot oficial.');
 assert.equal(platform.syncAt,lastValidSync,'syncAt deve continuar derivada da última sincronização real, não da release visual.');
 assert.equal(platform.peId,homeData.today?.pe,'PE do manifesto deve continuar alinhado ao snapshot oficial.');
-assert.match(platform.serviceWorkerVersion,/pro7$/,'Cache visual deve identificar a geração PRO7 atual.');
+assert.match(platform.serviceWorkerVersion,/pro8$/,'Cache visual deve identificar a geração PRO8 atual.');
 console.log('UX TDAS validada: caderno como diagnóstico local sem overlay legado, revisão externa por prioridades, navegação sem Revisar mobile e separação plataforma/dados preservada.');
