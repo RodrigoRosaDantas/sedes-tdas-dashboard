@@ -29,7 +29,7 @@ const v27Assets=['assets/v27.css','assets/integration/question-bank.js','assets/
 for(const asset of v27Assets){assert.ok(sw.includes(`"${asset}"`),`${asset} precisa estar no precache.`);assert.ok(preserveV27.includes(`'${asset}'`),`${asset} precisa estar blindado contra regeneração do PWA.`)}
 assert.ok(!/question-keys\//.test((sw.match(/const (?:ASSETS|DATA)=\[[^;]+/g)||[]).join('\n')),'Gabaritos não podem entrar no precache inicial.');
 assert.ok(!/question-keys\//.test(preserveV27),'Preservação v27 não pode adicionar gabaritos ao PWA.');
-assert.ok(preserveHistory.includes("question-archive/index.json")&&preserveHistory.includes('Object.values(archive.catalogs||{})'),'Histórico PWA deve preservar dinamicamente todos os catálogos arquivados.');
+assert.ok(preserveHistory.includes("const retired=[")&&preserveHistory.includes('private-history-sync-v3.js')&&!preserveHistory.includes('question-archive/index.json'),'Guard PWA deve impedir a reintrodução de histórico pessoal sem republicar catálogos como histórico do usuário.');
 const postprocessIndex=syncWorkflow.indexOf('node scripts/postprocess-v26.mjs');
 const platformIndex=syncWorkflow.indexOf('node scripts/sync-platform-version.mjs');
 const historyIndex=syncWorkflow.indexOf('node scripts/preserve-private-history-pwa.mjs');
