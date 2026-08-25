@@ -49,7 +49,7 @@ html[data-dashboard-pro-2026="1"] .brand-mark{background:var(--pro26-lime);color
 .pro26-sync-state strong{overflow:hidden;color:#3e5147;font-size:10px;text-overflow:ellipsis;white-space:nowrap}
 .pro26-sync-state small{overflow:hidden;margin-top:2px;color:#859189;font-size:8px;text-overflow:ellipsis;white-space:nowrap}
 .pro26-sync-actions{display:flex;gap:8px;justify-content:flex-end}
-.pro26-btn{display:inline-flex;min-height:43px;align-items:center;justify-content:center;gap:8px;border:1px solid #d7dfd6;border-radius:11px;background:#fff;color:#44554c;padding:0 13px;font-size:10px;font-weight:780;text-decoration:none;cursor:pointer;transition:transform .18s ease,box-shadow .18s ease,background .18s ease}
+.pro26-btn{display:inline-flex;min-height:44px;align-items:center;justify-content:center;gap:8px;border:1px solid #d7dfd6;border-radius:11px;background:#fff;color:#44554c;padding:0 13px;font-size:10px;font-weight:780;text-decoration:none;cursor:pointer;transition:transform .18s ease,box-shadow .18s ease,background .18s ease}
 .pro26-btn:hover{transform:translateY(-2px);box-shadow:0 10px 22px rgba(31,52,40,.12)}
 .pro26-btn:focus-visible,.pro26-tabs button:focus-visible,.pro26-time-picker button:focus-visible{outline:3px solid rgba(126,174,44,.34);outline-offset:3px}
 .pro26-btn.primary{border-color:#1a2b2d;background:#17292a;color:#e4f976}
