@@ -1,6 +1,5 @@
-import './private-history-runtime-v3.js?v=3.1.0';
-import {syncPrivateHistory} from './private-history-sync-v3.js?v=3.1.0';
-import {hydratePrivateHistory} from './private-history-materialize.js?v=1.0.0';
-try{if(navigator.onLine)await syncPrivateHistory();await hydratePrivateHistory()}catch(error){console.warn('Histórico remoto indisponível; usando cache local.',error)}
-await import('./module-performance-v4.js?v=4.0.0');
-await import('./performance-history-links-v2.js?v=2.0.0');
+import {BASE,loadJSON,setupShell,setLoadingError} from '../common.js?v=24.1';
+try{
+ const shell=await loadJSON('data/more.json');setupShell('mais',shell.meta);
+ document.querySelector('main').innerHTML=`<section class="hero"><span class="kicker">Desempenho</span><h1>Resultados oficiais, não histórico do navegador</h1><p>O TDAS não acumula mais acertos, erros, tempo ou revisões das baterias resolvidas no site. O desempenho consolidado continua vindo das fontes oficiais sincronizadas.</p><div class="tags"><span class="tag">Sem histórico pessoal</span><span class="tag">Sem sincronização em nuvem</span><span class="tag">Fonte oficial separada</span></div><div class="hero-actions"><a class="btn primary" href="${BASE}evolucao/">Abrir evolução oficial</a><a class="btn" href="${BASE}riscos/">Ver riscos</a><a class="btn" href="${BASE}mentor/">Abrir Mentor</a><a class="btn" href="${BASE}resolver/">Resolver questões</a></div></section><section class="section"><article class="card panel"><h2>Durante uma bateria</h2><p>Respostas e posição ficam salvas localmente apenas enquanto a sessão estiver em andamento. Depois da finalização, o resultado é exibido para correção, mas não vira histórico pessoal persistente.</p></article></section>`;
+}catch(error){setLoadingError(error)}

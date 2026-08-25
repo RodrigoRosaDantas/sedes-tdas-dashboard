@@ -170,9 +170,10 @@ jobs:
           fi
           ! grep -Eqi 'Carregando|Não foi possível carregar esta página' /tmp/home.html
           ! grep -Eqi 'Uncaught (TypeError|ReferenceError|SyntaxError)|Central de execução indisponível|Erros sem origem indisponíveis' /tmp/*.stderr
-          grep -q 'assets/integration/review-engine.js' /tmp/tdas-site/sedes-tdas-dashboard/sw.js
+          ! grep -q 'assets/integration/review-engine.js' /tmp/tdas-site/sedes-tdas-dashboard/sw.js
+          ! grep -Eqi 'private-history|result-persistence-links|firebase-history' /tmp/tdas-site/sedes-tdas-dashboard/sw.js
           ! grep -q 'question-keys/' /tmp/tdas-site/sedes-tdas-dashboard/sw.js
-          printf '{"browser":"ok","commandCenter":true,"lastSync":"%sT%s","cycleClosure":%s,"priorityHandoff":true,"internalReview":false,"focusedRedaction":"%s","platformVersion":"%s","publication":"%s","resume":"question-%s-of-%s","dailyQuestionCount":%s,"unlinkedErrors":%s,"questionBankVisible":true,"answerKeyPrecached":false}\n' "$LAST_SYNC_DATE" "$LAST_SYNC_TIME" "$EXPECT_CYCLE_CLOSURE" "$FOCUS_RD" "$PLATFORM_VERSION" "$SOURCE_COMMIT_SHORT" "$QUESTION_INDEX" "$QUESTION_TOTAL" "$DAILY_QUESTION_COUNT" "$UNLINKED_ERRORS"
+          printf '{"browser":"ok","commandCenter":true,"lastSync":"%sT%s","cycleClosure":%s,"priorityHandoff":true,"internalReview":false,"reviewEnginePrecached":false,"personalHistoryPrecached":false,"focusedRedaction":"%s","platformVersion":"%s","publication":"%s","resume":"question-%s-of-%s","dailyQuestionCount":%s,"unlinkedErrors":%s,"questionBankVisible":true,"answerKeyPrecached":false}\n' "$LAST_SYNC_DATE" "$LAST_SYNC_TIME" "$EXPECT_CYCLE_CLOSURE" "$FOCUS_RD" "$PLATFORM_VERSION" "$SOURCE_COMMIT_SHORT" "$QUESTION_INDEX" "$QUESTION_TOTAL" "$DAILY_QUESTION_COUNT" "$UNLINKED_ERRORS"
 
       - name: Diagnosticar falha do navegador
         if: failure()

@@ -40,7 +40,7 @@ const fetchPositions=[];
 for(let offset=player.indexOf(keyFetch);offset>=0;offset=player.indexOf(keyFetch,offset+keyFetch.length))fetchPositions.push(offset);
 assert.equal(fetchPositions.length,1,'O player deve possuir um único ponto de leitura do gabarito.');
 const finishStart=player.indexOf('async function finishSession(){');
-const finishEnd=player.indexOf('\nfunction completeReview',finishStart);
+const finishEnd=player.indexOf('\nmain.addEventListener',finishStart);
 assert.ok(finishStart>=0&&finishEnd>finishStart,'A fronteira finishSession precisa permanecer identificável para auditoria.');
 assert.ok(fetchPositions[0]>finishStart&&fetchPositions[0]<finishEnd,'O gabarito só pode ser buscado dentro de finishSession.');
 assert.match(player.slice(finishStart,finishEnd),/if\(!canFinish\(state\.session\)\)return;/,'A busca do gabarito deve continuar protegida por canFinish.');
