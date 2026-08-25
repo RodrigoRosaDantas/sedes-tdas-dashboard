@@ -61,6 +61,14 @@ function childPage(block, parentId) {
   };
 }
 
+export function pageReferencesPe(value, pe) {
+  const expected = peCode(pe);
+  if (!expected) return false;
+  const normalized = String(value ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  return [...normalized.matchAll(/\bPE\s*0*(\d{1,3})\b/gi)]
+    .some(match => `PE${String(Number(match[1])).padStart(2, '0')}` === expected);
+}
+
 export function isAuxiliaryDailyPage(value) {
   const normalized = String(value ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   return /\bauditoria\b/i.test(normalized);
@@ -200,22 +208,51 @@ function questionSection(markdown) {
   return nextHeading >= 0 ? tail.slice(0, nextHeading) : tail;
 }
 
+function questionContextRanges(source) {
+  const headings = [...source.matchAll(/^#{1,4}\s+([^\n]+)$/gm)];
+  const contexts = [];
+  for (const heading of headings) {
+    const normalized = heading[1].normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    const range = normalized.match(/(?:Questoes\s*|Q\s*)(\d{1,3})\s*(?:a|ate|[-–—])\s*(?:Q\s*)?(\d{1,3})/i);
+    if (!range) continue;
+    const start = Number(range[1]);
+    const end = Number(range[2]);
+    if (!Number.isInteger(start) || !Number.isInteger(end) || start < 1 || end < start) continue;
+    const afterHeading = source.slice(heading.index + heading[0].length);
+    const nextQuestion = afterHeading.search(/^(?:##\s+Quest(?:ão|ao)\s+\d+\s*|\*\*\d{1,3}\.\*\*)/im);
+    if (nextQuestion < 0) continue;
+    const rawContext = afterHeading.slice(0, nextQuestion).trim();
+    if (!rawContext || /^#{1,4}\s+/m.test(rawContext)) continue;
+    const context = cleanQuestionText(rawContext);
+    if (context.length < 20) continue;
+    contexts.push({start, end, context});
+  }
+  return contexts.sort((left, right) => (left.end - left.start) - (right.end - right.start));
+}
+
 function questionSegments(markdown) {
   const scoped = questionSection(markdown);
   const firstQuestion = scoped.search(/^(?:##\s+Quest(?:ão|ao)\s+\d+\s*|\*\*\d{1,3}\.\*\*)/im);
-  const correctionHeading = firstQuestion >= 0
-    ? scoped.slice(firstQuestion).search(/^#{1,4}\s+(?:\d+(?:\.\d+)*[.)]?\s*)?(?:Gabarito|Resultado|Correção|Correcao)\b[^\n]*$/im)
-    : -1;
-  const source = correctionHeading >= 0 ? scoped.slice(0, firstQuestion + correctionHeading) : scoped;
+  const afterFirst = firstQuestion >= 0 ? scoped.slice(firstQuestion) : '';
+  const boundaries = firstQuestion < 0 ? [] : [
+    afterFirst.search(/^#{1,4}\s+(?:\d+(?:\.\d+)*[.)]?\s*)?(?:Gabarito|Resultado|Correção|Correcao|Registro\b|RD\d+\b|Discursiva\b)[^\n]*$/im),
+    afterFirst.search(/^<details\b[^>]*>\s*\n?<summary\b[^>]*>[^<]*(?:Gabarito|Respostas? corretas?)[^<]*<\/summary>/im)
+  ].filter(offset => offset >= 0);
+  const boundary = boundaries.length ? Math.min(...boundaries) : -1;
+  const source = boundary >= 0 ? scoped.slice(0, firstQuestion + boundary) : scoped;
+  const contexts = questionContextRanges(source);
   const matches = [...source.matchAll(/^(?:##\s+Quest(?:ão|ao)\s+(\d+)\s*|\*\*(\d{1,3})\.\*\*\s*(.*))$/gim)];
   return matches.map((match, index) => {
+    const number = Number(match[1] || match[2]);
     const inlineStem = String(match[3] ?? '').trim();
-    const tail = source.slice(match.index + match[0].length, matches[index + 1]?.index ?? source.length)
-      .split(/\n#\s+\d+\.[^\n]*/)[0]
-      .trim();
+    const rawTail = source.slice(match.index + match[0].length, matches[index + 1]?.index ?? source.length);
+    const structuralBoundary = rawTail.search(/^#{1,4}\s+|^<details\b|^<page\b|^<database\b/im);
+    const tail = (structuralBoundary >= 0 ? rawTail.slice(0, structuralBoundary) : rawTail).trim();
+    const context = contexts.find(item => number >= item.start && number <= item.end)?.context || '';
+    const body = `${context ? `Texto-base: ${context}\n` : ''}${inlineStem}${inlineStem && tail ? '\n' : ''}${tail}`.trim();
     return {
-      number: Number(match[1] || match[2]),
-      body: `${inlineStem}${inlineStem && tail ? '\n' : ''}${tail}`.trim()
+      number,
+      body
     };
   });
 }
@@ -262,6 +299,8 @@ function answerKeySection(source) {
     const next = tail.search(/^#\s+\d+\.[^\n]*$/m);
     return next >= 0 ? tail.slice(0, next) : tail;
   }
+  const details = source.match(/<details\b[^>]*>\s*<summary\b[^>]*>[^<]*(?:Gabarito|Respostas? corretas?)[^<]*<\/summary>([\s\S]*?)<\/details>/i);
+  if (details) return details[1].trim();
   const htmlHeader = source.search(/<tr\b[^>]*>[\s\S]*?<t[dh]\b[^>]*>\s*Quest(?:ão|ao)\s*<\/t[dh]>[\s\S]*?<t[dh]\b[^>]*>[\s\S]*?(?:Resposta|Gabarito)[\s\S]*?<\/t[dh]>[\s\S]*?<\/tr>/i);
   if (htmlHeader >= 0) {
     const tableStart = source.lastIndexOf('<table', htmlHeader);
@@ -379,6 +418,100 @@ export function parseDailyQuestions(markdown, {pe, title, expectedCount = 0, sou
   return {catalog, key};
 }
 
+function sourcePriority(source) {
+  if (source.isPrimary) return 1;
+  const normalized = String(source.title ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  return /\b(?:final|executavel|auditad[ao]|validad[ao]|protocolo mestre)\b/i.test(normalized) ? 3 : 2;
+}
+
+export function selectDailyQuestionSource(sources, {pe, title, expectedCount = 0} = {}) {
+  const attempts = sources.map(source => {
+    if (source.loadError) return {...source, error: source.loadError, parsed: null};
+    try {
+      return {
+        ...source,
+        parsed: parseDailyQuestions(source.markdown, {
+          pe,
+          title,
+          expectedCount,
+          sourcePageId: source.id
+        }),
+        error: null
+      };
+    } catch (error) {
+      return {...source, error, parsed: null};
+    }
+  });
+  const valid = attempts.filter(source => source.parsed);
+  if (valid.length) {
+    const highestPriority = Math.max(...valid.map(sourcePriority));
+    const preferred = valid.filter(source => sourcePriority(source) === highestPriority);
+    if (preferred.length === 1) return preferred[0];
+    throw new Error(`${pe}: mais de uma fonte de questões válida com a mesma prioridade (${preferred.map(source => source.title || source.id).join(' | ')}).`);
+  }
+
+  const missingKeyMessage = `${pe}: gabarito possui 0 respostas para ${expectedCount} questões.`;
+  const missingKey = attempts.find(source => source.error?.message === missingKeyMessage);
+  if (missingKey) throw missingKey.error;
+  const ranked = [...attempts].sort((left, right) => sourcePriority(right) - sourcePriority(left));
+  const failure = ranked.find(source => source.error)?.error || new Error(`${pe}: nenhuma fonte de questões pôde ser validada.`);
+  failure.sourceDiagnostics = attempts.map(source => ({
+    id: source.id,
+    title: source.title,
+    primary: Boolean(source.isPrimary),
+    error: source.error?.message || ''
+  }));
+  throw failure;
+}
+
+export async function resolveDailyQuestionSource({questionPage, pe, title, expectedCount = 0} = {}) {
+  required(questionPage?.id, `${pe}: página principal de questões ausente.`);
+  const [primaryMeta, primaryMarkdown] = await Promise.all([
+    fetchPageMetadata(questionPage.id),
+    fetchMarkdown(questionPage.id)
+  ]);
+  const explicitNoQuestions = /não traz bateria artificial de questões/i.test(primaryMarkdown);
+  const effectiveExpectedCount = explicitNoQuestions ? 0 : Math.max(0, Number(expectedCount || 0));
+  const sources = [];
+
+  if (effectiveExpectedCount > 0) {
+    const children = (await listBlockChildren(questionPage.id))
+      .map(block => childPage(block, questionPage.id))
+      .filter(page => page && pageReferencesPe(page.title, pe));
+    const nested = await mapLimit(children, 3, async page => {
+      try {
+        const [meta, markdown] = await Promise.all([
+          fetchPageMetadata(page.id),
+          fetchMarkdown(page.id)
+        ]);
+        return {...page, ...meta, title: meta.title || page.title, markdown, isPrimary: false};
+      } catch (loadError) {
+        return {...page, markdown: '', isPrimary: false, loadError};
+      }
+    });
+    sources.push(...nested);
+  }
+  sources.push({
+    ...questionPage,
+    ...primaryMeta,
+    title: primaryMeta.title || questionPage.title,
+    markdown: primaryMarkdown,
+    isPrimary: true
+  });
+
+  const selected = selectDailyQuestionSource(sources, {
+    pe,
+    title,
+    expectedCount: effectiveExpectedCount
+  });
+  return {
+    ...selected,
+    effectiveExpectedCount,
+    primaryPageId: compactId(questionPage.id),
+    resolution: selected.isPrimary ? 'primary-page' : 'validated-child-page'
+  };
+}
+
 export async function prepareDailyContent({controls, snapshotDate, runStartedAt = new Date().toISOString()} = {}) {
   required(Array.isArray(controls) && controls.length >= 100, 'Controle insuficiente para localizar o conteúdo diário.');
   const current = controls.find(item => item.date === snapshotDate);
@@ -393,34 +526,35 @@ export async function prepareDailyContent({controls, snapshotDate, runStartedAt 
   const materialPage = materials.get(pe);
   const questionPage = questions.get(pe);
   required(materialPage && questionPage, `${pe}: vínculo diário incompleto.`);
+  required(peCode(questionPage.title) === pe, `${pe}: título da página principal de questões não corresponde ao Dia ID.`);
 
-  const [materialMeta, questionMeta, materialMarkdown, questionMarkdown] = await Promise.all([
+  const title = String(current.title || materialPage.title || pe).trim();
+  const [materialMeta, materialMarkdown, resolvedQuestions] = await Promise.all([
     fetchPageMetadata(materialPage.id),
-    fetchPageMetadata(questionPage.id),
     fetchMarkdown(materialPage.id),
-    fetchMarkdown(questionPage.id)
+    resolveDailyQuestionSource({
+      questionPage,
+      pe,
+      title,
+      expectedCount: Math.max(0, Number(current.meta || 0))
+    })
   ]);
   required(peCode(materialMeta.title || materialPage.title) === pe, `${pe}: título do material não corresponde ao Dia ID.`);
-  required(peCode(questionMeta.title || questionPage.title) === pe, `${pe}: título das questões não corresponde ao Dia ID.`);
+  required(pageReferencesPe(resolvedQuestions.title || questionPage.title, pe), `${pe}: título da fonte de questões não corresponde ao Dia ID.`);
   required(materialMarkdown.trim().length >= 200, `${pe}: material diário vazio ou incompleto.`);
-  required(questionMarkdown.trim().length >= 100 || Number(current.meta || 0) === 0, `${pe}: página de questões vazia ou incompleta.`);
+  required(resolvedQuestions.markdown.trim().length >= 100 || resolvedQuestions.effectiveExpectedCount === 0, `${pe}: página de questões vazia ou incompleta.`);
 
-  const title = String(current.title || questionMeta.title || materialMeta.title || pe).trim();
-  const explicitNoQuestions = /não traz bateria artificial de questões/i.test(questionMarkdown);
-  const parsed = parseDailyQuestions(questionMarkdown, {
-    pe,
-    title,
-    expectedCount: explicitNoQuestions ? 0 : Math.max(0, Number(current.meta || 0)),
-    sourcePageId: questionPage.id
-  });
+  const parsed = resolvedQuestions.parsed;
   parsed.catalog.authorizedSource = {
     ...parsed.catalog.authorizedSource,
-    url: questionMeta.url,
+    url: resolvedQuestions.url,
     rootId: DAILY_ROOTS.questions.id,
-    parentId: questionPage.parentId,
-    lastEditedTime: questionMeta.lastEditedTime
+    parentId: resolvedQuestions.parentId,
+    primaryPageId: resolvedQuestions.primaryPageId,
+    resolution: resolvedQuestions.resolution,
+    lastEditedTime: resolvedQuestions.lastEditedTime
   };
-  if (parsed.key) parsed.key.sourceUrl = questionMeta.url;
+  if (parsed.key) parsed.key.sourceUrl = resolvedQuestions.url;
 
   const material = {
     schemaVersion: '1.0.0',
@@ -458,7 +592,8 @@ export async function prepareDailyContent({controls, snapshotDate, runStartedAt 
       catalogPath: 'data/integration/question-catalog.json',
       keyPath: parsed.catalog.keyPath,
       materialPageId: materialPage.id,
-      questionPageId: questionPage.id
+      questionPageId: resolvedQuestions.id,
+      questionContainerPageId: questionPage.id
     },
     invariants: [
       'one-material-page-per-pe', 'one-primary-question-page-per-pe', 'children-discovered-from-official-roots',
@@ -475,7 +610,8 @@ export async function prepareDailyContent({controls, snapshotDate, runStartedAt 
     semantic: {
       pe,
       materialPageId: materialPage.id,
-      questionPageId: questionPage.id,
+      questionPageId: resolvedQuestions.id,
+      questionContainerPageId: questionPage.id,
       materialHash: material.contentHash,
       questionHash: parsed.catalog.authorizedSource.contentHash,
       questionCount: parsed.catalog.questionCount,

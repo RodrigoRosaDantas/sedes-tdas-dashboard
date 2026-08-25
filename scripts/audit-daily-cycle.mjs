@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises';
-import { DAILY_ROOTS, discoverDailyPages, parseDailyQuestions, peCode, renderMaterialMarkdown } from './notion/daily-content.mjs';
+import { DAILY_ROOTS, discoverDailyPages, peCode, renderMaterialMarkdown, resolveDailyQuestionSource } from './notion/daily-content.mjs';
 import { fetchMarkdown } from './notion/api.mjs';
-import { correctionPolicy } from './notion/daily-audit-policy.mjs';
+import { auditFailurePolicy, correctionPolicy } from './notion/daily-audit-policy.mjs';
 import { isRest } from './notion/progress.mjs';
 
 const CONTROL_FILES = Object.freeze([
@@ -109,8 +109,10 @@ const [materials, questions] = await Promise.all([
 ]);
 
 const ready = [];
+const pending = [];
 const failures = [];
 for (const control of controls) {
+  let materialHtmlLength = 0;
   try {
     const materialPage = materials.get(control.pe);
     const questionPage = questions.get(control.pe);
@@ -118,42 +120,30 @@ for (const control of controls) {
     required(peCode(materialPage.title) === control.pe, `${control.pe}: título da página de material incompatível.`);
     required(peCode(questionPage.title) === control.pe, `${control.pe}: título da página de questões incompatível.`);
 
-    const materialMarkdown = await fetchMarkdown(materialPage.id);
-    await pause(350);
-    const questionMarkdown = await fetchMarkdown(questionPage.id);
-    await pause(350);
-
-    required(materialMarkdown.trim().length >= 200, `${control.pe}: material vazio ou ainda incompleto.`);
-    required(questionMarkdown.trim().length >= 100 || control.expectedCount === 0, `${control.pe}: página de questões vazia ou ainda incompleta.`);
-    const html = renderMaterialMarkdown(materialMarkdown);
-    required(html.length >= 200, `${control.pe}: material não produziu HTML suficiente.`);
-
-    const explicitNoQuestions = /não traz bateria artificial de questões/i.test(questionMarkdown);
-    const effectiveExpectedCount = explicitNoQuestions ? 0 : control.expectedCount;
-    let parsed;
-    let correctionMode = 'not-applicable';
-    try {
-      parsed = parseDailyQuestions(questionMarkdown, {
+    const [materialResult, questionResult] = await Promise.allSettled([
+      fetchMarkdown(materialPage.id),
+      resolveDailyQuestionSource({
+        questionPage,
         pe: control.pe,
         title: control.title,
-        expectedCount: effectiveExpectedCount,
-        sourcePageId: questionPage.id
-      });
-    } catch (parseError) {
-      const exactMissingKey = effectiveExpectedCount > 0
-        && parseError.message === `${control.pe}: gabarito possui 0 respostas para ${effectiveExpectedCount} questões.`;
-      const historicalPolicy = correctionPolicy({
-        control: { ...control, expectedCount: effectiveExpectedCount },
-        answerCount: 0,
-        today: auditToday
-      });
-      if (!exactMissingKey || historicalPolicy.mode !== 'historical-execution') throw parseError;
-      correctionMode = 'historical-execution';
-      console.warn(`${control.pe}: estrutura integral das ${effectiveExpectedCount} questões validada; chave não preservada após execução e histórico confirmado pelo controle oficial (${control.correct} acertos + ${control.errors} erros; tentadas=${control.attempted}; status ${control.status}).`);
-      ready.push({pe: control.pe, date: control.date, questions: effectiveExpectedCount, materialHtml: html.length, correctionMode});
-      console.log(`${control.pe}: pronto — material ${html.length} caracteres; ${effectiveExpectedCount} questões de treino; correção histórica validada pelo controle.`);
-      continue;
-    }
+        expectedCount: control.expectedCount
+      })
+    ]);
+    await pause(350);
+
+    if (materialResult.status === 'rejected') throw materialResult.reason;
+    const materialMarkdown = materialResult.value;
+    required(materialMarkdown.trim().length >= 200, `${control.pe}: material vazio ou ainda incompleto.`);
+    const html = renderMaterialMarkdown(materialMarkdown);
+    required(html.length >= 200, `${control.pe}: material não produziu HTML suficiente.`);
+    materialHtmlLength = html.length;
+    if (questionResult.status === 'rejected') throw questionResult.reason;
+    const resolvedQuestions = questionResult.value;
+    required(resolvedQuestions.markdown.trim().length >= 100 || resolvedQuestions.effectiveExpectedCount === 0, `${control.pe}: página de questões vazia ou ainda incompleta.`);
+
+    const effectiveExpectedCount = resolvedQuestions.effectiveExpectedCount;
+    const parsed = resolvedQuestions.parsed;
+    let correctionMode = 'not-applicable';
 
     validatePublicCatalog(parsed.catalog, control.pe, effectiveExpectedCount);
     if (effectiveExpectedCount === 0) {
@@ -171,24 +161,46 @@ for (const control of controls) {
     }
     ready.push({pe: control.pe, date: control.date, questions: effectiveExpectedCount, materialHtml: html.length, correctionMode});
     const correctionLabel = correctionMode === 'answer-key' ? 'separada' : 'não aplicável';
-    console.log(`${control.pe}: pronto — material ${html.length} caracteres; ${effectiveExpectedCount} questões de treino; correção ${correctionLabel}.`);
+    console.log(`${control.pe}: pronto — material ${html.length} caracteres; ${effectiveExpectedCount} questões de treino; correção ${correctionLabel}; fonte ${resolvedQuestions.resolution}.`);
   } catch (error) {
+    const exactMissingKey = control.expectedCount > 0
+      && error.message === `${control.pe}: gabarito possui 0 respostas para ${control.expectedCount} questões.`;
+    const historicalPolicy = correctionPolicy({
+      control: { ...control, expectedCount: control.expectedCount },
+      answerCount: 0,
+      today: auditToday
+    });
+    if (exactMissingKey && historicalPolicy.mode === 'historical-execution') {
+      const correctionMode = 'historical-execution';
+      console.warn(`${control.pe}: estrutura integral das ${control.expectedCount} questões validada; chave não preservada após execução e histórico confirmado pelo controle oficial (${control.correct} acertos + ${control.errors} erros; tentadas=${control.attempted}; status ${control.status}).`);
+      ready.push({pe: control.pe, date: control.date, questions: control.expectedCount, materialHtml: materialHtmlLength, correctionMode});
+      console.log(`${control.pe}: pronto — material ${materialHtmlLength} caracteres; ${control.expectedCount} questões de treino; correção histórica validada pelo controle.`);
+      continue;
+    }
+    const failurePolicy = auditFailurePolicy({control, error, today: auditToday});
+    if (!failurePolicy.blocking) {
+      pending.push({pe: control.pe, date: control.date, reason: failurePolicy.reason});
+      console.warn(`${control.pe}: pendente — conteúdo adaptativo futuro ainda não integralizado; ${failurePolicy.reason}`);
+      continue;
+    }
     failures.push({pe: control.pe, date: control.date, reason: error.message});
     console.error(`${control.pe}: bloqueado — ${error.message}`);
   }
 }
 
 const summary = {
-  status: failures.length ? 'blocked' : 'ready',
+  status: failures.length ? 'blocked' : pending.length ? 'ready-with-future-pending' : 'ready',
   from: controls[0].pe,
   to: controls.at(-1).pe,
   firstDate: controls[0].date,
   lastDate: controls.at(-1).date,
   audited: controls.length,
   ready: ready.length,
+  pending: pending.length,
   blocked: failures.length,
   totalQuestions: ready.reduce((total, item) => total + item.questions, 0),
   historicalCorrections: ready.filter(item => item.correctionMode === 'historical-execution').map(item => item.pe),
+  pendingItems: pending,
   failures
 };
 console.log(JSON.stringify(summary));
