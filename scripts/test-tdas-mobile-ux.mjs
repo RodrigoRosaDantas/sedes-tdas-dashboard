@@ -39,12 +39,12 @@ assert.match(moduleUx,/MutationObserver/,'Camada PRO deve reagir às transiçõe
 assert.match(moduleUx,/data-pro-scorecard/,'Camada PRO deve injetar scorecard contextual.');
 assert.match(moduleUx,/data-pro-crossnav/,'Camada PRO deve manter atalhos entre os módulos do ciclo.');
 assert.ok(!moduleUx.includes('api.notion.com'),'Camada PRO não pode consultar diretamente a API do Notion.');
-assert.match(moduleErrorBook,/Histórico local/,'Caderno deve se apresentar como histórico local.');
-assert.match(moduleErrorBook,/a revisão acontece fora da plataforma/i,'Caderno deve declarar que não executa revisão dentro do TDAS.');
-assert.match(moduleErrorBook,/Padrões observados/,'Caderno deve apresentar recorrência como diagnóstico.');
+assert.match(moduleErrorBook,/Diagnóstico sem histórico pessoal/,'Caderno deve declarar o diagnóstico sem histórico pessoal.');
+assert.match(moduleErrorBook,/não mantém mais um caderno pessoal/i,'Caderno deve declarar que o histórico pessoal foi aposentado.');
+assert.match(moduleErrorBook,/Somente o rascunho de uma bateria ainda não finalizada/,'Caderno deve limitar a persistência ao rascunho ativo.');
 assert.match(moduleErrorBook,/Ver prioridades/,'Caderno deve encaminhar sinais para Prioridades.');
 assert.match(moduleErrorBook,/Abrir Mentor/,'Caderno deve encaminhar diagnóstico para o Mentor.');
-assert.doesNotMatch(moduleErrorBook,/Use a revisão adaptativa|Abrir revisões|maior a prioridade de revisão|Revisar .* antes de ampliar volume/i,'Caderno não pode restaurar execução de revisão interna.');
+assert.doesNotMatch(moduleErrorBook,/Use a revisão adaptativa|Abrir revisões|Padrões observados|Histórico local/i,'Caderno não pode restaurar histórico acumulado nem revisão interna.');
 assert.match(studyUx,/tdas\.202\.error-causes\.v1/,'Diagnóstico de causa deve usar chave local isolada.');
 for(const label of ['Não sabia','Confundi conceitos','Esqueci a regra','Interpretei errado','Pressa','Pegadinha'])assert.ok(studyUx.includes(label),`Diagnóstico deve oferecer ${label}.`);
 for(const marker of ['Por que você errou?','Revisão de hoje','Notion → validação GitHub → site','tdas-player-focus','Salvar e próxima →'])assert.ok(studyUx.includes(marker),`Camada UX deve conter compatibilidade histórica ${marker}.`);
