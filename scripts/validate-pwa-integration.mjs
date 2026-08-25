@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 const ROOT=process.cwd(),BASE='/sedes-tdas-dashboard/',read=file=>fs.readFile(path.join(ROOT,file),'utf8'),exists=file=>fs.access(path.join(ROOT,file)).then(()=>true).catch(()=>false),required=(condition,message)=>{if(!condition)throw new Error(`PWA da execução diária: ${message}`)};
-const sw=await read('sw.js'),postprocess=await read('scripts/postprocess-v26.mjs'),versionSync=await read('scripts/sync-platform-version.mjs'),common=await read('assets/common.js'),manifest=JSON.parse(await read('manifest.webmanifest')),packageData=JSON.parse(await read('package.json')),platformVersion=JSON.parse(await read('data/platform-version.json'));
+const sw=await read('sw.js'),postprocess=await read('scripts/postprocess-v26.mjs'),preserve=await read('scripts/preserve-v27-pwa.mjs'),versionSync=await read('scripts/sync-platform-version.mjs'),common=await read('assets/common.js'),manifest=JSON.parse(await read('manifest.webmanifest')),packageData=JSON.parse(await read('package.json')),platformVersion=JSON.parse(await read('data/platform-version.json'));
 const list=name=>{const match=sw.match(new RegExp(`const ${name}=\\[([\\s\\S]*?)\\];`));required(match,`lista ${name} ausente`);return[...match[1].matchAll(/(['"])(.*?)\1/g)].map(item=>item[2])};
 const routes=list('CORE_ROUTES'),assets=list('ASSETS'),data=list('DATA'),version=sw.match(/const VERSION=['"]([^'"]+)['"]/u)?.[1]||'',visualCacheRev=versionSync.match(/const VISUAL_CACHE_REV=['"]([^'"]+)['"]/u)?.[1]||'';
 const requiredRoutes=['configuracoes/','dados-locais/','estudar/','resolver/','revisar/','caderno-erros/','desempenho/','fila-ia/','mentor/'];
@@ -17,6 +17,7 @@ required(/pro9$/u.test(visualCacheRev),`revisão visual do cache deve permanecer
 required(sw.includes('caches.match(request,{ignoreSearch:true})')&&sw.includes("if(url.search||url.pathname.includes('/data/'))"),'service worker não possui fallback offline para URLs versionadas');
 required(postprocess.includes('caches.match(request,{ignoreSearch:true})')&&postprocess.includes("if(url.search||url.pathname.includes('/data/'))"),'gerador pode remover o fallback offline de URLs versionadas');
 required(sw.includes("new Request(request,{cache:'no-store'})")&&sw.includes('fetchAndCache(event.request,{fresh:true})'),'service worker não força rede fresca para navegação e recursos versionados');
+required(preserve.includes('preserveFreshNetwork')&&preserve.includes("cache:'no-store'")&&preserve.includes('fresh:true'),'preservador pode remover a navegação fresca após a sincronização automática');
 required(common.includes("updateViaCache:'none'")&&common.includes('registration.update()'),'shell não força a verificação imediata de uma nova versão do service worker');
 required(!data.some(file=>/pe76|pilot/i.test(file))&&!assets.some(file=>/pilot-catalog|real-study|pe-pilot-status/i.test(file)),'PWA ainda inclui conteúdo de exemplo.');
 required(manifest.start_url===BASE&&manifest.scope===BASE,'escopo do manifesto divergente');
