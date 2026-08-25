@@ -1,3 +1,4 @@
+import'./integration/site-parity-v11.js?v=1.0.0';
 import{loadJSON}from'./common.js?v=26';
 const BASE='/sedes-tdas-dashboard/',load=loadJSON;
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
