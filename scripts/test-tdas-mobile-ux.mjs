@@ -45,11 +45,12 @@ assert.match(moduleErrorBook,/Somente o rascunho de uma bateria ainda não final
 assert.match(moduleErrorBook,/Ver prioridades/,'Caderno deve encaminhar sinais para Prioridades.');
 assert.match(moduleErrorBook,/Abrir Mentor/,'Caderno deve encaminhar diagnóstico para o Mentor.');
 assert.doesNotMatch(moduleErrorBook,/Use a revisão adaptativa|Abrir revisões|Padrões observados|Histórico local/i,'Caderno não pode restaurar histórico acumulado nem revisão interna.');
-assert.match(studyUx,/tdas\.202\.error-causes\.v1/,'Diagnóstico de causa deve usar chave local isolada.');
-for(const label of ['Não sabia','Confundi conceitos','Esqueci a regra','Interpretei errado','Pressa','Pegadinha'])assert.ok(studyUx.includes(label),`Diagnóstico deve oferecer ${label}.`);
-for(const marker of ['Por que você errou?','Revisão de hoje','Notion → validação GitHub → site','tdas-player-focus','Salvar e próxima →'])assert.ok(studyUx.includes(marker),`Camada UX deve conter compatibilidade histórica ${marker}.`);
-assert.ok(!studyUx.includes('api.notion.com'),'Camada UX não pode consultar diretamente a API do Notion.');
+assert.match(studyUx,/A sessão em andamento é salva somente neste dispositivo/,'UX deve declarar que somente a sessão ativa é salva.');
+assert.match(studyUx,/resultado concluído não vira histórico pessoal/,'UX deve declarar que o resultado final não é acumulado.');
 assert.match(studyUx,/correção somente ao finalizar/i,'Player deve preservar correção cega até finalizar.');
+for(const marker of ['Notion → validação GitHub → site','tdas-player-focus','Salvar e próxima →'])assert.ok(studyUx.includes(marker),`Camada UX deve preservar o fluxo operacional ${marker}.`);
+assert.doesNotMatch(studyUx,/tdas\.202\.error-causes|Por que você errou\?|Revisão de hoje|Iniciar revisão|MODULE_KEY/,'UX não pode reintroduzir diagnóstico pessoal acumulado ou revisão interna.');
+assert.ok(!studyUx.includes('api.notion.com'),'Camada UX não pode consultar diretamente a API do Notion.');
 assert.match(reviewPage,/Prioridades para revisar/,'Rota Revisar deve apresentar Prioridades.');
 assert.match(reviewPage,/O TDAS não executa mais a revisão/,'Rota Revisar deve declarar que a execução saiu do site.');
 assert.match(reviewPage,/data-ux-review-today="1"/,'Rota Prioridades deve bloquear o enhancer legado de Revisão de hoje.');
