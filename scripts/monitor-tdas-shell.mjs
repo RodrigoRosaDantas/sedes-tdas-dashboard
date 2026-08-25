@@ -13,8 +13,8 @@ const FILES=[
  'mentor/index.html',
  'assets/tdas-mobile-ux.js',
  'assets/tdas-mobile-ux.css',
- 'assets/tdas-pro-dashboard.css',
- 'assets/home-mobile-hotfix.css',
+ 'assets/dashboard-pro-2026.css',
+ 'assets/integration/home-dashboard-pro-2026.js',
  'assets/tdas-pro-modules.js',
  'assets/tdas-pro-modules.css',
  'assets/tdas-command-palette.js',
@@ -44,7 +44,7 @@ async function fetchLive(base){
 }
 function reportFor(result,{attempt=1,attempts=1,baseUrl=DEFAULT_BASE}={}){
  const summary=result.healthy
-  ? `Camada TDAS PRO confirmada no GitHub Pages (${result.checked} arquivos críticos idênticos à main, incluindo Mentor).`
+  ? `Camada TDAS PRO unificada confirmada no GitHub Pages (${result.checked} arquivos críticos idênticos à main, incluindo Home e Mentor).`
   : `Camada TDAS PRO divergente no GitHub Pages: ${[...result.missing,...result.mismatched].join(', ')||'falha não classificada'}.`;
  const lines=['## Paridade da interface TDAS','',`- **Estado:** ${result.healthy?'íntegro':'divergente'}`,`- **Arquivos críticos:** ${result.checked}`,`- **Tentativa:** ${attempt}/${attempts}`,`- **Timeout HTTP:** ${REQUEST_TIMEOUT_MS} ms`,`- **Resumo:** ${summary}`];
  if(result.missing.length)lines.push(`- **Ausentes:** ${result.missing.join(', ')}`);
@@ -54,9 +54,12 @@ function reportFor(result,{attempt=1,attempts=1,baseUrl=DEFAULT_BASE}={}){
 async function selfTest(){
  const local=await readLocal();
  const index=local['index.html'].toString('utf8'),mentor=local['mentor/index.html'].toString('utf8'),sw=local['sw.js'].toString('utf8');
- assert.match(index,/assets\/home-mobile-hotfix\.css/,'Home deve referenciar o hotfix mobile.');
+ assert.match(index,/assets\/dashboard-pro-2026\.css\?v=30\.0\.0/,'Home deve referenciar a camada visual unificada.');
+ assert.match(index,/assets\/integration\/home-dashboard-pro-2026\.js\?v=30\.0\.0/,'Home deve referenciar o módulo operacional unificado.');
+ assert.doesNotMatch(index,/(?:src|href)="[^"]*(?:home-mobile-hotfix\.css|tdas-pro-dashboard\.css|home-v27\.js|home-v28\.js)/,'Home não pode reativar overlays visuais aposentados.');
  assert.match(mentor,/assets\/mentor\.js/,'Rota Mentor deve referenciar o módulo analítico.');
- assert.match(sw,/assets\/home-mobile-hotfix\.css/,'Service worker deve precachear o hotfix mobile.');
+ assert.match(sw,/assets\/dashboard-pro-2026\.css/,'Service worker deve precachear a camada visual da Home unificada.');
+ assert.match(sw,/assets\/integration\/home-dashboard-pro-2026\.js/,'Service worker deve precachear o módulo da Home unificada.');
  assert.match(sw,/mentor\//,'Service worker deve precachear a rota Mentor.');
  assert.match(sw,/assets\/integration\/mentor-engine\.js/,'Service worker deve precachear o motor do Mentor.');
  assert.ok(!sw.includes('question-keys/'),'Gabarito não pode entrar no shell precacheado.');
@@ -67,7 +70,7 @@ async function selfTest(){
  const broken=compareShell(sig,changed);
  assert.equal(broken.healthy,false);
  assert.deepEqual(broken.mismatched,['assets/mentor.js']);
- console.log(`Monitor do shell validado: ${FILES.length} arquivos críticos, Mentor e hotfix no PWA, timeout HTTP de ${REQUEST_TIMEOUT_MS} ms.`);
+ console.log(`Monitor do shell validado: ${FILES.length} arquivos críticos, Home unificada, Mentor e PWA, timeout HTTP de ${REQUEST_TIMEOUT_MS} ms.`);
 }
 
 if(process.env.SHELL_MONITOR_SELF_TEST==='true'){

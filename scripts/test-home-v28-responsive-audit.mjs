@@ -57,27 +57,28 @@ async function evalJs(client,expression){const result=await client.send('Runtime
 async function waitFor(client,expression,label,attempts=160){for(let i=0;i<attempts;i++){try{if(await evalJs(client,expression))return}catch{}await delay(120)}throw new Error(`Timeout: ${label}`)}
 
 async function inspect(p){
- const client=await page(p);await nav(client,base);await waitFor(client,"document.documentElement.dataset.dashboardPro2026==='1'&&document.querySelector('.pro26-dashboard')",`Dashboard PRO ${p.name}`);await delay(450);
+ const client=await page(p);await nav(client,base);await waitFor(client,"document.querySelector('.pro26-dashboard')&&document.querySelector('[data-continue-action]')",`Dashboard PRO ${p.name}`);await delay(450);
  return evalJs(client,`(()=>{
   const visible=n=>n&&getComputedStyle(n).display!=='none'&&getComputedStyle(n).visibility!=='hidden'&&n.getBoundingClientRect().width>0&&n.getBoundingClientRect().height>0;
   const rect=n=>{if(!n)return null;const r=n.getBoundingClientRect();return{left:r.left,right:r.right,top:r.top,bottom:r.bottom,width:r.width,height:r.height}};
   const hero=document.querySelector('.tdas-home-focus');
-  const heroActions=[...(hero?.querySelectorAll('.tdas-home-actions a')||[])].filter(visible).map(n=>({text:n.textContent.trim(),...rect(n)}));
-  const sections=['.pro26-sync-card','.pro26-operational-bridge','.pro26-decision-grid','.pro26-metrics','.pro26-plan','.pro26-analytics'].filter(selector=>visible(document.querySelector(selector)));
+  const primary=hero?.querySelector('[data-continue-action]');
+  const shortcuts=[...(hero?.querySelectorAll('.tdas-home-actions a')||[])].filter(visible);
+  const heroActions=[primary,...shortcuts].filter(visible).map(n=>({text:n.textContent.trim(),...rect(n)}));
+  const sections=['.pro26-utility-row','.pro26-operational-bridge','.pro26-decision-grid','.pro26-metrics','.pro26-plan','.pro26-analytics'].filter(selector=>visible(document.querySelector(selector)));
   const headings=[...document.querySelectorAll('.pro26-dashboard h1,.pro26-dashboard h2')].filter(visible).map(n=>({text:n.textContent.trim(),client:n.clientHeight,scroll:n.scrollHeight,overflow:getComputedStyle(n).overflow}));
-  const mainOffenders=[...document.querySelectorAll('main *')].filter(visible).map(n=>({node:n.tagName.toLowerCase(),cls:String(n.className||'').slice(0,90),...rect(n)})).filter(r=>r.left<-1||r.right>innerWidth+1).slice(0,12);
-  const primary=hero?.querySelector('.tdas-home-actions .btn.primary');
-  const center=document.querySelector('[data-operational-center]');
-  const centerPrimary=center?.querySelector('[data-continue-action]');
+  const intentionallyScrollable=n=>{const host=n.closest('.pro26-tabs');if(!host)return false;const style=getComputedStyle(host);return ['auto','scroll'].includes(style.overflowX)&&host.scrollWidth>host.clientWidth;};
+  const mainOffenders=[...document.querySelectorAll('main *')].filter(visible).filter(n=>!intentionallyScrollable(n)).map(n=>({node:n.tagName.toLowerCase(),cls:String(n.className||'').slice(0,90),text:String(n.textContent||'').trim().slice(0,70),...rect(n)})).filter(r=>r.left<-1||r.right>innerWidth+1).slice(0,12);
+  const bridge=document.querySelector('[data-operational-center]');
   const mobileNav=document.querySelector('#mobile-nav');
   const sidebar=document.querySelector('.sidebar');
   const navLinks=[...(mobileNav?.querySelectorAll('a')||[])].filter(visible).map(n=>({text:n.textContent.trim(),...rect(n)}));
-  const system=document.querySelector('.pro26-sync-card');
+  const system=document.querySelector('.pro26-sync-mini');
   const tabs=[...document.querySelectorAll('[data-pro26-tab]')].filter(visible);
   const keepY=scrollY;window.scrollTo(9999,keepY);const attemptedX=scrollX;window.scrollTo(0,keepY);
   return {
    width:innerWidth,height:innerHeight,docWidth:document.documentElement.scrollWidth,bodyWidth:document.body.scrollWidth,bodyHeight:document.body.getBoundingClientRect().height,attemptedX,
-   sections,heroActions,primaryHref:primary?.href||'',centerHref:centerPrimary?.href||'',headings,mainOffenders,tabs:tabs.length,metrics:document.querySelectorAll('.pro26-metrics>.pro26-metric').length,
+   sections,heroActions,shortcutCount:shortcuts.length,primaryHref:primary?.href||'',centerStage:bridge?.dataset.primaryStage||'',headings,mainOffenders,tabs:tabs.length,metrics:document.querySelectorAll('.pro26-metrics>.pro26-metric').length,
    mobileNavVisible:visible(mobileNav),sidebarVisible:visible(sidebar),navLinks,
    systemVisible:visible(system),systemRect:rect(system)
   };
@@ -90,13 +91,15 @@ try{
  await waitJson(`http://127.0.0.1:${chromePort}/json/version`);
  for(const p of profiles){
   const d=await inspect(p);console.log(`AUDIT_${p.name}=${JSON.stringify(d)}`);
-  assert.equal(d.sections.length,6,`${p.name}: as seis áreas principais do Dashboard PRO devem permanecer visíveis.`);
-  assert.equal(d.primaryHref,d.centerHref,`${p.name}: hero e Central divergem na ação canônica.`);
+  assert.equal(d.sections.length,6,`${p.name}: as seis áreas operacionais da Home unificada devem permanecer visíveis.`);
+  assert.ok(d.primaryHref.includes('/sedes-tdas-dashboard/'),`${p.name}: ação canônica da próxima execução ausente.`);
+  assert.ok(d.centerStage,`${p.name}: ponte operacional sem estágio canônico.`);
+  assert.equal(d.shortcutCount,3,`${p.name}: a Home deve manter três atalhos diagnósticos.`);
   assert.equal(d.heroActions.length,4,`${p.name}: esperado 1 CTA + 3 atalhos; encontrado ${d.heroActions.map(x=>x.text).join(' | ')}.`);
   assert.equal(d.tabs,3,`${p.name}: três visões analíticas devem permanecer acessíveis.`);
-  assert.equal(d.metrics,5,`${p.name}: cinco indicadores principais devem permanecer visíveis.`);
+  assert.equal(d.metrics,4,`${p.name}: quatro KPIs principais devem permanecer visíveis, sem métricas redundantes.`);
   assert.equal(d.attemptedX,0,`${p.name}: rolagem horizontal funcional detectada.`);
-  assert.equal(d.mainOffenders.length,0,`${p.name}: elementos saindo da viewport: ${JSON.stringify(d.mainOffenders)}.`);
+  assert.equal(d.mainOffenders.length,0,`${p.name}: elementos saindo da viewport fora de trilhos roláveis: ${JSON.stringify(d.mainOffenders)}.`);
   assert.equal(d.systemVisible,true,`${p.name}: atualização Notion/GitHub deve permanecer visível.`);
   assert.ok(d.headings.every(h=>h.overflow!=='hidden'||h.scroll<=h.client+4),`${p.name}: título truncado: ${JSON.stringify(d.headings)}.`);
   if(p.touch){
@@ -106,5 +109,5 @@ try{
   if(p.width<=834)assert.equal(d.sidebarVisible,false,`${p.name}: sidebar desktop não deve ocupar tela em retrato/tablet estreito.`);
   if(p.width>=1280&&!p.mobile)assert.equal(d.sidebarVisible,true,`${p.name}: sidebar deve permanecer disponível no desktop.`);
  }
- console.log('Auditoria responsiva do Dashboard PRO aprovada: mobile, iPad retrato/paisagem e desktop sem overflow, truncamento ou alvo de toque crítico.');
+ console.log('Auditoria responsiva da Home unificada aprovada: mobile, iPad retrato/paisagem e desktop sem overflow, truncamento ou alvo de toque crítico.');
 }finally{await stop();await fs.rm(profileDir,{recursive:true,force:true}).catch(()=>{})}

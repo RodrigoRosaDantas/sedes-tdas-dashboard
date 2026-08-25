@@ -22,8 +22,13 @@ for(const field of['platformVersion','dataVersion','catalogVersion','serviceWork
 const major=Number(String(manifest.platformVersion).split('.')[0]);
 assert.ok(Number.isFinite(major)&&major>=28,'platformVersion não pode regredir abaixo da TDAS v28.');
 assert.equal(shellVersion,manifest.platformVersion,'shell visual usa versão diferente do manifesto público.');
-for(const asset of['assets/styles.css','assets/v20.css','assets/home-mobile.js']){
+for(const asset of['assets/styles.css','assets/v20.css']){
  assert.ok(index.includes(`${asset}?v=${manifest.platformVersion}`),`${asset} não usa o cache-buster da versão global.`);
+}
+assert.match(index,/assets\/dashboard-pro-2026\.css\?v=30\.0\.0/u,'Home unificada deve carregar sua camada visual própria.');
+assert.match(index,/assets\/integration\/home-dashboard-pro-2026\.js\?v=30\.0\.0/u,'Home unificada deve carregar seu módulo operacional próprio.');
+for(const retired of['assets/home-mobile.js','assets/home-mobile-hotfix.css','assets/integration/home-v27.js','assets/integration/home-v28.js']){
+ assert.ok(!index.includes(retired),`${retired} é legado/rollback e não pode voltar a ser asset ativo da Home.`);
 }
 assert.ok(!index.includes('?v=26.17.0'),'Home ainda referencia cache-buster legado 26.17.0.');
 assert.ok(!syncWorkflow.includes('Plataforma TDAS v26'),'workflow de sincronização ainda se apresenta como TDAS v26.');
@@ -34,4 +39,4 @@ assert.equal(manifest.publicationId,[manifest.platformVersion,manifest.dataVersi
 assert.equal(swVersion,manifest.serviceWorkerVersion,'service worker usa versão diferente do manifesto.');
 assert.ok(dataList,'lista DATA ausente no service worker.');
 assert.ok(JSON.parse(dataList).includes('data/platform-version.json'),'manifesto de versão fora do precache.');
-console.log(`Versão consolidada validada: plataforma ${manifest.platformVersion}, shell ${shellVersion}, dados ${manifest.dataVersion}, ${manifest.peId}, sincronização ${manifest.syncAt}, cache ${manifest.serviceWorkerVersion}.`);
+console.log(`Versão consolidada validada: plataforma ${manifest.platformVersion}, Home unificada, shell ${shellVersion}, dados ${manifest.dataVersion}, ${manifest.peId}, sincronização ${manifest.syncAt}, cache ${manifest.serviceWorkerVersion}.`);

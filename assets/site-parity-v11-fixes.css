@@ -1,0 +1,18 @@
+/* Correções de precedência para que estilos de gerações antigas não retomem o controle do shell. */
+html[data-site-parity="v11"]{--blue:#3f6df3}
+html[data-site-parity="v11"][data-theme="dark"]{--blue:#86a2ff}
+html[data-site-parity="v11"] .site-sr-only{position:absolute!important;width:1px!important;height:1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;clip-path:inset(50%)!important}
+
+/* A Home PRO precisa manter busca e sincronização disponíveis em todas as larguras.
+   A camada de paridade escondia a utility row; este override preserva o layout
+   responsivo definido em dashboard-pro-2026.css e mantém Atualizar dados acessível. */
+html[data-site-parity="v11"] .pro26-utility-row{display:grid!important}
+
+/* Fora do breakpoint móvel do site v11, nenhuma regra antiga pode ressuscitar a barra inferior/fixa. */
+html[data-site-parity="v11"] .mobile-nav{display:none!important;position:static;inset:auto;width:auto;max-width:none;margin:0;border-radius:0;box-shadow:none}
+
+@media(max-width:900px){
+ html[data-site-parity="v11"] .mobile-nav{position:sticky!important;top:63px;right:auto;bottom:auto;left:auto;z-index:29;display:flex!important;width:100%;max-width:100%;gap:6px;overflow-x:auto;border:0;border-bottom:1px solid var(--line);border-radius:0;background:color-mix(in srgb,var(--bg) 96%,transparent);padding:8px 16px;box-shadow:none;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);overscroll-behavior-x:contain}
+ html[data-site-parity="v11"] .mobile-nav a{display:flex;min-width:max-content;min-height:44px;align-items:center;justify-content:center;gap:6px;border:1px solid var(--line);border-radius:18px;background:var(--surface);color:var(--muted);padding:7px 11px;font-size:9px;white-space:nowrap}
+ html[data-site-parity="v11"] .mobile-nav a.active{border-color:var(--text);background:var(--text);color:var(--lime)}
+}

@@ -22,11 +22,11 @@ function connect(wsUrl){
 }
 async function newPage(width=1280,height=900){
  const target=await fetch(`http://127.0.0.1:${port}/json/new?about:blank`,{method:'PUT'}).then(response=>response.json());
- const client=connect(target.webSocketDebuggerUrl);await client.ready;await client.send('Page.enable');await client.send('Runtime.enable');await client.send('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile:width<=640});return client;
+ const client=connect(target.webSocketDebuggerUrl);await client.ready;await client.send('Page.enable');await client.send('Runtime.enable');await client.send('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile:width<=900});return client;
 }
 async function navigate(client,url){const loaded=client.once('Page.loadEventFired');await client.send('Page.navigate',{url});await loaded;}
 async function evaluate(client,expression){const result=await client.send('Runtime.evaluate',{expression,returnByValue:true,awaitPromise:true});if(result.exceptionDetails)throw new Error(result.exceptionDetails.exception?.description||result.exceptionDetails.text||'Erro no navegador');return result.result?.value;}
-async function waitFor(client,expression,label,attempts=80){for(let i=0;i<attempts;i++){try{if(await evaluate(client,expression))return;}catch{}await delay(250);}throw new Error(`Timeout: ${label}`);}
+async function waitFor(client,expression,label,attempts=100){for(let i=0;i<attempts;i++){try{if(await evaluate(client,expression))return;}catch{}await delay(250);}throw new Error(`Timeout: ${label}`);}
 async function stopChrome(){
  if(chrome.exitCode!==null)return;
  await new Promise(resolve=>{
@@ -43,10 +43,12 @@ try{
  const home=await newPage(1280,900);
  await navigate(home,`${base}/`);
  await waitFor(home,"document.body.textContent.includes('Central de execução')",'central da página inicial');
+ await waitFor(home,"document.documentElement.dataset.siteParity==='v11'",'shell v11 na Home');
  await waitFor(home,`document.body.textContent.includes(${JSON.stringify(platform.platformVersion)})`,'versão na página inicial');
- const homeState=await evaluate(home,`({brand:document.querySelector('.brand small')?.textContent||'',status:document.querySelector('[data-publication-status]')?.textContent||'',lastSync:document.querySelector('[data-last-sync]')?.textContent||'',body:document.body.textContent})`);
+ const homeState=await evaluate(home,`({brand:document.querySelector('.brand small')?.textContent||'',status:document.querySelector('[data-publication-status]')?.textContent||'',lastSync:document.querySelector('[data-last-sync]')?.textContent||'',body:document.body.textContent,parity:document.documentElement.dataset.siteParity})`);
  const expectedSync=new Intl.DateTimeFormat('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'America/Sao_Paulo'}).format(new Date(platform.syncAt)).replace(',',' às');
- assert.ok(homeState.brand.includes(platform.platformVersion),`Marca não apresenta ${platform.platformVersion}: ${homeState.brand}`);
+ assert.equal(homeState.parity,'v11','Home deve usar a experiência do ChatGPT Site v11.');
+ assert.ok(homeState.brand.includes('Dashboard PRO'),`Marca deve permanecer TDAS Dashboard PRO: ${homeState.brand}`);
  assert.ok(homeState.body.includes(`Plataforma ${platform.platformVersion}`),`Central não apresenta Plataforma ${platform.platformVersion}.`);
  assert.ok(homeState.body.includes(`publicação ${String(platform.sourceCommit).slice(0,7)}`),`Central não apresenta a publicação ${String(platform.sourceCommit).slice(0,7)}.`);
  assert.ok(homeState.body.includes(expectedSync),`Sincronização esperada ${expectedSync} não apareceu. Estado: ${JSON.stringify({status:homeState.status,lastSync:homeState.lastSync})}`);
@@ -55,15 +57,18 @@ try{
  const mobile=await newPage(390,844);
  await navigate(mobile,`${base}/redacoes/?tab=bank&band=Risco`);
  await waitFor(mobile,"document.querySelector('#result-count')?.textContent.includes('1 de 32')",'filtro de risco');
+ await waitFor(mobile,"document.documentElement.dataset.siteParity==='v11'",'shell v11 em Redações');
  assert.equal(await evaluate(mobile,"document.querySelector('[data-tab=bank]')?.getAttribute('aria-selected')"),'true');
  assert.equal(await evaluate(mobile,"getComputedStyle(document.querySelector('.rd-bank-table')).display"),'none');
  assert.notEqual(await evaluate(mobile,"getComputedStyle(document.querySelector('.rd-bank-cards')).display"),'none');
- await waitFor(mobile,"[...document.querySelectorAll('#mobile-nav a')].map(a=>a.querySelector('span:last-child')?.textContent.trim()||'').join('|')==='Hoje|Questões|Erros|Mentor|Mais'",'barra mobile orientada à execução');
- assert.equal(await evaluate(mobile,"[...document.querySelectorAll('#mobile-nav a')].map(a=>a.querySelector('span:last-child')?.textContent.trim()||'').join('|')"),'Hoje|Questões|Erros|Mentor|Mais');
- await waitFor(mobile,"Boolean(document.querySelector('[data-menu-toggle]'))",'botão do menu móvel');
- await evaluate(mobile,"document.querySelector('[data-menu-toggle]').click();true");
- await waitFor(mobile,"!document.querySelector('[data-tdas-drawer]').hidden",'drawer móvel nas redações');
- assert.equal(await evaluate(mobile,"document.querySelector('.tdas-drawer-nav')?.textContent.includes('Redação')"),true,'Redação deve permanecer acessível no drawer.');
+ const mobileNav=await evaluate(mobile,"[...document.querySelectorAll('#mobile-nav a')].map(a=>a.querySelector('span:last-child')?.textContent.trim()||'')");
+ assert.deepEqual(mobileNav,['Faça agora','Resolver questões','Revisões','Caderno de erros','Check do Edital','Recursos v28','Operações','Plano PE01–PE112','Biblioteca','Dados pessoais','Configurações'],'Redações deve permanecer dentro do mesmo shell móvel do site v11.');
+ assert.equal(await evaluate(mobile,"document.querySelector('[data-site-nav=library]')?.classList.contains('active')"),true,'Redações deve estar agrupada visualmente em Biblioteca.');
+ assert.equal(await evaluate(mobile,"getComputedStyle(document.querySelector('.sidebar')).display"),'none','Sidebar não pode espremer Redações no mobile.');
+ assert.equal(await evaluate(mobile,"document.documentElement.scrollWidth<=innerWidth+1"),true,'Redações não pode criar overflow horizontal de página.');
+ await evaluate(mobile,"document.querySelector('[data-site-search]').click();true");
+ await waitFor(mobile,"document.querySelector('[data-command-palette]:not([hidden])')||document.querySelector('[data-command-palette-shell]:not([hidden])')",'busca global nas redações');
+ assert.equal(await evaluate(mobile,"document.body.textContent.includes('Redações')||document.body.textContent.includes('Redação')"),true,'Redação deve permanecer descobrível pela busca global.');
  await evaluate(mobile,"document.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}));true");
  assert.equal(await evaluate(mobile,"document.querySelector('[data-tab=bank]')?.hasAttribute('aria-controls')"),true);
  assert.equal(await evaluate(mobile,"document.querySelector('[data-panel=bank]')?.getAttribute('role')"),'tabpanel');
@@ -71,6 +76,7 @@ try{
  const detail=await newPage(1100,900);
  await navigate(detail,`${base}/redacoes/detalhe/?rd=RD01`);
  await waitFor(detail,"document.querySelector('h1')?.textContent.includes('RD01')",'detalhe RD01');
+ await waitFor(detail,"document.documentElement.dataset.siteParity==='v11'",'shell v11 no detalhe da redação');
  assert.ok(await evaluate(detail,"document.querySelectorAll('.rd-rich-text p').length")>=4,'RD01 deve preservar parágrafos.');
  assert.ok(await evaluate(detail,"document.querySelectorAll('.rd-pager').length")>=2,'RD01 deve ter navegação no topo e rodapé.');
  assert.equal(await evaluate(detail,"[...document.links].some(link=>/notion\\.(so|com)/i.test(link.href))"),false);
@@ -90,7 +96,7 @@ try{
   assert.equal(await evaluate(locked,"document.body.textContent.includes('Proposta completa')"),false);
  }
 
- console.log(JSON.stringify({browser:'ok',homePublication:true,mobileCards:true,mobileFiveActions:true,drawerRedaction:true,tabsAccessible:true,paragraphs:true,offlinePersistent:true,futureLocked:Boolean(lockedRd),lockedRd:lockedRd||null}));
+ console.log(JSON.stringify({browser:'ok',siteParity:'v11',homePublication:true,mobileCards:true,globalDiscovery:true,tabsAccessible:true,paragraphs:true,offlinePersistent:true,futureLocked:Boolean(lockedRd),lockedRd:lockedRd||null}));
 }finally{
  await stopChrome();
  await fs.rm(profile,{recursive:true,force:true,maxRetries:8,retryDelay:200}).catch(()=>{});

@@ -1,3 +1,4 @@
+import'./integration/site-parity-v11.js?v=1.0.0';
 import{loadJSON}from'./common.js?v=26';
 const BASE='/sedes-tdas-dashboard/',load=loadJSON;
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
@@ -22,4 +23,7 @@ async function audit(){const h=await load('data/sync-history.json'),quality=docu
 async function more(){const grid=document.querySelector('.portal-grid');if(grid&&!grid.querySelector('[data-v26-more]'))grid.insertAdjacentHTML('beforeend',`<a class="card portal" data-v26-more href="${BASE}questoes-erros/"><small>Revisão ativa</small><b>Questões erradas</b><span>Registros com resumos completos e filtros por matéria.</span><em>Abrir →</em></a><a class="card portal" data-v26-more href="${BASE}materias/"><small>Plataforma</small><b>Matérias</b><span>Diagnóstico consolidado, padrões e flashcards.</span><em>Abrir →</em></a><a class="card portal" data-v26-more href="${BASE}pe/"><small>Plataforma</small><b>Pesquisar PE</b><span>Abra diretamente qualquer PE do ciclo.</span><em>Abrir →</em></a>`)}
 function linkTable(rows,subjects=null){rows.forEach(tr=>{const cells=tr.cells;if(!cells)return;const origin=cells[0]?.textContent.trim();if(/^PE\d+$/.test(origin))cells[0].innerHTML=`<a class="linked-id" href="${peHref(origin)}">${origin}</a>`;const subj=cells[1]?.textContent.trim(),s=subjects?.subjects?.find(x=>x.subject===subj);if(s)cells[1].innerHTML=`<a class="linked-id" href="${BASE}materias/${s.slug}/">${esc(subj)}</a>`})}
 import(BASE+'assets/integration/daily-progress.js?v=1.0.0').catch(error=>console.error('daily progress',error));
-import(BASE+'assets/tdas-mobile-ux.js?v=1').catch(error=>console.error('tdas mobile ux',error));
+import(BASE+'assets/tdas-mobile-ux.js?v=1')
+ .then(()=>import('./integration/site-parity-v11.js?v=1.0.0'))
+ .then(module=>module.refreshSiteParity?.())
+ .catch(error=>console.error('tdas mobile ux',error));
