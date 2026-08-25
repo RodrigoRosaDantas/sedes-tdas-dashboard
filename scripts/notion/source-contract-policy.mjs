@@ -17,6 +17,7 @@ function tableRangeAfter(section,label){
 function firstRangeAfter(section,label){return tableRangeAfter(section,label)}
 function firstNumberAfter(section,labels){for(const label of labels){const range=tableRangeAfter(section,label);if(range&&range.min===range.max)return range.min}return null}
 function field(section,label){const source=String(section??'');const escaped=label.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');const match=source.match(new RegExp(`\\*\\*${escaped}:\\*\\*\\s*([^\\n<]+)`,'i'));return match?strip(match[1]):''}
+const expectationLabel=expectation=>expectation?.min===expectation?.max?expectation.min:`${expectation?.min}–${expectation?.max}`;
 export function parseMicroMarkdown(markdown,week){
  const source=String(markdown??'').replace(/\r/g,'');
  const headings=[...source.matchAll(/^##\s+PE\s*0*(\d{1,3})\b[^\n]*$/gim)];
@@ -27,8 +28,9 @@ export function parseMicroMarkdown(markdown,week){
   const headingText=strip(heading[0]).replace(/^#+\s*/,'');
   const rest=/\bdescanso\b/i.test(headingText)||/\*\*Obrigatório:\*\*\s*descanso/i.test(section);
   const officialExam=number===112||/\bprova oficial\b/i.test(headingText);
-  const range=firstRangeAfter(section,'Total estimado')||firstRangeAfter(section,'Total do dia');
-  const expectation=officialExam?{mode:'official_exam',min:null,max:null}:rest?{mode:'rest',min:0,max:0}:range?{mode:week===16?'adaptive':'strict',...range}:{mode:week===16?'adaptive':'unknown',min:null,max:null};
+  const exactRange=firstRangeAfter(section,'Total do dia');
+  const estimatedRange=firstRangeAfter(section,'Total estimado');
+  const expectation=officialExam?{mode:'official_exam',min:null,max:null}:rest?{mode:'rest',min:0,max:0}:exactRange?{mode:week===16?'adaptive':'strict',...exactRange}:estimatedRange?{mode:week===16?'adaptive':'advisory',...estimatedRange}:{mode:week===16?'adaptive':'unknown',min:null,max:null};
   days.push({
    pe,number,week,date:isoDate(headingText),title:headingText.replace(/^PE\d+\s*[—–-]?\s*/i,''),
    theme:field(section,'Tema principal'),block:field(section,'Bloco predominante'),type:field(section,'Tipo'),
@@ -44,15 +46,6 @@ export function matchesExpectation(value,expectation){const n=Number(value);if(e
 const dateToNumber=value=>{const date=new Date(`${value}T12:00:00-03:00`);return Number.isNaN(date.getTime())?null:date.getTime()};
 function severityFor({pe,currentPe,date,snapshotDate}){if(pe===currentPe)return'critical';const t=dateToNumber(date),today=dateToNumber(snapshotDate);if(t!=null&&today!=null&&t>today&&t-today<=DAY_MS)return'warning';return'info'}
 function countOf(control){const raw=control?.planned_questions??control?.meta??0;const value=Number(raw);return Number.isFinite(value)?value:null}
-function validatedCanonicalAgreement({pe,currentPe,control,catalog}){
- const controlCount=countOf(control),catalogCount=Number(catalog?.questionCount);
- return pe===currentPe
-  &&peCode(catalog?.peId)===currentPe
-  &&catalog?.authorizedSource?.resolution==='validated-child-page'
-  &&String(catalog?.authorizedSource?.url||'').trim().length>0
-  &&Number.isFinite(controlCount)&&controlCount>0
-  &&Number.isFinite(catalogCount)&&catalogCount===controlCount;
-}
 export function buildContractAssessment({controls=[],microDays=[],catalog=null,currentPe='',snapshotDate=''}){
  const byMicro=new Map(microDays.map(day=>[day.pe,day]));
  const byControl=new Map();
@@ -63,24 +56,17 @@ export function buildContractAssessment({controls=[],microDays=[],catalog=null,c
   if(micro.date&&control.date&&micro.date!==control.date)conflicts.push({code:'date_mismatch',pe,severity:severityFor({pe,currentPe,date:control.date,snapshotDate}),message:`${pe}: data do Micro ${micro.date} diverge do Controle ${control.date}.`});
   const count=countOf(control);
   if(micro.expectation.mode==='strict'||micro.expectation.mode==='rest'){
-   if(!matchesExpectation(count,micro.expectation)){
-    const canonical=validatedCanonicalAgreement({pe,currentPe,control,catalog});
-    conflicts.push(canonical
-     ?{code:'canonical_control_overrides_micro',pe,severity:'warning',message:`${pe}: Controle e bateria canônica validada concordam em ${count} questões; Micro ainda registra ${micro.expectation.min===micro.expectation.max?micro.expectation.min:`${micro.expectation.min}–${micro.expectation.max}`}.`}
-     :{code:'control_vs_micro',pe,severity:severityFor({pe,currentPe,date:control.date,snapshotDate}),message:`${pe}: Controle prevê ${count??'—'} questões; Micro exige ${micro.expectation.min===micro.expectation.max?micro.expectation.min:`${micro.expectation.min}–${micro.expectation.max}`}.`});
-   }
+   if(!matchesExpectation(count,micro.expectation))conflicts.push({code:'control_vs_micro',pe,severity:severityFor({pe,currentPe,date:control.date,snapshotDate}),message:`${pe}: Controle prevê ${count??'—'} questões; Micro exige ${expectationLabel(micro.expectation)}.`});
   }else if(micro.expectation.mode==='adaptive'&&!matchesExpectation(count,micro.expectation)){
    conflicts.push({code:'adaptive_control_gap',pe,severity:'info',message:`${pe}: Controle registra bateria-base ${count??'—'}; Micro da Semana 16 permanece soberano e adaptativo.`});
+  }else if(micro.expectation.mode==='advisory'&&!matchesExpectation(count,micro.expectation)){
+   conflicts.push({code:'estimated_control_gap',pe,severity:'info',message:`${pe}: Controle registra ${count??'—'} questões; Micro estima ${expectationLabel(micro.expectation)}.`});
   }
  }
  const currentMicro=byMicro.get(currentPe)||null,currentControl=byControl.get(currentPe)||null,catalogCount=Number(catalog?.questionCount);
- if(currentMicro&&catalog&&['strict','rest'].includes(currentMicro.expectation.mode)&&!matchesExpectation(catalogCount,currentMicro.expectation)){
-  const canonical=validatedCanonicalAgreement({pe:currentPe,currentPe,control:currentControl,catalog});
-  conflicts.push(canonical
-   ?{code:'canonical_catalog_overrides_micro',pe:currentPe,severity:'warning',message:`${currentPe}: catálogo canônico validado publicou ${catalogCount} questões e concorda com o Controle; Micro ainda registra ${currentMicro.expectation.min===currentMicro.expectation.max?currentMicro.expectation.min:`${currentMicro.expectation.min}–${currentMicro.expectation.max}`}.`}
-   :{code:'catalog_vs_micro',pe:currentPe,severity:'critical',message:`${currentPe}: catálogo publicou ${Number.isFinite(catalogCount)?catalogCount:'—'} questões; Micro exige ${currentMicro.expectation.min===currentMicro.expectation.max?currentMicro.expectation.min:`${currentMicro.expectation.min}–${currentMicro.expectation.max}`}.`});
- }
+ if(currentMicro&&catalog&&['strict','rest'].includes(currentMicro.expectation.mode)&&!matchesExpectation(catalogCount,currentMicro.expectation))conflicts.push({code:'catalog_vs_micro',pe:currentPe,severity:'critical',message:`${currentPe}: catálogo publicou ${Number.isFinite(catalogCount)?catalogCount:'—'} questões; Micro exige ${expectationLabel(currentMicro.expectation)}.`});
  if(currentMicro&&catalog&&currentMicro.expectation.mode==='adaptive'&&!matchesExpectation(catalogCount,currentMicro.expectation))conflicts.push({code:'adaptive_catalog_gap',pe:currentPe,severity:'info',message:`${currentPe}: catálogo contém ${Number.isFinite(catalogCount)?catalogCount:'—'} questões; Micro da Semana 16 continua soberano e pode exigir complemento adaptativo.`});
+ if(currentMicro&&catalog&&currentMicro.expectation.mode==='advisory'&&!matchesExpectation(catalogCount,currentMicro.expectation))conflicts.push({code:'estimated_catalog_gap',pe:currentPe,severity:'info',message:`${currentPe}: catálogo contém ${Number.isFinite(catalogCount)?catalogCount:'—'} questões; Micro estima ${expectationLabel(currentMicro.expectation)}.`});
  const currentConflicts=conflicts.filter(item=>item.pe===currentPe),critical=currentConflicts.filter(item=>item.severity==='critical');
  return{
   status:critical.length?'blocked':conflicts.some(item=>item.severity==='warning')?'ready_with_warnings':'ready',
