@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 const ROOT=process.cwd(),BASE='/sedes-tdas-dashboard/',read=file=>fs.readFile(path.join(ROOT,file),'utf8'),exists=file=>fs.access(path.join(ROOT,file)).then(()=>true).catch(()=>false),required=(condition,message)=>{if(!condition)throw new Error(`PWA da execução diária: ${message}`)};
-const sw=await read('sw.js'),postprocess=await read('scripts/postprocess-v26.mjs'),versionSync=await read('scripts/sync-platform-version.mjs'),manifest=JSON.parse(await read('manifest.webmanifest')),packageData=JSON.parse(await read('package.json')),platformVersion=JSON.parse(await read('data/platform-version.json'));
+const sw=await read('sw.js'),postprocess=await read('scripts/postprocess-v26.mjs'),versionSync=await read('scripts/sync-platform-version.mjs'),common=await read('assets/common.js'),manifest=JSON.parse(await read('manifest.webmanifest')),packageData=JSON.parse(await read('package.json')),platformVersion=JSON.parse(await read('data/platform-version.json'));
 const list=name=>{const match=sw.match(new RegExp(`const ${name}=\\[([\\s\\S]*?)\\];`));required(match,`lista ${name} ausente`);return[...match[1].matchAll(/(['"])(.*?)\1/g)].map(item=>item[2])};
 const routes=list('CORE_ROUTES'),assets=list('ASSETS'),data=list('DATA'),version=sw.match(/const VERSION=['"]([^'"]+)['"]/u)?.[1]||'',visualCacheRev=versionSync.match(/const VISUAL_CACHE_REV=['"]([^'"]+)['"]/u)?.[1]||'';
 const requiredRoutes=['configuracoes/','dados-locais/','estudar/','resolver/','revisar/','caderno-erros/','desempenho/','fila-ia/','mentor/'];
@@ -13,10 +13,13 @@ for(const asset of requiredAssets){required(assets.includes(asset),`asset fora d
 for(const file of requiredData){required(data.includes(file),`dado fora do cache: ${file}`);required(await exists(file),`dado ausente: ${file}`);if(file==='data/platform-version.json')required(versionSync.includes(file),'sincronizador pode remover o manifesto de versão');else required(postprocess.includes(`\"${file}\"`),`gerador pode remover o dado: ${file}`)}
 required(!data.some(file=>file.includes('question-keys/'))&&!sw.includes('question-keys/'),'correção foi pré-carregada antes da finalização');
 required(versionSync.includes("replaceConstant(sw,'VERSION'")&&versionSync.includes("ensureArrayEntry(sw,'DATA','data/platform-version.json')"),'sincronizador não governa versão e precache');
-required(/pro8$/u.test(visualCacheRev),`revisão visual do cache deve permanecer na geração PRO8, permitindo revisões de invalidação: ${visualCacheRev||'ausente'}`);
+required(/pro9$/u.test(visualCacheRev),`revisão visual do cache deve permanecer na geração PRO9, permitindo revisões de invalidação: ${visualCacheRev||'ausente'}`);
 required(sw.includes('caches.match(request,{ignoreSearch:true})')&&sw.includes("if(url.search||url.pathname.includes('/data/'))"),'service worker não possui fallback offline para URLs versionadas');
 required(postprocess.includes('caches.match(request,{ignoreSearch:true})')&&postprocess.includes("if(url.search||url.pathname.includes('/data/'))"),'gerador pode remover o fallback offline de URLs versionadas');
+required(sw.includes("new Request(request,{cache:'no-store'})")&&sw.includes('fetchAndCache(event.request,{fresh:true})'),'service worker não força rede fresca para navegação e recursos versionados');
+required(postprocess.includes("new Request(request,{cache:'no-store'})")&&postprocess.includes('fetchAndCache(event.request,{fresh:true})'),'gerador pode restaurar respostas HTTP antigas na navegação');
+required(common.includes("updateViaCache:'none'")&&common.includes('registration.update()'),'shell não força a verificação imediata de uma nova versão do service worker');
 required(!data.some(file=>/pe76|pilot/i.test(file))&&!assets.some(file=>/pilot-catalog|real-study|pe-pilot-status/i.test(file)),'PWA ainda inclui conteúdo de exemplo.');
 required(manifest.start_url===BASE&&manifest.scope===BASE,'escopo do manifesto divergente');
 required(packageData.scripts?.['check:pwa']==='node scripts/validate-pwa-integration.mjs','comando check:pwa ausente');
-console.log(`PWA validado: ${requiredRoutes.length} rotas críticas, ${requiredAssets.length} módulos, versão ${version}, geração visual ${visualCacheRev}, fallback de cache versionado ativo, Dashboard PRO, Mentor e hotfix mobile disponíveis offline, correção fora do precache.`);
+console.log(`PWA validado: ${requiredRoutes.length} rotas críticas, ${requiredAssets.length} módulos, versão ${version}, geração visual ${visualCacheRev}, atualização imediata e fallback offline ativos, Dashboard PRO, Mentor e hotfix mobile disponíveis offline, correção fora do precache.`);
