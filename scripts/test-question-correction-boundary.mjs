@@ -1,4 +1,5 @@
 import assert from'node:assert/strict';
+import fs from'node:fs';
 import{parseDailyQuestions}from'./notion/daily-content.mjs';
 
 const source=`# PE88 — Questões
@@ -33,4 +34,22 @@ assert.equal(key.answers.length,2,'O gabarito deve continuar sendo extraído par
 assert.equal(key.answers[0].gabarito,'C');
 assert.equal(key.answers[1].gabarito,'B');
 
-console.log('Fronteira questão/gabarito validada: correção separada sem contaminar a última alternativa.');
+const player=fs.readFileSync(new URL('../assets/integration/module-player.js',import.meta.url),'utf8');
+const keyFetch='fetch(BASE+state.catalog.keyPath';
+const fetchPositions=[];
+for(let offset=player.indexOf(keyFetch);offset>=0;offset=player.indexOf(keyFetch,offset+keyFetch.length))fetchPositions.push(offset);
+assert.equal(fetchPositions.length,1,'O player deve possuir um único ponto de leitura do gabarito.');
+const finishStart=player.indexOf('async function finishSession(){');
+const finishEnd=player.indexOf('\nfunction completeReview',finishStart);
+assert.ok(finishStart>=0&&finishEnd>finishStart,'A fronteira finishSession precisa permanecer identificável para auditoria.');
+assert.ok(fetchPositions[0]>finishStart&&fetchPositions[0]<finishEnd,'O gabarito só pode ser buscado dentro de finishSession.');
+assert.match(player.slice(finishStart,finishEnd),/if\(!canFinish\(state\.session\)\)return;/,'A busca do gabarito deve continuar protegida por canFinish.');
+assert.doesNotMatch(player.slice(0,finishStart),/fetch\(BASE\+state\.catalog\.keyPath/,'Nenhuma etapa anterior à finalização pode buscar o gabarito.');
+assert.doesNotMatch(player.slice(finishEnd),/fetch\(BASE\+state\.catalog\.keyPath/,'Nenhuma rotina paralela pode buscar o gabarito fora da finalização.');
+
+const publicCatalog=JSON.parse(fs.readFileSync(new URL('../data/integration/question-catalog.json',import.meta.url),'utf8'));
+assert.doesNotMatch(JSON.stringify(publicCatalog),/"(?:gabarito|answers|comentarios|comentários|fundamentos|respostas)"\s*:/i,'O catálogo público não pode conter campos reservados de correção.');
+const serviceWorker=fs.readFileSync(new URL('../sw.js',import.meta.url),'utf8');
+assert.doesNotMatch(serviceWorker,/question-keys\//i,'Arquivos de gabarito não podem entrar no precache do PWA.');
+
+console.log('Fronteira questão/gabarito validada: catálogo limpo, chave fora do precache e fetch somente após canFinish.');
