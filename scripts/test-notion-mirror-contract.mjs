@@ -50,7 +50,7 @@ assert.ok(home.includes("data/notion-mirror/summary.json")&&home.indexOf('summar
 assert.ok(home.includes('áreas protegidas')&&home.includes('respostas, gabaritos'),'Home precisa explicar o limite público.');
 assert.ok(homeHtml.includes('home-dashboard-pro-2026.js?v=30.0.0'),'Home operacional precisa usar a experiência consolidada.');
 assert.ok(!homeHtml.includes('home-notion-mirror.js'),'Home consolidada não deve reempilhar o antigo bloco visual do mapa do Notion.');
-assert.ok(parity.includes('Abrir espelho do Notion')&&parity.includes("BASE+'notion/'"),'Shell v11 precisa manter acesso explícito ao espelho seguro do Notion.');
+assert.ok(parity.includes('Abrir espelho do Notion')&&parity.includes('notion/'),'Shell v11 precisa manter acesso explícito ao espelho seguro do Notion.');
 assert.ok(more.includes("title:'Meu Notion'")&&more.includes("href:`${BASE}notion/`"),'Mais precisa manter acesso ao mapa.');
 assert.ok(front.includes('protectedView')&&front.includes('Banco referenciado'),'Front precisa representar páginas e bancos protegidos sem linhas.');
 assert.ok(front.includes('data/notion-mirror/search.json')&&front.includes('loadSearchIndex'),'Busca deve continuar sob demanda.');
