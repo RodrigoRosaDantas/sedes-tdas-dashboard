@@ -4,14 +4,10 @@ const icons={home:'⌂',hoje:'◎',estudar:'▤',resolver:'?',desempenho:'▥',e
 const labels={home:'Início',hoje:'Hoje',estudar:'Estudar',resolver:'Questões',desempenho:'Desempenho',evolucao:'Evolução',riscos:'Riscos',agenda:'Agenda',redacoes:'Redações',auditoria:'Auditoria',mais:'Mais'};
 const APP_SHELL_VERSION='28.0.0';
 const LAST_PUBLICATION_KEY='tdas-last-publication-meta-v1';
-const ACTIVE_SW_KEY='tdas-active-service-worker-v1';
 const MAX_PUBLICATION_AGE_MS=8*60*60*1000;
 let patchesPromise=null;
 let publicationVerified=false;
 let verifiedPublication=null;
-let serviceWorkerRefreshBound=false;
-let serviceWorkerRefreshAllowed=false;
-let requestedServiceWorkerVersion='';
 
 async function loadPatches(){
  if(!patchesPromise)patchesPromise=Promise.all([
@@ -68,21 +64,9 @@ function applyOfflinePublication(meta={}){
 }
 async function registerServiceWorker(version){
  if(!('serviceWorker'in navigator))return;
- requestedServiceWorkerVersion=String(version||APP_SHELL_VERSION);
- serviceWorkerRefreshAllowed=Boolean(navigator.serviceWorker.controller);
- if(!serviceWorkerRefreshBound){
-  serviceWorkerRefreshBound=true;
-  navigator.serviceWorker.addEventListener('controllerchange',()=>{
-   if(!serviceWorkerRefreshAllowed)return;
-   try{
-    if(sessionStorage.getItem(ACTIVE_SW_KEY)===requestedServiceWorkerVersion)return;
-    sessionStorage.setItem(ACTIVE_SW_KEY,requestedServiceWorkerVersion);
-   }catch{}
-   location.reload();
-  });
- }
  try{
-  const script=BASE+'sw.js?v='+encodeURIComponent(requestedServiceWorkerVersion);
+  const requestedVersion=String(version||APP_SHELL_VERSION);
+  const script=BASE+'sw.js?v='+encodeURIComponent(requestedVersion);
   const registration=await navigator.serviceWorker.register(script,{updateViaCache:'none'});
   await registration.update();
  }catch(error){console.error(error)}
