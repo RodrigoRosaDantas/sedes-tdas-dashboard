@@ -13,7 +13,7 @@ for(const asset of requiredAssets){required(assets.includes(asset),`asset fora d
 for(const file of requiredData){required(data.includes(file),`dado fora do cache: ${file}`);required(await exists(file),`dado ausente: ${file}`);if(file==='data/platform-version.json')required(versionSync.includes(file),'sincronizador pode remover o manifesto de versão');else required(postprocess.includes(`\"${file}\"`),`gerador pode remover o dado: ${file}`)}
 required(!data.some(file=>file.includes('question-keys/'))&&!sw.includes('question-keys/'),'correção foi pré-carregada antes da finalização');
 required(versionSync.includes("replaceConstant(sw,'VERSION'")&&versionSync.includes("ensureArrayEntry(sw,'DATA','data/platform-version.json')"),'sincronizador não governa versão e precache');
-required(/pro9$/u.test(visualCacheRev),`revisão visual do cache deve permanecer na geração PRO9, permitindo revisões de invalidação: ${visualCacheRev||'ausente'}`);
+required(/pro10$/u.test(visualCacheRev),`revisão visual do cache deve permanecer na geração PRO10, permitindo revisões de invalidação: ${visualCacheRev||'ausente'}`);
 required(sw.includes('caches.match(request,{ignoreSearch:true})')&&sw.includes("if(url.search||url.pathname.includes('/data/'))"),'service worker não possui fallback offline para URLs versionadas');
 required(postprocess.includes('caches.match(request,{ignoreSearch:true})')&&postprocess.includes("if(url.search||url.pathname.includes('/data/'))"),'gerador pode remover o fallback offline de URLs versionadas');
 required(sw.includes("new Request(request,{cache:'no-store'})")&&sw.includes('fetchAndCache(event.request,{fresh:true})'),'service worker não força rede fresca para navegação e recursos versionados');
