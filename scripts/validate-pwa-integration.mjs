@@ -18,8 +18,10 @@ required(sw.includes('caches.match(request,{ignoreSearch:true})')&&sw.includes("
 required(postprocess.includes('caches.match(request,{ignoreSearch:true})')&&postprocess.includes("if(url.search||url.pathname.includes('/data/'))"),'gerador pode remover o fallback offline de URLs versionadas');
 required(sw.includes("new Request(request,{cache:'no-store'})")&&sw.includes('fetchAndCache(event.request,{fresh:true})'),'service worker não força rede fresca para navegação e recursos versionados');
 required(preserve.includes('preserveFreshNetwork')&&preserve.includes("cache:'no-store'")&&preserve.includes('fresh:true'),'preservador pode remover a navegação fresca após a sincronização automática');
-required(common.includes("updateViaCache:'none'")&&common.includes('registration.update()'),'shell não força a verificação imediata de uma nova versão do service worker');
+required(common.includes("navigator.serviceWorker.register(script,{updateViaCache:'none'})"),'shell não solicita a versão mais recente do service worker');
+required(!common.includes('registration.update()'),'shell não deve repetir a atualização do service worker e gerar erro no navegador');
 required(!data.some(file=>/pe76|pilot/i.test(file))&&!assets.some(file=>/pilot-catalog|real-study|pe-pilot-status/i.test(file)),'PWA ainda inclui conteúdo de exemplo.');
 required(manifest.start_url===BASE&&manifest.scope===BASE,'escopo do manifesto divergente');
 required(packageData.scripts?.['check:pwa']==='node scripts/validate-pwa-integration.mjs','comando check:pwa ausente');
 console.log(`PWA validado: ${requiredRoutes.length} rotas críticas, ${requiredAssets.length} módulos, versão ${version}, geração visual ${visualCacheRev}, atualização imediata e fallback offline ativos, Dashboard PRO, Mentor e hotfix mobile disponíveis offline, correção fora do precache.`);
+await import('./audit-site-integrity.mjs');
