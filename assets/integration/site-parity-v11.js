@@ -73,7 +73,7 @@ function rebuildSidebar(active){
 }
 function rebuildTopbar(label){
  const topbar=document.querySelector('.topbar');if(!topbar)return;
- topbar.innerHTML=`<span class="site-sr-only tdas-app-identity">TDAS · SEDES/DF · Técnico Administrativo · Cargo 202</span><span class="site-sr-only tdas-legacy-more-label">Mais</span><div class="breadcrumb crumb"><span>SEDES/DF</span><b>/</b><strong>${esc(label)}</strong></div><button class="global-search tdas-shell-search" type="button" data-site-search aria-label="Buscar em todo o projeto"><span>⌕</span><span>Buscar páginas, leis, questões...</span><kbd>⌘K</kbd></button><div class="topbar-tools actions"><a class="publication-chip" href="${BASE}sincronizacao/" title="Abrir status de publicação"><i class="live-dot"></i><span><b data-publication-status>Verificando</b><small data-brasilia-clock>Brasília</small></span></a><button class="icon-btn" data-theme-toggle aria-label="Alternar tema">◐</button><button class="btn install-btn" data-install-button data-install>Instalar</button></div>`;
+ topbar.innerHTML=`<span class="site-sr-only tdas-app-identity">TDAS · SEDES/DF · Técnico Administrativo · Cargo 202</span><span class="site-sr-only tdas-legacy-more-label">Mais</span><div class="breadcrumb crumb"><span>SEDES/DF</span><b>/</b><strong>${esc(label)}</strong></div><button class="global-search tdas-shell-search" type="button" data-site-search aria-label="Buscar em todo o projeto"><span>⌕</span><span>Buscar páginas, leis, questões...</span><kbd>⌘K</kbd></button><div class="topbar-tools actions"><a class="publication-chip" href="${BASE}sincronizacao/" title="Abrir status de publicação"><i class="live-dot"></i><span><b data-publication-status>Verificando</b><small data-brasilia-clock>Brasília</small></span></a><button class="icon-btn" type="button" data-theme-toggle aria-label="Alternar tema">◐</button><button class="btn install-btn" type="button" data-install-button data-install>Instalar</button></div>`;
 }
 function rebuildMobileNav(active){
  const nav=document.querySelector('#mobile-nav');if(!nav)return;
@@ -88,7 +88,7 @@ function updateThemeMeta(){
  const light=document.documentElement.dataset.theme!=='dark',meta=document.querySelector('meta[name="theme-color"]');if(meta)meta.content=light?'#f3f4ef':'#101a21';
 }
 async function openGlobalSearch(){
- try{const module=await import(BASE+'assets/tdas-command-palette.js?v=1');module.openPalette?.()}catch(error){console.error('Busca global TDAS',error);location.href=BASE+'mais/'}
+ try{const module=await import(BASE+'assets/tdas-command-palette.js?v=1.0.1');module.openPalette?.()}catch(error){console.error('Busca global TDAS',error);location.href=BASE+'mais/'}
 }
 function bind(){
  if(document.documentElement.dataset.siteParityBound)return;document.documentElement.dataset.siteParityBound='1';
