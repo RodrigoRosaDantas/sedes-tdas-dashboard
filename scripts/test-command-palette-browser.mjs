@@ -18,8 +18,9 @@ async function waitFor(client,expression,label,attempts=140){for(let i=0;i<attem
 async function stop(){server.close();if(chrome.exitCode!==null)return;await new Promise(resolve=>{const timer=setTimeout(()=>{if(chrome.exitCode===null)chrome.kill('SIGKILL');resolve()},2200);chrome.once('exit',()=>{clearTimeout(timer);resolve()});chrome.kill('SIGTERM')})}
 try{
  await waitJson(`http://127.0.0.1:${chromePort}/json/version`);const catalog=await waitJson(`${base}/data/integration/question-catalog.json`,40),hasDailyQuestions=Array.isArray(catalog.questions)&&catalog.questions.length>0;
- const home=await page();await nav(home,`${base}/`);await waitFor(home,"document.querySelector('[data-command-open]')&&document.querySelector('[data-command-overlay]')",'Command Palette carregada na Home');
- await evalJs(home,"document.querySelector('[data-command-open]').click();true");await waitFor(home,"!document.querySelector('[data-command-overlay]').hidden",'Palette aberta pelo botão');
+ const home=await page();await nav(home,`${base}/`);await waitFor(home,"document.querySelector('[data-site-search]')&&document.querySelector('[data-command-overlay]')",'Command Palette carregada na Home');
+ assert.equal(await evalJs(home,"document.querySelectorAll('[data-site-search],[data-command-open]').length"),1,'Home deve exibir um único acionador de busca.');
+ await evalJs(home,"document.querySelector('[data-site-search]').click();true");await waitFor(home,"!document.querySelector('[data-command-overlay]').hidden",'Palette aberta pelo botão');
  assert.equal(await evalJs(home,"document.activeElement===document.querySelector('[data-command-input]')"),true,'Busca da palette deve receber foco ao abrir.');
  await evalJs(home,"(()=>{const input=document.querySelector('[data-command-input]');input.value='PE88';input.dispatchEvent(new Event('input',{bubbles:true}));return true})()");await waitFor(home,"document.querySelector('[data-command-results]')?.textContent.includes('PE88')",'PE88 encontrado');
  assert.equal(await evalJs(home,"document.querySelector('[data-command-results]')?.textContent.includes('Abrir execução diária')"),true,'PE deve apontar para execução diária.');
@@ -27,7 +28,8 @@ try{
  await evalJs(home,"document.dispatchEvent(new KeyboardEvent('keydown',{key:'k',ctrlKey:true,bubbles:true}));true");await waitFor(home,"!document.querySelector('[data-command-overlay]').hidden",'Palette aberta por Ctrl+K');
  await evalJs(home,"document.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}));true");
 
- const resolver=await page();await nav(resolver,`${base}/resolver/`);await waitFor(resolver,hasDailyQuestions?"document.querySelector('[data-command-open]')&&document.body.textContent.includes('Correção somente ao finalizar')":`document.querySelector('[data-command-open]')&&document.documentElement.dataset.dailyQuestionContext===${JSON.stringify(String(catalog.peId||''))}`,'Palette e estado do Resolver');
+ const resolver=await page();await nav(resolver,`${base}/resolver/`);await waitFor(resolver,hasDailyQuestions?"document.querySelector('[data-site-search]')&&document.body.textContent.includes('Correção somente ao finalizar')":`document.querySelector('[data-site-search]')&&document.documentElement.dataset.dailyQuestionContext===${JSON.stringify(String(catalog.peId||''))}`,'Palette e estado do Resolver');
+ assert.equal(await evalJs(resolver,"document.querySelectorAll('[data-site-search],[data-command-open]').length"),1,'Resolver deve exibir um único acionador de busca.');
  await evalJs(resolver,"document.dispatchEvent(new KeyboardEvent('keydown',{key:'k',ctrlKey:true,bubbles:true}));true");await waitFor(resolver,"!document.querySelector('[data-command-overlay]').hidden",'Palette global no Resolver');
  assert.equal(await evalJs(resolver,"document.querySelector('[data-command-results]')?.textContent.includes('Resolver questões')"),true,'Palette deve conter ações operacionais.');
  await evalJs(resolver,"document.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}));true");

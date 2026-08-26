@@ -67,8 +67,7 @@ async function registerServiceWorker(version){
  try{
   const requestedVersion=String(version||APP_SHELL_VERSION);
   const script=BASE+'sw.js?v='+encodeURIComponent(requestedVersion);
-  const registration=await navigator.serviceWorker.register(script,{updateViaCache:'none'});
-  await registration.update();
+  await navigator.serviceWorker.register(script,{updateViaCache:'none'});
  }catch(error){console.error(error)}
 }
 async function refreshPublicationMeta(meta={}){

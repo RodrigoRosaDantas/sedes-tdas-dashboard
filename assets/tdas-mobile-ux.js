@@ -35,5 +35,5 @@ export function refreshTdasMobileUx(){injectStyle();applyPreferences();renderHea
 refreshTdasMobileUx();
 import(BASE+'assets/integration/study-ux.js?v=1.0.0').catch(error=>console.error('study ux',error));
 import(BASE+'assets/tdas-pro-modules.js?v=1.1.0').catch(error=>console.error('tdas pro modules',error));
-import(BASE+'assets/tdas-command-palette.js?v=1.0.0').catch(error=>console.error('tdas command palette',error));
+import(BASE+'assets/tdas-command-palette.js?v=1.0.1').catch(error=>console.error('tdas command palette',error));
 import(BASE+'assets/integration/mentor-ux.js?v=1.0.0').catch(error=>console.error('mentor ux',error));

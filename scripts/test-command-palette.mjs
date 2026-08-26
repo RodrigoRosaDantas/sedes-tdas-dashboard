@@ -18,11 +18,12 @@ assert.match(palette,/event\.key==='Escape'/,'Palette deve fechar com Escape.');
 assert.match(palette,/tdas-player-focus/,'Palette deve respeitar o modo focado do player.');
 assert.match(palette,/lastFocus/,'Palette deve restaurar foco ao fechar.');
 assert.match(palette,/event\.key==='Tab'/,'Palette deve conter foco no diálogo.');
+assert.match(palette,/document\.querySelector\('\[data-site-search\]'\)/,'Palette não deve duplicar o acionador quando o shell global já oferece busca.');
 assert.ok(!palette.includes('api.notion.com'),'Palette não pode chamar a API do Notion diretamente.');
 assert.ok(!palette.includes('question-keys'),'Palette não pode conhecer nem carregar caminho de gabarito.');
 for(const marker of ['tdas-command-overlay','tdas-command-dialog','tdas-command-item','tdas-command-trigger','tdas-command-open'])assert.ok(css.includes(marker),`CSS deve conter ${marker}.`);
 assert.match(shell,/tdas-command-palette\.css\?v=1/,'Shell deve carregar CSS da palette.');
-assert.match(shell,/tdas-command-palette\.js\?v=1\.0\.0/,'Shell deve importar a palette.');
+assert.match(shell,/tdas-command-palette\.js\?v=1\.0\.1/,'Shell deve importar a palette com revisão explícita.');
 for(const item of ['assets/tdas-command-palette.css','assets/tdas-command-palette.js']){assert.ok(sw.includes(item),`PWA deve precachear ${item}.`);assert.ok(postprocess.includes(item),`Pós-processamento deve preservar ${item}.`)}
 assert.match(version.serviceWorkerVersion,/pro9$/,'Manifesto deve usar cache PRO9.');
 assert.match(sw,/pro9/,'Service worker deve usar cache PRO9.');
