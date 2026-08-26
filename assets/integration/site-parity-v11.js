@@ -42,7 +42,7 @@ function pageLabel(){
  return document.querySelector('.topbar strong')?.textContent?.trim()||'TDAS';
 }
 function ensureStyle(){
- const styles=[['site-parity-v11','assets/site-parity-v11.css?v=1.0.0'],['site-parity-v11-fixes','assets/site-parity-v11-fixes.css?v=1.0.0']];
+ const styles=[['site-parity-v11','assets/site-parity-v11.css?v=1.1.0'],['site-parity-v11-fixes','assets/site-parity-v11-fixes.css?v=1.1.0'],['site-shell-boot','assets/site-shell-boot.css?v=1.1.0']];
  for(const[key,href]of styles){if(document.querySelector(`link[data-${key}]`))continue;const link=document.createElement('link');link.rel='stylesheet';link.href=BASE+href;link.dataset[key.replace(/-([a-z])/g,(_,letter)=>letter.toUpperCase())]='1';document.head.appendChild(link)}
 }
 function brasiliaNow(){return new Date(new Date().toLocaleString('en-US',{timeZone:'America/Sao_Paulo'}));}
@@ -96,10 +96,13 @@ function bind(){
  document.addEventListener('keydown',event=>{if((event.metaKey||event.ctrlKey)&&event.key.toLowerCase()==='k'){event.preventDefault();openGlobalSearch()}});
 }
 function init(){
- ensureStyle();document.documentElement.dataset.siteParity=SOURCE_SITE_VERSION;
- if(!document.documentElement.dataset.theme)document.documentElement.dataset.theme=localStorage.getItem('tdas-theme')||'light';
- const active=resolveSection(),label=pageLabel();rebuildSidebar(active);rebuildTopbar(label);rebuildMobileNav(active);updateClock();updateThemeMeta();bind();
- if(!clockTimer)clockTimer=setInterval(updateClock,30000);
+ try{
+  ensureStyle();document.documentElement.dataset.siteParity=SOURCE_SITE_VERSION;
+  if(!document.documentElement.dataset.theme){try{document.documentElement.dataset.theme=localStorage.getItem('tdas-theme')||'light'}catch{document.documentElement.dataset.theme='light'}}
+  const active=resolveSection(),label=pageLabel();rebuildSidebar(active);rebuildTopbar(label);rebuildMobileNav(active);updateClock();updateThemeMeta();bind();
+  if(!clockTimer)clockTimer=setInterval(updateClock,30000);
+  document.documentElement.dataset.siteShell='ready';
+ }catch(error){document.documentElement.dataset.siteShell='fallback';console.error('Shell TDAS indisponível',error)}
 }
 
 export function refreshSiteParity(){init()}

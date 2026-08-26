@@ -123,16 +123,17 @@ export function setupShell(page,meta={}){
  const desktop=['home','hoje','evolucao','riscos','agenda','redacoes','auditoria'];
  const mobile=['home','estudar','resolver','desempenho','mais'];
  const active=page==='pe'?'agenda':page==='subject'?'riscos':page;
- document.querySelector('.brand small')?.replaceChildren(`SEDES/DF · v${APP_SHELL_VERSION}`);
- document.querySelector('#desktop-nav').innerHTML='<div class="nav-label">Plataforma de estudo</div>'+desktop.map(k=>`<a href="${routes[k]}" class="${k===active?'active':''}"><span class="nav-icon">${icons[k]}</span>${labels[k]}</a>`).join('');
+ const siteParityActive=document.documentElement.dataset.siteShell==='ready';
+ if(!siteParityActive)document.querySelector('.brand small')?.replaceChildren(`SEDES/DF · v${APP_SHELL_VERSION}`);
+ if(!siteParityActive)document.querySelector('#desktop-nav').innerHTML='<div class="nav-label">Plataforma de estudo</div>'+desktop.map(k=>`<a href="${routes[k]}" class="${k===active?'active':''}"><span class="nav-icon">${icons[k]}</span>${labels[k]}</a>`).join('');
  const mobileActive=['hoje','agenda','pe','subject'].includes(active)?'estudar':['redacoes'].includes(active)?'resolver':['evolucao','riscos'].includes(active)?'desempenho':['auditoria'].includes(active)?'mais':active;
- document.querySelector('#mobile-nav').innerHTML=mobile.map(k=>`<a href="${routes[k]}" class="${k===mobileActive?'active':''}"><span>${icons[k]}</span><span>${labels[k]}</span></a>`).join('');
+ if(!siteParityActive)document.querySelector('#mobile-nav').innerHTML=mobile.map(k=>`<a href="${routes[k]}" class="${k===mobileActive?'active':''}"><span>${icons[k]}</span><span>${labels[k]}</span></a>`).join('');
  setText('[data-snapshot]',fmtDate(meta.snapshotDate));
  const stored=readStoredPublication();
  const initial=stored?.syncAt?fmtDateTime(stored.syncAt):fallbackTimestamp(meta);
  setText('[data-sync]',initial);
  setText('[data-last-sync]',initial);
- const storedTheme=localStorage.getItem('tdas-theme');if(storedTheme)document.documentElement.dataset.theme=storedTheme;
+ try{const storedTheme=localStorage.getItem('tdas-theme');if(storedTheme)document.documentElement.dataset.theme=storedTheme}catch{}
  if(!document.documentElement.dataset.controlsReady){
   document.documentElement.dataset.controlsReady='1';
   document.addEventListener('click',e=>{

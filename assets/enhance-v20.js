@@ -1,4 +1,4 @@
-import'./integration/site-parity-v11.js?v=1.0.1';
+import'./integration/site-parity-v11.js?v=1.1.0';
 import{loadJSON}from'./common.js?v=26';
 const BASE='/sedes-tdas-dashboard/',load=loadJSON;
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
@@ -24,6 +24,6 @@ async function more(){const grid=document.querySelector('.portal-grid');if(grid&
 function linkTable(rows,subjects=null){rows.forEach(tr=>{const cells=tr.cells;if(!cells)return;const origin=cells[0]?.textContent.trim();if(/^PE\d+$/.test(origin))cells[0].innerHTML=`<a class="linked-id" href="${peHref(origin)}">${origin}</a>`;const subj=cells[1]?.textContent.trim(),s=subjects?.subjects?.find(x=>x.subject===subj);if(s)cells[1].innerHTML=`<a class="linked-id" href="${BASE}materias/${s.slug}/">${esc(subj)}</a>`})}
 import(BASE+'assets/integration/daily-progress.js?v=1.0.0').catch(error=>console.error('daily progress',error));
 import(BASE+'assets/tdas-mobile-ux.js?v=1')
- .then(()=>import('./integration/site-parity-v11.js?v=1.0.1'))
+ .then(()=>import('./integration/site-parity-v11.js?v=1.1.0'))
  .then(module=>module.refreshSiteParity?.())
  .catch(error=>console.error('tdas mobile ux',error));

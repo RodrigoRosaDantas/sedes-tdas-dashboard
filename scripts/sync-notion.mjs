@@ -85,6 +85,7 @@ async function generateServiceWorker(routes, errorIndex) {
   const core = [
     '', 'hoje/', 'evolucao/', 'riscos/', 'agenda/', 'redacoes/', 'auditoria/', 'mais/', 'questoes-erros/', 'pe/', 'materias/', 'offline.html',
     'manifest.webmanifest', 'assets/styles.css', 'assets/v20.css', 'assets/common.js', 'assets/home.js', 'assets/today.js', 'assets/evolution.js',
+    'assets/site-parity-v11.css', 'assets/site-parity-v11-fixes.css', 'assets/site-shell-boot.css', 'assets/integration/site-parity-v11.js',
     'assets/risks.js', 'assets/agenda.js', 'assets/redactions.js', 'assets/audit.js', 'assets/more.js', 'assets/pe.js', 'assets/subject.js',
     'assets/subjects-index.js', 'assets/error-questions.js', 'assets/enhance-v20.js', 'data/home.json', 'data/today.json', 'data/evolution.json',
     'data/risks.json', 'data/agenda.json', 'data/redactions.json', 'data/audit.json', 'data/more.json', 'data/subjects.json',
