@@ -41,11 +41,12 @@ assert.ok(edas.length>0,'Fixture EDAS ausente.');
 for(const[relative,html]of edas){
  assert.doesNotMatch(html,/data-site-shell-bootstrap|data-site-shell="booting"/,`${relative}: shell TDAS não pode contaminar o EDAS.`);
 }
-const[parity,common,boot,sw,postprocess,preserve]=await Promise.all([
- fs.readFile('assets/integration/site-parity-v11.js','utf8'),fs.readFile('assets/common.js','utf8'),fs.readFile('assets/site-shell-boot.css','utf8'),fs.readFile('sw.js','utf8'),fs.readFile('scripts/postprocess-v26.mjs','utf8'),fs.readFile('scripts/preserve-v27-pwa.mjs','utf8')
+const[parity,common,mobileUx,boot,sw,postprocess,preserve]=await Promise.all([
+ fs.readFile('assets/integration/site-parity-v11.js','utf8'),fs.readFile('assets/common.js','utf8'),fs.readFile('assets/tdas-mobile-ux.js','utf8'),fs.readFile('assets/site-shell-boot.css','utf8'),fs.readFile('sw.js','utf8'),fs.readFile('scripts/postprocess-v26.mjs','utf8'),fs.readFile('scripts/preserve-v27-pwa.mjs','utf8')
 ]);
 assert.match(parity,/dataset\.siteShell='ready'/,'Shell deve liberar a interface após a reconstrução síncrona.');
 assert.match(common,/siteParityActive/,'setupShell deve preservar o shell já inicializado.');
+assert.match(mobileUx,/siteParityActive.*if\(!siteParityActive\)\{renderHeader\(\);renderBottomNav\(\);augmentDesktop\(\)\}/,'UX mobile legada não pode sobrescrever um shell já pronto.');
 assert.match(boot,/data-site-shell="booting"/,'CSS deve possuir estado de carregamento explícito.');
 for(const source of[sw,postprocess,preserve])assert.ok(source.includes('assets/site-shell-boot.css'),'PWA deve preservar o CSS do primeiro quadro.');
 console.log(`Primeiro quadro validado em ${tdas.length} rotas TDAS; ${edas.length} arquivos EDAS permaneceram isolados.`);
