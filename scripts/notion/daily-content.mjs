@@ -357,7 +357,7 @@ export function parseDailyQuestions(markdown, {pe, title, expectedCount = 0, sou
       catalog: {
         schemaVersion: '2.1.0', mode: 'notion-daily-empty', catalogId: `tdas-${String(pe).toLowerCase()}-empty`,
         title: `${pe} — ${title}`, description: 'Este PE não possui questões programadas.', peId: pe,
-        questionCount: 0, suggestedMinutes: 0, keyRef: null, keyPath: null,
+        questionCount: 0, suggestedMinutes: 0, keyPath: null,
         authorizedSource: {type: 'notion-daily-child-page', pageId: sourcePageId, contentHash: hash(markdown)}, questions: []
       },
       key: null
@@ -401,7 +401,6 @@ export function parseDailyQuestions(markdown, {pe, title, expectedCount = 0, sou
     peId: pe,
     questionCount: questions.length,
     suggestedMinutes: Math.max(10, Math.ceil(questions.length * 1.5)),
-    keyRef: `daily/${catalogId}`,
     keyPath: `data/integration/question-keys/${pe.toLowerCase()}.json`,
     authorizedSource: {type: 'notion-daily-child-page', pageId: sourcePageId, contentHash},
     questions
@@ -591,7 +590,6 @@ export async function prepareDailyContent({controls, snapshotDate, runStartedAt 
       peId: pe,
       materialPath: 'data/integration/daily-material.json',
       catalogPath: 'data/integration/question-catalog.json',
-      keyRef: parsed.catalog.keyRef,
       keyPath: parsed.catalog.keyPath,
       materialPageId: materialPage.id,
       questionPageId: resolvedQuestions.id,
