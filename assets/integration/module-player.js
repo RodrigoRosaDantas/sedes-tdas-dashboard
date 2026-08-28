@@ -2,10 +2,10 @@ import {BASE, escapeHTML, loadJSON, setupShell, setLoadingError} from '../common
 import {ANSWER_OPTIONS, canFinish, createSession, evaluateSession, formatElapsed, moveToQuestion, selectAnswer, sessionProgress} from './player-core.js?v=1.0.0';
 import {saveCompletedAttempt} from './module-store.js?v=2.1.0';
 import {clearSessionDraft, matchingSessionDraft, writeSessionDraft} from './session-draft.js?v=1.0.0';
+import {authorizeAnswerKeyAccess,catalogRequiresPrivateAnswerKey,loadAnswerKey,prepareAnswerKeyClient,readAnswerKeySession} from './answer-key-client.js?v=1.0.0';
 
 const main=document.querySelector('main');
-const state={catalog:null,session:null,responseMeta:{},timer:null,draft:null};
-const safeKeyPath=value=>/^data\/integration\/question-keys\/[a-z0-9._-]+\.json$/i.test(String(value||''));
+const state={catalog:null,session:null,responseMeta:{},timer:null,draft:null,answerKeyConfig:null};
 
 function stopTimer(){if(state.timer)clearInterval(state.timer);state.timer=null}
 function updateTimer(){const node=document.querySelector('[data-module-timer]');if(node&&state.session)node.textContent=formatElapsed(Date.now()-state.session.startedAt)}
@@ -35,10 +35,21 @@ function renderStudyResult(evaluation,saved){
  main.innerHTML=`<section class="hero pilot-result"><span class="kicker">Resultado da sessão</span><h1>${evaluation.correct}/${evaluation.total} acertos · ${evaluation.percent.toFixed(0)}%</h1><p>Este resultado fica disponível somente nesta tela para a correção imediata. Ele não foi salvo como histórico pessoal nem enviado para nuvem.</p><div class="tags"><span class="tag">${errors} ${errors===1?'erro':'erros'} nesta bateria</span><span class="tag">${marked} ${marked===1?'marcação':'marcações'} nesta bateria</span><span class="tag">${editorial} ${editorial===1?'ressalva editorial':'ressalvas editoriais'}</span></div><div class="hero-actions"><a class="btn primary" href="${BASE}resolver/">Nova sessão</a><a class="btn" href="${BASE}revisar/">Ver prioridades</a><a class="btn" href="${BASE}mentor/">Abrir Mentor</a></div></section>`
 }
 
+function renderCorrectionAuthorization(){
+ stopTimer();
+ main.innerHTML=`<section class="hero pilot-result"><span class="kicker">Sessão concluída</span><h1>Autorize a correção privada</h1><p>Suas respostas já estão fechadas. O gabarito continua indisponível até você confirmar sua conta na janela segura da Cloudflare.</p><div class="tags"><span class="tag">Nenhuma senha é enviada ao TDAS</span><span class="tag">Sessão curta neste navegador</span><span class="tag">Sem histórico pessoal em nuvem</span></div><div class="hero-actions"><button class="btn primary" data-answer-key-authorize>Autorizar e corrigir</button><button class="btn" data-answer-key-cancel>Voltar à última questão</button></div><p><small>Se a janela for bloqueada, a autorização abrirá nesta aba e o rascunho continuará salvo neste dispositivo.</small></p></section>`
+}
+
+async function authorizeAndFinish(){
+ const button=document.querySelector('[data-answer-key-authorize]');if(button){button.disabled=true;button.textContent='Aguardando autorização…'}
+ await authorizeAnswerKeyAccess({config:state.answerKeyConfig,returnTo:location.href});
+ await finishSession()
+}
+
 async function finishSession(){
  if(!canFinish(state.session))return;
- if(!safeKeyPath(state.catalog.keyPath))throw new Error('O catálogo autorizado não possui caminho de gabarito válido.');
- const key=await fetch(BASE+state.catalog.keyPath,{cache:'no-store'}).then(response=>{if(!response.ok)throw new Error(`Falha ao carregar gabarito (${response.status}).`);return response.json()});
+ if(state.answerKeyConfig?.mode==='private'&&catalogRequiresPrivateAnswerKey(state.catalog)&&!readAnswerKeySession()){renderCorrectionAuthorization();return}
+ const key=await loadAnswerKey(state.catalog,{config:state.answerKeyConfig});
  const evaluation=evaluateSession(state.session,key,Date.now());
  stopTimer();
  const saved=saveCompletedAttempt({catalog:state.catalog,evaluation,responseMeta:state.responseMeta,mode:'study'});
@@ -56,6 +67,8 @@ main.addEventListener('change',event=>{
 });
 
 main.addEventListener('click',event=>{
+ if(event.target.closest('[data-answer-key-authorize]')){authorizeAndFinish().catch(error=>{alert(error.message);renderCorrectionAuthorization()});return}
+ if(event.target.closest('[data-answer-key-cancel]')){startTimer();renderQuestion();return}
  if(event.target.closest('[data-module-resume]')){resumeDraft();return}
  if(event.target.closest('[data-module-start]')){clearSessionDraft();state.draft=null;state.session=createSession({id:state.catalog.catalogId,questoes:state.catalog.questions},Date.now());state.responseMeta={};persistDraft();startTimer();renderQuestion();return}
  if(!state.session)return;
@@ -69,8 +82,8 @@ main.addEventListener('click',event=>{
 });
 
 try{
- const[catalog,shell]=await Promise.all([fetch(BASE+'data/integration/question-catalog.json',{cache:'no-store'}).then(response=>response.json()),loadJSON('data/more.json')]);
- setupShell('mais',shell.meta);state.catalog=catalog;state.draft=matchingSessionDraft(catalog);
+ const[catalog,shell,answerKeyConfig]=await Promise.all([fetch(BASE+'data/integration/question-catalog.json',{cache:'no-store'}).then(response=>response.json()),loadJSON('data/more.json'),prepareAnswerKeyClient()]);
+ setupShell('mais',shell.meta);state.catalog=catalog;state.answerKeyConfig=answerKeyConfig;state.draft=matchingSessionDraft(catalog);
  if(!Array.isArray(catalog.questions)||catalog.questions.length===0)renderEmpty();
  else if(state.draft&&new URLSearchParams(location.search).get('resume')==='1')resumeDraft();
  else renderIntro()

@@ -1,0 +1,84 @@
+name: Validar gabaritos privados TDAS
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/answer-key-security.yml'
+      - 'assets/integration/answer-key-client.js'
+      - 'assets/integration/module-player.js'
+      - 'assets/integration/question-bank-player.js'
+      - 'assets/integration/question-bank.js'
+      - 'assets/integration/module-store.js'
+      - 'assets/integration/attempt-export.js'
+      - 'assets/integration/review-catalog-bridge.js'
+      - 'data/integration/answer-key-service.json'
+      - 'scripts/answer-key-private-store.mjs'
+      - 'scripts/test-answer-key-*.mjs'
+      - 'scripts/test-question-correction-boundary.mjs'
+      - 'scripts/validate-daily-content.mjs'
+      - 'scripts/validate-question-module.mjs'
+      - 'scripts/validate-pwa-integration.mjs'
+      - 'workers/answer-key/**'
+      - 'package.json'
+      - 'sw.js'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/answer-key-security.yml'
+      - 'assets/integration/answer-key-client.js'
+      - 'data/integration/answer-key-service.json'
+      - 'scripts/answer-key-private-store.mjs'
+      - 'workers/answer-key/**'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: answer-key-security-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Baixar repositório
+        uses: actions/checkout@v4
+
+      - name: Preparar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: workers/answer-key/package-lock.json
+
+      - name: Instalar runtime do Worker
+        run: npm ci --prefix workers/answer-key
+
+      - name: Validar cliente, recorte TDAS e fronteira da correção
+        run: |
+          npm run test:answer-key-client
+          npm run test:answer-key-private-store
+          npm run test:question-correction-boundary
+
+      - name: Validar Workers, D1, Access e pacotes
+        run: npm run check --prefix workers/answer-key
+
+      - name: Confirmar que a transição permanece reversível
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const config=JSON.parse(fs.readFileSync('data/integration/answer-key-service.json','utf8'));
+          if(config.mode==='legacy-public'&&config.publicFallbackAllowed!==true)throw new Error('A fase legada precisa permanecer funcional até o corte validado.');
+          if(config.mode==='private'){
+            if(config.publicFallbackAllowed!==false)throw new Error('O modo privado não pode retornar ao gabarito público.');
+            const api=new URL(config.apiBaseUrl),auth=new URL(config.authBaseUrl);
+            if(api.protocol!=='https:'||auth.protocol!=='https:'||api.origin===auth.origin)throw new Error('API e autenticação privadas exigem origens HTTPS distintas.');
+          }
+          if(!['legacy-public','private'].includes(config.mode))throw new Error('Modo de correção desconhecido.');
+          NODE
+          ! git ls-files | grep -E '(^|/)\.dev\.vars$|(^|/)\.env($|\.)|(^|/)\.private/'

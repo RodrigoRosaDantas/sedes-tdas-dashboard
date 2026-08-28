@@ -1,0 +1,31 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "tdas-answer-keys",
+  "main": "src/index.js",
+  "compatibility_date": "2026-08-27",
+  "workers_dev": true,
+  "vars": {
+    "ROLE": "api",
+    "APP_ORIGIN": "https://rodrigorosadantas.github.io",
+    "APP_BASE_PATH": "/sedes-tdas-dashboard/",
+    "ANSWER_KEY_NAMESPACE": "tdas-cargo-202",
+    "SESSION_TTL_SECONDS": "1200"
+  },
+  "d1_databases": [
+    {
+      "binding": "ANSWER_KEYS",
+      "database_name": "tdas-answer-keys",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "observability": {
+    "enabled": true,
+    "logs": {
+      "head_sampling_rate": 1
+    },
+    "traces": {
+      "enabled": true,
+      "head_sampling_rate": 0.1
+    }
+  }
+}
