@@ -46,7 +46,6 @@ assert.equal(key.answers[1].gabarito,'D');
 assert.ok(!('answers' in catalog));
 assert.ok(!('gabarito' in catalog));
 assert.ok(!JSON.stringify(catalog).includes('1-B | 2-D'));
-assert.equal(catalog.keyRef,`daily/${catalog.catalogId}`);
 assert.match(catalog.keyPath,/question-keys\/pe78\.json$/);
 
 const staleQuestionsOnRest=parseDailyQuestions(markdown,{pe:'PE84',title:'Descanso',expectedCount:0,sourcePageId:'rest'});

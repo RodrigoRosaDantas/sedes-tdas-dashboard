@@ -88,8 +88,7 @@ for(const source of[sw,pwaGenerator]){
  assert.match(source,/"assets\/edital\.js"/,'Script do edital está fora do PWA ou de seu gerador.');
  assert.match(source,/"assets\/edital\.css"/,'CSS do edital está fora do PWA ou de seu gerador.');
  assert.match(source,/"data\/edital-status\.json"/,'Feed do edital está fora do PWA ou de seu gerador.');
- const precacheLists=(source.match(/const (?:CORE_ROUTES|ASSETS|DATA|ICONS|SUBJECTS|REQUIRED|OPTIONAL_DATA)=\[[^;]+/g)||[]).join('\n');
- assert.doesNotMatch(precacheLists,/question-keys\//,'Gabaritos individuais não podem entrar no precache ao adicionar a página do edital.');
+ assert.doesNotMatch(source,/question-keys\//,'Gabaritos individuais não podem entrar no precache ao adicionar a página do edital.');
 }
 
 console.log(`Página do Edital validada: ${data.summary.total}/${expected} tópicos; ${measuredCurrent} aferidos; ${data.summary.total-measuredCurrent} sem bateria; ${data.summary.risk.critical||0} críticos; ${data.summary.risk.attention||0} em atenção; navegação, contrato analítico e precache frio blindados.`);
