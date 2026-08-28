@@ -1,0 +1,9 @@
+.dev.vars
+.dev.vars.*
+.env
+.env.*
+.private/
+.wrangler/
+node_modules/
+workers/answer-key/.wrangler/
+workers/answer-key/worker-configuration.d.ts

@@ -78,6 +78,7 @@ for (const asset of ['assets/dashboard-pro-2026.css', 'assets/integration/home-d
 assert.match(versionSync, /VISUAL_CACHE_REV='cachefix4-pro10'/, 'Gerador deve usar a revisão visual PRO10.');
 assert.match(platform.serviceWorkerVersion, /cachefix4-pro10$/, 'Manifesto publicado deve invalidar o cache visual anterior.');
 assert.match(sw, /cachefix4-pro10/, 'Service worker deve usar a revisão visual PRO10.');
-assert.ok(!sw.includes('question-keys/'), 'Gabaritos devem continuar fora do precache.');
+const precacheLists=(sw.match(/const (?:CORE_ROUTES|ASSETS|DATA|ICONS|SUBJECTS)=\[[^;]+/g)||[]).join('\n');
+assert.ok(!precacheLists.includes('question-keys/'), 'Gabaritos devem continuar fora do precache.');
 
 console.log('Dashboard PRO 2026 unificado: uma Home, decisão operacional direta, dados oficiais, PWA PRO10 e responsividade preservados.');

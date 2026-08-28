@@ -95,7 +95,8 @@ assert.match(more,/title:'Prioridades'/,'Tela Mais deve expor Prioridades em vez
 assert.ok(!more.includes("title:'Revisar'"),'Tela Mais não pode manter a agenda D+1/D+7/D+20 como ação.');
 assert.ok(!more.includes('data-theme-toggle>Alternar tema'),'Tela Mais não deve duplicar controle técnico de tema fora de Configurações.');
 for(const item of ['configuracoes/','assets/home-mobile.js','assets/tdas-mobile-ux.js','assets/tdas-mobile-ux.css','assets/tdas-pro-dashboard.css','assets/home-mobile-hotfix.css','assets/tdas-pro-modules.css','assets/tdas-pro-modules.js','assets/tdas-command-palette.css','assets/tdas-command-palette.js','assets/settings.js','assets/integration/study-ux.js']){assert.ok(sw.includes(item),`PWA deve incluir ${item}.`);assert.ok(postprocess.includes(item),`Gerador do PWA deve preservar ${item}.`)}
-assert.ok(!sw.includes('question-keys/'),'Gabarito não pode entrar no precache do TDAS.');
+const precacheLists=(sw.match(/const (?:CORE_ROUTES|ASSETS|DATA|ICONS|SUBJECTS)=\[[^;]+/g)||[]).join('\n');
+assert.ok(!precacheLists.includes('question-keys/'),'Gabarito não pode entrar no precache do TDAS.');
 const lastValidSync=(history.entries||[]).find(item=>['success','no_changes'].includes(item?.status)&&item?.at)?.at;
 assert.equal(platform.dataVersion,homeData.meta?.version,'dataVersion deve continuar derivada do snapshot oficial.');
 assert.equal(platform.syncAt,lastValidSync,'syncAt deve continuar derivada da última sincronização real, não da release visual.');

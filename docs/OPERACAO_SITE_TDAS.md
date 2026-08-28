@@ -220,6 +220,7 @@ Uma verificação posterior saudável registra a recuperação e fecha o inciden
 ## 8. Proteções permanentes
 
 - O gabarito TDAS continua fora do precache inicial.
+- A migração do TDAS 202 para Workers + D1 segue `docs/GABARITOS_PRIVADOS_TDAS.md`; a API privada nunca pode usar fallback público depois do corte validado.
 - O `edas-administracao/data/integration/answer-key.json` também deve permanecer fora do precache; o player só o solicita na finalização.
 - Atualizações do service worker EDAS removem cópias antigas do `answer-key` que tenham sido pré-carregadas por versões anteriores.
 - O catálogo público EDAS não pode conter campos `gabarito` ou `justificativa`.

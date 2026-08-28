@@ -1,0 +1,17 @@
+{
+  "name": "@tdas/answer-key-worker",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node test/worker.test.mjs",
+    "test:runtime": "vitest run",
+    "types": "wrangler types worker-configuration.d.ts --config wrangler.jsonc",
+    "check": "npm test && npm run test:runtime && wrangler deploy --dry-run --config wrangler.jsonc --outdir .wrangler/dry-run-api && wrangler deploy --dry-run --config wrangler.auth.jsonc --outdir .wrangler/dry-run-auth"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-plugin": "1.1.0",
+    "vitest": "4.1.11",
+    "wrangler": "4.126.0"
+  }
+}

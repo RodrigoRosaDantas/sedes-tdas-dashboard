@@ -62,7 +62,8 @@ async function selfTest(){
  assert.match(sw,/assets\/integration\/home-dashboard-pro-2026\.js/,'Service worker deve precachear o módulo da Home unificada.');
  assert.match(sw,/mentor\//,'Service worker deve precachear a rota Mentor.');
  assert.match(sw,/assets\/integration\/mentor-engine\.js/,'Service worker deve precachear o motor do Mentor.');
- assert.ok(!sw.includes('question-keys/'),'Gabarito não pode entrar no shell precacheado.');
+ const precacheLists=(sw.match(/const (?:CORE_ROUTES|ASSETS|DATA|ICONS|SUBJECTS)=\[[^;]+/g)||[]).join('\n');
+ assert.ok(!precacheLists.includes('question-keys/'),'Gabarito não pode entrar no shell precacheado.');
  assert.ok(REQUEST_TIMEOUT_MS>=20&&REQUEST_TIMEOUT_MS<=60000,'Timeout HTTP do shell deve permanecer limitado.');
  const sig=signatures(local),same=compareShell(sig,{...sig});
  assert.equal(same.healthy,true);

@@ -14,7 +14,7 @@ assert.ok(!resolverHtml.includes('src="/sedes-tdas-dashboard/assets/integration/
 assert.ok(bootstrap.includes("params.get('modo')==='banco'")&&bootstrap.includes('question-bank-player.js'),'Modo Banco não está roteado.');
 assert.ok((bootstrap.includes('bank-draft-guard.js')&&bootstrap.includes('data.bankSwitch'))||bootstrap.includes('bankSwitch'),'Resolver diário precisa expor o Banco e proteger o rascunho.');
 assert.ok(bootstrap.includes("dataset.questionMode='review-handoff'")&&bootstrap.includes("target=new URL(BASE+'revisar/'")&&!bootstrap.includes('installReviewCatalogBridge'),'Links históricos de revisão devem sair do player e fazer handoff para Prioridades.');
-assert.ok(bank.includes('loadAllCatalogs')&&bank.includes('buildMergedBankKey')&&bank.includes('sourceKeyPath'),'Banco precisa usar acervo autorizado e manter origem do gabarito.');
+assert.ok(bank.includes('loadAllCatalogs')&&bank.includes('buildMergedBankKey')&&bank.includes('sourceKeyRef'),'Banco precisa usar acervo autorizado e manter origem privada da correção.');
 assert.ok(player.includes('loadMergedBankKey')&&player.includes('data-module-finish')&&player.includes('A última questão encerra a navegação'),'Player do Banco precisa corrigir só no fechamento e não repetir a primeira questão.');
 assert.ok(player.includes('data-bank-available')&&player.includes('data-bank-count'),'Quantidade disponível e tamanho da bateria precisam ser visíveis.');
 assert.ok(guard.includes('stopImmediatePropagation')&&guard.includes('Continuar sessão do PE'),'Uma bateria nova não pode apagar rascunho silenciosamente.');
@@ -25,10 +25,11 @@ assert.ok(archive.includes('loadAllCatalogs')&&archive.includes('loadCatalogForQ
 assert.ok(more.includes("title:'Banco de questões'")&&more.includes('resolver/?modo=banco'),'Banco precisa ser descoberto em Mais.');
 assert.ok(more.includes("title:'Prioridades'")&&more.includes('revisar/'),'Prioridades externas precisam ser descobertas em Mais.');
 assert.ok(notionHome.includes("main.querySelector('[data-v27-continuity]')")&&notionHome.includes('continuity.after(s)'),'Espelho legado do Notion deve continuar compatível com o marcador de continuidade enquanto não for removido do repositório.');
-const v27Assets=['assets/v27.css','assets/integration/question-bank.js','assets/integration/question-bank-player.js','assets/integration/bank-draft-guard.js','assets/integration/review-catalog-bridge.js','assets/integration/resolver-bootstrap.js','assets/integration/continuity-engine.js','assets/integration/home-v27.js'];
+const v27Assets=['assets/v27.css','assets/integration/question-bank.js','assets/integration/question-bank-player.js','assets/integration/bank-draft-guard.js','assets/integration/review-catalog-bridge.js','assets/integration/resolver-bootstrap.js','assets/integration/continuity-engine.js','assets/integration/home-v27.js','assets/integration/answer-key-client.js'];
 for(const asset of v27Assets){assert.ok(sw.includes(`"${asset}"`),`${asset} precisa estar no precache.`);assert.ok(preserveV27.includes(`'${asset}'`),`${asset} precisa estar blindado contra regeneração do PWA.`)}
 assert.ok(!/question-keys\//.test((sw.match(/const (?:ASSETS|DATA)=\[[^;]+/g)||[]).join('\n')),'Gabaritos não podem entrar no precache inicial.');
-assert.ok(!/question-keys\//.test(preserveV27),'Preservação v27 não pode adicionar gabaritos ao PWA.');
+assert.ok(!/question-keys\//.test((preserveV27.match(/const (?:REQUIRED|OPTIONAL_DATA)=\[[^;]+/g)||[]).join('\n')),'Preservação v27 não pode adicionar gabaritos ao PWA.');
+assert.ok(preserveV27.includes('purgePublicAnswerKeys')&&preserveV27.includes('isPublicAnswerKey'),'Preservação v27 deve purgar caches legados de gabarito.');
 assert.ok(preserveHistory.includes("const retired=[")&&preserveHistory.includes('private-history-sync-v3.js')&&!preserveHistory.includes('question-archive/index.json'),'Guard PWA deve impedir a reintrodução de histórico pessoal sem republicar catálogos como histórico do usuário.');
 const postprocessIndex=syncWorkflow.indexOf('node scripts/postprocess-v26.mjs');
 const platformIndex=syncWorkflow.indexOf('node scripts/sync-platform-version.mjs');
