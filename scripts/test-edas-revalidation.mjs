@@ -11,13 +11,19 @@ const sprintControl = Array.from({ length: 42 }, (_, index) => ({
   properties: {
     'Dia ID': `S${String(index + 1).padStart(2, '0')}`,
     'Bloco objetivo concluído?': index < 6,
+    'Material — feitas': index === 0 ? 205 : 0,
+    'Comuns — feitas': 0,
+    'Português — feitas': 0,
+    'Acertos material': index === 0 ? 167 : 0,
+    'Acertos comuns': 0,
+    'Acertos Português': 0,
     'Total do dia — feitas': index === 0 ? 205 : 0,
-    'Acertos gerais oficiais': index === 0 ? 167 : 0,
+    'Acertos gerais oficiais': index === 0 ? 36 : 0,
   },
 }));
 const control = [
   ...sprintControl,
-  { id: 'aux-1', properties: { 'Dia ID': '', 'Total do dia — feitas': 999, 'Acertos gerais oficiais': 999 } },
+  { id: 'aux-1', properties: { 'Dia ID': '', 'Material — feitas': 999, 'Acertos material': 999 } },
   { id: 'aux-2', properties: { 'Dia ID': 'SIM01' } },
   { id: 'aux-3', properties: {} },
 ];
