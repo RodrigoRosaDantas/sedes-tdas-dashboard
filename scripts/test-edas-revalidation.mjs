@@ -6,7 +6,7 @@ import {
   computeEdasObservation,
 } from './revalidate-edas.mjs';
 
-const control = Array.from({ length: 42 }, (_, index) => ({
+const sprintControl = Array.from({ length: 42 }, (_, index) => ({
   id: `page-${index + 1}`,
   properties: {
     'Dia ID': `S${String(index + 1).padStart(2, '0')}`,
@@ -15,6 +15,12 @@ const control = Array.from({ length: 42 }, (_, index) => ({
     'Acertos gerais oficiais': index === 0 ? 167 : 0,
   },
 }));
+const control = [
+  ...sprintControl,
+  { id: 'aux-1', properties: { 'Dia ID': '', 'Total do dia — feitas': 999, 'Acertos gerais oficiais': 999 } },
+  { id: 'aux-2', properties: { 'Dia ID': 'SIM01' } },
+  { id: 'aux-3', properties: {} },
+];
 const errors = Array.from({ length: 31 }, (_, index) => ({ id: `error-${index + 1}` }));
 const cases = Array.from({ length: 12 }, (_, index) => ({ id: `case-${index + 1}` }));
 const site = {
@@ -49,8 +55,8 @@ assert.equal(document.sources.control, 'collection://control-id');
 assert.match(document.note, /três fontes oficiais/);
 
 assert.throws(
-  () => computeEdasObservation({ control: control.slice(1), errors, cases }),
-  /42 Sprints/,
+  () => computeEdasObservation({ control: control.filter(row => row.id !== 'page-1'), errors, cases }),
+  /42 Sprints S01–S42/,
 );
 assert.throws(
   () => computeEdasObservation({ control: control.map((row, index) => index === 41 ? { ...row, properties: { ...row.properties, 'Dia ID': 'S41' } } : row), errors, cases }),
