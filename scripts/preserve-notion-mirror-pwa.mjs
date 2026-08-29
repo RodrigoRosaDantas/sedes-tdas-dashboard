@@ -17,7 +17,7 @@ function updateList(source, name, {add=[],remove=[]}={}) {
 
 let sw = await fs.readFile('sw.js', 'utf8');
 sw = updateList(sw, 'CORE_ROUTES', {add:[ROUTE]});
-sw = updateList(sw, 'ASSETS', {add:[ASSET,'assets/notion-mirror.css','assets/integration/home-notion-mirror.js']});
+sw = updateList(sw, 'ASSETS', {add:[ASSET,'assets/notion-mirror.css']});
 sw = updateList(sw, 'DATA', {remove:[HEAVY_DATA_FILE,SUMMARY_FILE]});
 try {
   await fs.access(SUMMARY_FILE);

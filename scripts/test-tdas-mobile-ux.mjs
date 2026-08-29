@@ -3,7 +3,7 @@ import fs from 'node:fs/promises';
 const read=file=>fs.readFile(file,'utf8');
 const readJson=file=>fs.readFile(file,'utf8').then(JSON.parse);
 const [shell,css,proCss,moduleCss,moduleUx,moduleErrorBook,studyUx,homeModule,agendaModule,enhancements,settings,index,configHtml,more,sw,postprocess,platform,homeData,history,reviewPage,reviews,bootstrap,palette]=await Promise.all([
- read('assets/tdas-mobile-ux.js'),read('assets/tdas-mobile-ux.css'),read('assets/tdas-pro-dashboard.css'),read('assets/tdas-pro-modules.css'),read('assets/tdas-pro-modules.js'),read('assets/integration/module-error-book-base.js'),read('assets/integration/study-ux.js'),read('assets/home-mobile.js'),read('assets/agenda.js'),read('assets/enhance-v20.js'),read('assets/settings.js'),read('index.html'),read('configuracoes/index.html'),read('assets/more.js'),read('sw.js'),read('scripts/postprocess-v26.mjs'),readJson('data/platform-version.json'),readJson('data/home.json'),readJson('data/sync-history.json'),read('revisar/index.html'),read('assets/integration/module-reviews.js'),read('assets/integration/resolver-bootstrap.js'),read('assets/tdas-command-palette.js')
+ read('assets/tdas-mobile-ux.js'),read('assets/tdas-mobile-ux.css'),read('assets/dashboard-pro-2026.css'),read('assets/tdas-pro-modules.css'),read('assets/tdas-pro-modules.js'),read('assets/integration/module-error-book-base.js'),read('assets/integration/study-ux.js'),read('assets/integration/home-dashboard-pro-2026.js'),read('assets/agenda.js'),read('assets/enhance-v20.js'),read('assets/settings.js'),read('index.html'),read('configuracoes/index.html'),read('assets/more.js'),read('sw.js'),read('scripts/postprocess-v26.mjs'),readJson('data/platform-version.json'),readJson('data/home.json'),readJson('data/sync-history.json'),read('revisar/index.html'),read('assets/integration/module-reviews.js'),read('assets/integration/resolver-bootstrap.js'),read('assets/tdas-command-palette.js')
 ]);
 for(const text of ['Hoje','Questões','Erros','Mentor','Mais'])assert.ok(shell.includes(`'${text}'`),`Barra mobile deve conter ${text}.`);
 const navDefinition=shell.match(/const items=\[([\s\S]*?)\];nav\.innerHTML/)?.[1]||'';
@@ -28,7 +28,7 @@ assert.match(css,/\.tdas-view-comfort/,'CSS deve implementar modo confortável.'
 assert.match(css,/\.tdas-view-large-text/,'CSS deve implementar texto ampliado.');
 for(const marker of ['Product Design System PRO','--pro-violet','tdas-hero-aside','tdas-pro-grid','tdas-insight-grid','tdas-result-ring'])assert.ok(css.includes(marker),`Design PRO deve preservar ${marker}.`);
 assert.ok(!css.includes('identidade visual Ember'),'Identidade Ember não deve reaparecer após o redesign PRO.');
-for(const marker of ['tdas-command-search','tdas-performance-chart','tdas-week-strip','tdas-edital-summary','tdas-acervo-metrics','tdas-nav-copy'])assert.ok(proCss.includes(marker),`Componentes avançados devem preservar ${marker}.`);
+for(const marker of ['pro26-search','pro26-line-chart','pro26-readiness-grid','pro26-plan-steps','pro26-metrics','pro26-source-card'])assert.ok(proCss.includes(marker),`Dashboard unificado deve preservar ${marker}.`);
 for(const marker of ['tdas-pro-contextbar','tdas-module-scorecard','tdas-module-trail','tdas-module-command','tdas-pro-crossnav','pilot-question','review-card','daily-material-content'])assert.ok(moduleCss.includes(marker),`Camada transversal deve estilizar ${marker}.`);
 for(const page of ['resolver','desempenho','estudar','materias'])assert.ok(moduleUx.includes(`${page}:`),`Camada PRO deve possuir contrato para ${page}.`);
 assert.match(moduleUx,/if\(path\.startsWith\(BASE\+'caderno-erros\/'\)\)return null/,'Caderno de erros deve usar somente seu módulo próprio, sem overlay PRO legado.');
@@ -63,17 +63,17 @@ assert.match(bootstrap,/location\.replace\(target\.href\)/,'Resolver deve redire
 assert.ok(!bootstrap.includes('installReviewCatalogBridge'),'Resolver não pode reinstalar revisão interna.');
 assert.match(palette,/label:'Prioridades'/,'Palette deve usar Prioridades.');
 assert.ok(!palette.includes('resolver/?review='),'Palette não pode iniciar revisão interna.');
-assert.match(homeModule,/Próximo passo/,'Home deve começar pelo próximo passo.');
-assert.match(homeModule,/d\.today\.pe/,'Home deve usar o PE oficial do snapshot.');
-assert.match(homeModule,/d\.overdue/,'Home deve considerar PE vencido sem apagar progresso local iniciado.');
+assert.match(homeModule,/PRÓXIMA AÇÃO/,'Home deve começar pela próxima ação.');
+assert.match(homeModule,/home\.today\?\.pe/,'Home deve usar o PE oficial do snapshot.');
+assert.match(homeModule,/home\.overdue/,'Home deve considerar PE vencido sem apagar progresso local iniciado.');
 assert.match(homeModule,/currentStarted/,'Home deve preservar a execução já iniciada no PE atual.');
-assert.match(homeModule,/revisar\/\?pe=/,'PE concluído deve encaminhar para a rota de prioridades.');
+assert.match(homeModule,/buildOfficialCycleTasks/,'PE concluído deve delegar o encaminhamento ao contrato oficial de prioridades.');
 assert.match(homeModule,/resolver\/\?pe=/,'Home deve oferecer CTA de Questões.');
-for(const marker of ['Dados consolidados do Notion','Hoje e próximo passo','Próximos passos','Últimas 12 execuções','16 semanas','Check do Edital · Cargo 202','Acervo operacional','O que merece atenção','Leitura de risco','Erros recentes','Centrais de trabalho'])assert.ok(homeModule.includes(marker),`Home PRO deve conter ${marker}.`);
+for(const marker of ['Central de execução','PRÓXIMA AÇÃO','ORIENTAÇÃO DE HOJE','Próximos passos','Aproveitamento recente','PLANO ENXUTO','LEITURA DE DADOS','Controle de questões','MAIOR RISCO','Erros recentes','Notion sem invadir a execução'])assert.ok(homeModule.includes(marker),`Home PRO deve conter ${marker}.`);
 for(const source of ['data/agenda.json','data/today.json','data/evolution.json','data/edital-status.json','data/subjects.json'])assert.ok(homeModule.includes(source),`Home PRO deve carregar ${source}.`);
-assert.match(homeModule,/data-pro-search/,'Home PRO deve expor busca-comando.');
-assert.match(homeModule,/ArrowDown/,'Busca-comando deve suportar navegação por teclado.');
-assert.match(homeModule,/event\.key==='\/'/,'Atalho / deve focar a busca-comando.');
+assert.match(homeModule,/data-pro26-search/,'Home PRO deve expor busca-comando.');
+assert.match(homeModule,/event\.key === 'Escape'/,'Busca-comando deve permitir fechamento por teclado.');
+assert.match(homeModule,/event\.key === '\/'/,'Atalho / deve focar a busca-comando.');
 assert.ok(!homeModule.includes('Cada ciclo concluído aproxima você'),'Hero institucional antigo não deve permanecer na Home nova.');
 assert.ok(!homeModule.includes('Projeções transparentes'),'Projeções técnicas não devem poluir a Home nova.');
 assert.ok(!homeModule.includes('Alertas prioritários'),'Alertas extensos não devem poluir a Home nova.');
@@ -85,20 +85,19 @@ assert.match(settings,/platformVersion/,'Configurações deve ler platformVersio
 assert.match(settings,/dataVersion/,'Configurações deve ler dataVersion.');
 assert.match(settings,/syncAt/,'Configurações deve ler syncAt real.');
 assert.ok(!settings.includes('api.notion.com'),'Configurações não deve escrever ou consultar a API do Notion pelo navegador.');
-assert.match(index,/home-mobile\.js/,'Home pública deve usar o módulo novo.');
-assert.match(index,/home-command-center\.js/,'Central de Execução deve permanecer ativa.');
-assert.match(index,/tdas-pro-dashboard\.css/,'Home pública deve carregar os componentes PRO avançados.');
-assert.match(index,/home-mobile-hotfix\.css/,'Home pública deve carregar o hotfix responsivo por último.');
+assert.match(index,/home-dashboard-pro-2026\.js/,'Home pública deve usar o módulo operacional unificado.');
+assert.match(index,/dashboard-pro-2026\.css/,'Home pública deve carregar uma única camada PRO.');
+assert.doesNotMatch(index,/home-mobile\.js|home-command-center\.js|tdas-pro-dashboard\.css|home-mobile-hotfix\.css/,'Home não pode referenciar camadas aposentadas.');
 assert.match(configHtml,/settings\.js/,'Rota Configurações deve carregar seu módulo.');
 assert.match(more,/configuracoes\//,'Tela Mais deve encaminhar para Configurações.');
 assert.match(more,/title:'Prioridades'/,'Tela Mais deve expor Prioridades em vez de Revisar.');
 assert.ok(!more.includes("title:'Revisar'"),'Tela Mais não pode manter a agenda D+1/D+7/D+20 como ação.');
 assert.ok(!more.includes('data-theme-toggle>Alternar tema'),'Tela Mais não deve duplicar controle técnico de tema fora de Configurações.');
-for(const item of ['configuracoes/','assets/home-mobile.js','assets/tdas-mobile-ux.js','assets/tdas-mobile-ux.css','assets/tdas-pro-dashboard.css','assets/home-mobile-hotfix.css','assets/tdas-pro-modules.css','assets/tdas-pro-modules.js','assets/tdas-command-palette.css','assets/tdas-command-palette.js','assets/settings.js','assets/integration/study-ux.js']){assert.ok(sw.includes(item),`PWA deve incluir ${item}.`);assert.ok(postprocess.includes(item),`Gerador do PWA deve preservar ${item}.`)}
+for(const item of ['configuracoes/','assets/tdas-mobile-ux.js','assets/tdas-mobile-ux.css','assets/dashboard-pro-2026.css','assets/integration/home-dashboard-pro-2026.js','assets/tdas-pro-modules.css','assets/tdas-pro-modules.js','assets/tdas-command-palette.css','assets/tdas-command-palette.js','assets/settings.js','assets/integration/study-ux.js']){assert.ok(sw.includes(item),`PWA deve incluir ${item}.`);assert.ok(postprocess.includes(item),`Gerador do PWA deve preservar ${item}.`)}
 assert.ok(!sw.includes('question-keys/'),'Gabarito não pode entrar no precache do TDAS.');
 const lastValidSync=(history.entries||[]).find(item=>['success','no_changes'].includes(item?.status)&&item?.at)?.at;
 assert.equal(platform.dataVersion,homeData.meta?.version,'dataVersion deve continuar derivada do snapshot oficial.');
 assert.equal(platform.syncAt,lastValidSync,'syncAt deve continuar derivada da última sincronização real, não da release visual.');
 assert.equal(platform.peId,homeData.today?.pe,'PE do manifesto deve continuar alinhado ao snapshot oficial.');
-assert.match(platform.serviceWorkerVersion,/pro10$/,'Cache visual deve identificar a geração PRO10 atual.');
+assert.match(platform.serviceWorkerVersion,/pro11$/,'Cache visual deve identificar a geração PRO11 otimizada.');
 console.log('UX TDAS validada: caderno como diagnóstico local sem overlay legado, revisão externa por prioridades, navegação sem Revisar mobile e separação plataforma/dados preservada.');

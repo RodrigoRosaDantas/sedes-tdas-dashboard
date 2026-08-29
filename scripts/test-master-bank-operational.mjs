@@ -3,6 +3,7 @@ import fs from 'node:fs';
 
 const workflow=fs.readFileSync('.github/workflows/notion-sync.yml','utf8');
 const preserve=fs.readFileSync('scripts/preserve-v27-pwa.mjs','utf8');
+const sw=fs.readFileSync('sw.js','utf8');
 const bank=fs.readFileSync('assets/integration/question-bank.js','utf8');
 const review=fs.readFileSync('assets/integration/review-catalog-bridge.js','utf8');
 const player=fs.readFileSync('assets/integration/question-bank-player.js','utf8');
@@ -19,11 +20,12 @@ assert.ok(validatePos>preservePos,'O snapshot materializado deve ser validado de
 assert.ok(gatePos>validatePos,'O gate integral deve rodar depois da validação do Banco Mestre.');
 for(const dependency of ['scripts/sync-tdas-master-question-bank.mjs','scripts/validate-master-question-bank.mjs','scripts/test-master-question-bank.mjs'])assert.ok(workflow.includes(`- '${dependency}'`),`Workflow não reage a ${dependency}.`);
 assert.match(workflow,/git add -A data pe materias sw\.js/,'Snapshot e chave separados precisam participar da publicação atômica.');
-const optionalMatch=preserve.match(/const OPTIONAL_DATA=(\[[^;]*\]);/);
-assert.ok(optionalMatch,'Lista OPTIONAL_DATA ausente no preservador PWA.');
-const optionalData=JSON.parse(optionalMatch[1].replace(/'/g,'"'));
-assert.ok(optionalData.includes('data/integration/master-question-bank.json'),'Catálogo público mestre deve ser preservado no PWA.');
-assert.ok(optionalData.every(item=>!String(item).includes('question-keys/')),'A chave do Banco Mestre não pode ser adicionada ao PWA.');
+const runtimeMatch=preserve.match(/const RUNTIME_ONLY_DATA=(\[[^;]*\]);/);
+assert.ok(runtimeMatch,'Lista RUNTIME_ONLY_DATA ausente no preservador PWA.');
+const runtimeData=JSON.parse(runtimeMatch[1].replace(/'/g,'"'));
+assert.ok(runtimeData.includes('data/integration/master-question-bank.json'),'Catálogo mestre deve ser explicitamente carregado sob demanda.');
+assert.ok(!sw.includes('data/integration/master-question-bank.json'),'Catálogo mestre de vários MB não pode bloquear a instalação do PWA.');
+assert.ok(runtimeData.every(item=>!String(item).includes('question-keys/')),'A chave do Banco Mestre não pode ser adicionada ao PWA.');
 assert.match(preserve,/assets\/integration\/master-bank-ui\.js/,'Resumo visual do Banco Mestre deve ser preservado no PWA.');
 assert.match(bank,/master-question-bank\.json/,'Runtime do Banco deve carregar o snapshot mestre local.');
 assert.match(bank,/sourceKind:'master-bank'/,'Runtime deve identificar questões do Banco Mestre.');
@@ -43,4 +45,4 @@ assert.match(css,/\.bank-search-wide/,'Busca do Banco não possui layout respons
 const finish=player.indexOf('async function finishSession');
 const keyLoad=player.indexOf('loadMergedBankKey',finish);
 assert.ok(finish>=0&&keyLoad>finish,'O player do Banco deve continuar buscando a correção somente no fechamento.');
-console.log('Operação do Banco Mestre blindada: sync, filtros encadeados, tamanhos rápidos, PWA público, chave fora do precache e revisão recuperável.');
+console.log('Operação do Banco Mestre blindada: sync, filtros encadeados, índice sob demanda, chave fora do precache e revisão recuperável.');

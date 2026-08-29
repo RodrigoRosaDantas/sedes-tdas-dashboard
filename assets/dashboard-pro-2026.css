@@ -160,7 +160,7 @@ html[data-dashboard-pro-2026="1"] .pro26-pulse.tdas-hero-aside{position:relative
 
 @media(max-width:430px){
   .pro26-metrics,.pro26-readiness-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.pro26-metric{min-height:102px;padding:13px}.pro26-metric strong{font-size:22px}
-  .pro26-decision,.pro26-decision.tdas-home-focus{padding:19px}.pro26-decision-head{align-items:flex-start}.pro26-decision-head>div{align-items:flex-start;flex-direction:column}.pro26-command h1{font-size:36px}
+  .pro26-decision,.pro26-decision.tdas-home-focus{padding:19px}.pro26-decision-head{align-items:flex-start}.pro26-decision-head>div{align-items:flex-start;flex-direction:column}.pro26-command h1{display:block;overflow:visible;font-size:36px;-webkit-box-orient:initial;-webkit-line-clamp:unset}
   .pro26-priority .tdas-home-actions{display:grid;grid-template-columns:1fr}.pro26-priority .tdas-home-actions a{text-align:center}.pro26-countdown strong{font-size:56px}
   .pro26-plan-controls{align-items:flex-start;flex-direction:column}.pro26-time-picker{width:100%}.pro26-time-picker button{flex:1}.pro26-tabs{overflow-x:auto;overscroll-behavior-x:contain;padding-bottom:9px}.pro26-tabs button{flex:0 0 auto;min-height:44px}.pro26-line-chart{height:180px}
 }
