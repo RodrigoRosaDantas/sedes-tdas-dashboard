@@ -9,8 +9,11 @@ on:
       - 'scripts/monitor-edas-publication.mjs'
       - 'scripts/monitor-edas-live-site.mjs'
       - 'scripts/test-edas-operations.mjs'
+      - 'scripts/revalidate-edas.mjs'
+      - 'scripts/test-edas-revalidation.mjs'
       - 'scripts/test-edas-local-backup.mjs'
       - '.github/workflows/edas-publication-watchdog.yml'
+      - '.github/workflows/edas-semantic-revalidation.yml'
       - '.github/workflows/edas-browser-smoke.yml'
       - 'package.json'
       - 'docs/OPERACAO_SITE_TDAS.md'
@@ -21,8 +24,11 @@ on:
       - 'scripts/monitor-edas-publication.mjs'
       - 'scripts/monitor-edas-live-site.mjs'
       - 'scripts/test-edas-operations.mjs'
+      - 'scripts/revalidate-edas.mjs'
+      - 'scripts/test-edas-revalidation.mjs'
       - 'scripts/test-edas-local-backup.mjs'
       - '.github/workflows/edas-publication-watchdog.yml'
+      - '.github/workflows/edas-semantic-revalidation.yml'
       - '.github/workflows/edas-browser-smoke.yml'
       - 'package.json'
       - 'docs/OPERACAO_SITE_TDAS.md'
@@ -56,6 +62,7 @@ jobs:
         run: |
           node scripts/test-edas-local-backup.mjs
           npm run test:edas-operations
+          npm run test:edas-revalidation
           npm run check:edas
           MONITOR_SELF_TEST=true npm run monitor:edas-live
 
