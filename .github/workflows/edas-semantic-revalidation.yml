@@ -1,0 +1,79 @@
+name: Revalidar fontes EDAS
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'edas-administracao/data/site.json'
+      - 'edas-administracao/data/integration/daily-contract.json'
+      - 'scripts/revalidate-edas.mjs'
+      - 'scripts/test-edas-revalidation.mjs'
+      - '.github/workflows/edas-semantic-revalidation.yml'
+      - 'package.json'
+  schedule:
+    - cron: '20 4,10,16,22 * * *'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: edas-semantic-revalidation
+  cancel-in-progress: false
+
+jobs:
+  revalidate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Baixar repositório
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Preparar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Testar contrato da revalidação
+        run: npm run test:edas-revalidation
+
+      - name: Provar revalidação no pull request
+        if: github.event_name == 'pull_request'
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          TZ: America/Sao_Paulo
+          REQUIRE_EDAS_FRESHNESS: 'true'
+          EDAS_MAX_AGE_MINUTES: '420'
+        run: |
+          node scripts/revalidate-edas.mjs
+          npm run check:edas
+
+      - name: Revalidar fontes e publicar prova semântica
+        if: github.event_name != 'pull_request'
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          TZ: America/Sao_Paulo
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          for attempt in 1 2 3; do
+            git fetch origin main
+            git switch -C edas-semantic-revalidation origin/main
+            node scripts/revalidate-edas.mjs
+            npm run check:edas
+            git add edas-administracao/data/revalidation.json
+            if git diff --cached --quiet; then
+              echo "Revalidação já atualizada."
+              exit 0
+            fi
+            git commit -m "Revalidar fontes oficiais do EDAS"
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+            echo "A main mudou durante a revalidação; repetindo sobre a revisão mais recente (${attempt}/3)."
+          done
+          echo "Não foi possível publicar a revalidação após três tentativas."
+          exit 1
