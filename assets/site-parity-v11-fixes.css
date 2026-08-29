@@ -8,6 +8,20 @@ html[data-site-parity="v11"] .site-sr-only{position:absolute!important;width:1px
    responsivo definido em dashboard-pro-2026.css e mantém Atualizar dados acessível. */
 html[data-site-parity="v11"] .pro26-utility-row{display:grid!important}
 
+/* Resolver diário: alguns componentes operacionais podem envolver o hero em um wrapper.
+   Nesse cenário o seletor direto de site-parity-v11.css deixa o fundo legado claro ativo,
+   enquanto títulos, textos e botões continuam usando a paleta clara do hero escuro.
+   Reaplica apenas a superfície do hero no modo diário, sem alterar o layout do player. */
+html[data-site-parity="v11"][data-question-mode="daily"] .content .hero{
+ border:0;
+ border-radius:19px;
+ background:radial-gradient(circle at 82% 24%,rgba(65,103,126,.35),transparent 30%),linear-gradient(125deg,#111d24,#182b35 70%,#12212a);
+ color:#f5f8f3;
+ box-shadow:var(--shadow);
+ isolation:isolate;
+}
+html[data-site-parity="v11"][data-question-mode="daily"] .content .hero:after{pointer-events:none}
+
 /* Fora do breakpoint móvel do site v11, nenhuma regra antiga pode ressuscitar a barra inferior/fixa. */
 html[data-site-parity="v11"] .mobile-nav{display:none!important;position:static;inset:auto;width:auto;max-width:none;margin:0;border-radius:0;box-shadow:none}
 
