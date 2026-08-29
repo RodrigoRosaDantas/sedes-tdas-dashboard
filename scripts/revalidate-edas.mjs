@@ -28,15 +28,15 @@ export function computeEdasObservation({ control, errors, cases }) {
   requireCondition(Array.isArray(errors), 'Caderno de Erros EDAS ausente.');
   requireCondition(Array.isArray(cases), 'Estudos de Caso EDAS ausentes.');
 
-  const sprintRows = control.map(page => ({
+  const controlRows = control.map(page => ({
     id: sprintId(page?.properties?.['Dia ID']),
     completed: page?.properties?.['Bloco objetivo concluído?'] === true,
     questions: number(page?.properties?.['Total do dia — feitas']),
     correct: number(page?.properties?.['Acertos gerais oficiais']),
   }));
+  const sprintRows = controlRows.filter(row => row.id);
   const ids = sprintRows.map(row => row.id);
-  requireCondition(sprintRows.length === 42, `Controle EDAS deve conter 42 Sprints; recebeu ${sprintRows.length}.`);
-  requireCondition(ids.every(Boolean), 'Controle EDAS contém Sprint sem Dia ID válido.');
+  requireCondition(sprintRows.length === 42, `Controle EDAS deve conter 42 Sprints S01–S42; recebeu ${sprintRows.length} entre ${controlRows.length} páginas.`);
   requireCondition(new Set(ids).size === ids.length, 'Controle EDAS contém Dia ID duplicado.');
   const expectedIds = Array.from({ length: 42 }, (_, index) => `S${String(index + 1).padStart(2, '0')}`);
   requireCondition(expectedIds.every(id => ids.includes(id)), 'Controle EDAS não contém exatamente S01–S42.');
