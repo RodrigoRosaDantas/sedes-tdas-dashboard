@@ -1,8 +1,8 @@
 {
   "schemaVersion": "1.0.0",
   "status": "no_changes",
-  "validatedAt": "2026-08-24T01:16:17-03:00",
-  "validatedDate": "2026-08-24",
+  "validatedAt": "2026-08-29T18:49:44-03:00",
+  "validatedDate": "2026-08-29",
   "snapshotDate": "2026-08-24",
   "dataVersion": "20260811.1",
   "sprintId": "S08",
@@ -21,5 +21,5 @@
     "errorPages": 31,
     "cases": 12
   },
-  "note": "Revalidação oficial de 24/08/2026 sem alteração semântica: as três views oficiais foram percorridas até has_more=false. O Controle mantém 42 Sprints S01–S42, 6 blocos objetivos concluídos, 205 questões e 167 acertos (81,46%); o Caderno mantém 31 páginas detalhadas, correspondentes aos 38 erros acumulados preservados no snapshot; Estudos de Caso mantém 12 registros, todos não iniciados. S08 continua como próxima ação operacional pendente; S29 é apenas o Sprint do calendário atual."
+  "note": "Revalidação sem alteração semântica: as três fontes oficiais foram percorridas integralmente e conferidas por paginação independente. O Controle mantém 42 Sprints S01–S42, 6 blocos objetivos concluídos, 205 questões e 167 acertos (81,46%); o Caderno mantém 31 páginas detalhadas para 38 erros acumulados; Estudos de Caso mantém 12 registros."
 }
