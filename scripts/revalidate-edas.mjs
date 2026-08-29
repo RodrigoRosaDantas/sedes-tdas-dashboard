@@ -18,6 +18,10 @@ const number = value => {
 const sprintId = value => String(value || '').trim().toUpperCase().match(/^S\d{2}$/)?.[0] || '';
 const round = (value, digits = 2) => Number(value.toFixed(digits));
 const sourceId = value => String(value || '').replace(/^collection:\/\//, '');
+const propertyNumber = (properties, ...names) => {
+  const name = names.find(candidate => Object.hasOwn(properties || {}, candidate));
+  return name ? number(properties[name]) : 0;
+};
 
 function requireCondition(condition, message) {
   if (!condition) throw new Error(message);
@@ -28,12 +32,21 @@ export function computeEdasObservation({ control, errors, cases }) {
   requireCondition(Array.isArray(errors), 'Caderno de Erros EDAS ausente.');
   requireCondition(Array.isArray(cases), 'Estudos de Caso EDAS ausentes.');
 
-  const controlRows = control.map(page => ({
-    id: sprintId(page?.properties?.['Dia ID']),
-    completed: page?.properties?.['Bloco objetivo concluído?'] === true,
-    questions: number(page?.properties?.['Total do dia — feitas']),
-    correct: number(page?.properties?.['Acertos gerais oficiais']),
-  }));
+  const controlRows = control.map(page => {
+    const properties = page?.properties || {};
+    return {
+      id: sprintId(properties['Dia ID']),
+      completed: properties['Bloco objetivo concluído?'] === true,
+      questions:
+        propertyNumber(properties, 'Material — feitas', 'Material - feitas') +
+        propertyNumber(properties, 'Comuns — feitas', 'Comuns - feitas') +
+        propertyNumber(properties, 'Português — feitas', 'Português - feitas'),
+      correct:
+        propertyNumber(properties, 'Acertos material') +
+        propertyNumber(properties, 'Acertos comuns') +
+        propertyNumber(properties, 'Acertos Português'),
+    };
+  });
   const sprintRows = controlRows.filter(row => row.id);
   const ids = sprintRows.map(row => row.id);
   requireCondition(sprintRows.length === 42, `Controle EDAS deve conter 42 Sprints S01–S42; recebeu ${sprintRows.length} entre ${controlRows.length} páginas.`);
