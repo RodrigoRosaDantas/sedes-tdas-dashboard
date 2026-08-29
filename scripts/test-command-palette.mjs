@@ -25,7 +25,7 @@ for(const marker of ['tdas-command-overlay','tdas-command-dialog','tdas-command-
 assert.match(shell,/tdas-command-palette\.css\?v=1/,'Shell deve carregar CSS da palette.');
 assert.match(shell,/tdas-command-palette\.js\?v=1\.0\.1/,'Shell deve importar a palette com revisão explícita.');
 for(const item of ['assets/tdas-command-palette.css','assets/tdas-command-palette.js']){assert.ok(sw.includes(item),`PWA deve precachear ${item}.`);assert.ok(postprocess.includes(item),`Pós-processamento deve preservar ${item}.`)}
-assert.match(version.serviceWorkerVersion,/pro10$/,'Manifesto deve usar cache PRO10.');
-assert.match(sw,/pro10/,'Service worker deve usar cache PRO10.');
+assert.match(version.serviceWorkerVersion,/pro11$/,'Manifesto deve usar cache PRO11 otimizado.');
+assert.match(sw,/pro11/,'Service worker deve usar cache PRO11 otimizado.');
 assert.ok(!sw.includes('question-keys/'),'Gabarito continua fora do precache inicial.');
-console.log('Command Palette TDAS validada: ações, PE01–PE112, matérias, prioridades externas, teclado, foco, PWA PRO10 e blindagem do gabarito.');
+console.log('Command Palette TDAS validada: ações, PE01–PE112, matérias, prioridades externas, teclado, foco, PWA PRO11 e blindagem do gabarito.');

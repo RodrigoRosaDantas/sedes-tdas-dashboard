@@ -91,12 +91,9 @@ async function generateServiceWorker(routes, errorIndex) {
     'data/risks.json', 'data/agenda.json', 'data/redactions.json', 'data/audit.json', 'data/more.json', 'data/subjects.json',
     'data/sync-history.json', 'data/live.json', 'data/error-questions/index.json', 'icons/icon.svg', 'icons/maskable.svg', 'icons/icon-192.png', 'icons/icon-512.png'
   ];
-  const dynamic = [
-    ...routes.peNumbers.map(number => `pe/${number}/`),
-    ...routes.subjectSlugs.filter(Boolean).map(slug => `materias/${slug}/`),
-    ...errorIndex.parts.map(part => `data/error-questions/${part.file}`)
-  ];
-  const precache = [...new Set([...core, ...dynamic])].map(item => `${base}${item}`);
+  // Páginas históricas e partições grandes entram no cache quando o usuário as
+  // abre. O install inicial fica restrito ao shell e aos dados operacionais.
+  const precache = [...new Set(core)].map(item => `${base}${item}`);
   const source = `const VERSION='tdas-v20-${snapshotDate.replaceAll('-', '')}-${hash(precache).slice(0, 8)}';\nconst BASE='${base}';\nconst PRECACHE=${JSON.stringify(precache)};\nself.addEventListener('install',event=>event.waitUntil(caches.open(VERSION).then(cache=>cache.addAll(PRECACHE)).then(()=>self.skipWaiting())));\nself.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key!==VERSION).map(key=>caches.delete(key)))).then(()=>self.clients.claim())));\nself.addEventListener('fetch',event=>{if(event.request.method!=='GET')return;const url=new URL(event.request.url);if(url.origin!==location.origin)return;if(event.request.mode==='navigate'){event.respondWith(fetch(event.request).then(response=>{const copy=response.clone();caches.open(VERSION).then(cache=>cache.put(event.request,copy));return response}).catch(()=>caches.match(event.request).then(cached=>cached||caches.match(BASE+'offline.html'))));return}if(url.pathname.includes('/data/')){event.respondWith(fetch(event.request).then(response=>{const copy=response.clone();caches.open(VERSION).then(cache=>cache.put(event.request,copy));return response}).catch(()=>caches.match(event.request)));return}event.respondWith(caches.match(event.request).then(cached=>cached||fetch(event.request).then(response=>{const copy=response.clone();caches.open(VERSION).then(cache=>cache.put(event.request,copy));return response}))) });\n`;
   await writeText('sw.js', source);
 }

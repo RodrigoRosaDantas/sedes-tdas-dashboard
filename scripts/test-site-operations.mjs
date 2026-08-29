@@ -81,7 +81,7 @@ assert.match(tdasMobileBrowser, /push:/, 'O browser mobile TDAS deve se revalida
 assert.match(tdasMobileBrowser, /schedule:/, 'O browser mobile TDAS deve possuir revalidação preventiva diária.');
 assert.match(tdasMobileBrowser, /npm run test:tdas-mobile-ux/, 'O workflow mobile deve validar o contrato estrutural.');
 assert.match(tdasMobileBrowser, /npm run test:tdas-mobile-browser/, 'O workflow mobile deve executar Chrome real.');
-for (const dependency of ['assets/tdas-mobile-ux.js','assets/tdas-mobile-ux.css','assets/home-mobile.js','assets/settings.js','assets/integration/study-ux.js','configuracoes/**']) assert.ok(tdasMobileBrowser.includes(`- '${dependency}'`), `Browser mobile deve reagir a ${dependency}.`);
+for (const dependency of ['assets/tdas-mobile-ux.js','assets/tdas-mobile-ux.css','assets/dashboard-pro-2026.css','assets/integration/home-dashboard-pro-2026.js','assets/settings.js','assets/integration/study-ux.js','configuracoes/**']) assert.ok(tdasMobileBrowser.includes(`- '${dependency}'`), `Browser mobile deve reagir a ${dependency}.`);
 
 assert.match(liveMonitor, /data\/platform-version\.json/, 'O monitor implantado deve comparar o manifesto público.');
 assert.match(liveMonitor, /data\/redactions\.json/, 'O monitor implantado deve comparar o contrato discursivo.');

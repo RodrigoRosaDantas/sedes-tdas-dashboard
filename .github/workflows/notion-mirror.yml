@@ -8,7 +8,6 @@ on:
       - 'scripts/test-notion-mirror-contract.mjs'
       - 'assets/notion-mirror.js'
       - 'assets/notion-mirror.css'
-      - 'assets/integration/home-notion-mirror.js'
       - 'notion/**'
       - 'data/notion-mirror/**'
       - 'sw.js'
@@ -40,7 +39,6 @@ jobs:
           node --check scripts/notion/mirror.mjs
           node --check scripts/sync-notion-mirror.mjs
           node --check assets/notion-mirror.js
-          node --check assets/integration/home-notion-mirror.js
           node --check scripts/preserve-notion-mirror-pwa.mjs
       - name: Validar contrato do espelho
         run: node scripts/test-notion-mirror-contract.mjs
