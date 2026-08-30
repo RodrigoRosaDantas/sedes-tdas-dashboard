@@ -74,7 +74,7 @@ async function inspect(p){
   const sidebar=document.querySelector('.sidebar');
   const navLinks=[...(mobileNav?.querySelectorAll('a')||[])].filter(visible).map(n=>({text:n.textContent.trim(),...rect(n)}));
   const navStyle=mobileNav?getComputedStyle(mobileNav):null;
-  const system=document.querySelector('.publication-chip');
+  const system=[...document.querySelectorAll('.publication-chip,.pro26-source-card')].find(visible);
   const utility=document.querySelector('.pro26-utility-row');
   const tabs=[...document.querySelectorAll('[data-pro26-tab]')].filter(visible);
   const keepY=scrollY;window.scrollTo(9999,keepY);const attemptedX=scrollX;window.scrollTo(0,keepY);
@@ -104,7 +104,7 @@ try{
   assert.equal(d.metrics,4,`${p.name}: quatro KPIs principais devem permanecer visíveis, sem métricas redundantes.`);
   assert.equal(d.attemptedX,0,`${p.name}: rolagem horizontal funcional detectada.`);
   assert.equal(d.mainOffenders.length,0,`${p.name}: elementos saindo da viewport fora de trilhos roláveis: ${JSON.stringify(d.mainOffenders)}.`);
-  assert.equal(d.systemVisible,true,`${p.name}: atualização Notion/GitHub deve permanecer visível.`);
+  assert.equal(d.systemVisible,true,`${p.name}: atualização Notion/GitHub deve permanecer acessível no cabeçalho ou no card de dados oficiais.`);
   assert.ok(d.headings.every(h=>h.overflow!=='hidden'||h.scroll<=h.client+4),`${p.name}: título truncado: ${JSON.stringify(d.headings)}.`);
   if(p.touch){
    assert.ok(d.heroActions.every(a=>a.height>=43.5),`${p.name}: CTA/atalho do hero abaixo de 44px: ${JSON.stringify(d.heroActions)}.`);
