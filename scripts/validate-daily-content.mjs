@@ -20,6 +20,14 @@ if(catalog.mode==='operational-empty'){
  const material=await json('data/integration/daily-material.json');
  required(material.mode==='operational-empty','placeholder do material inválido');
  console.log('Conteúdo diário validado em modo de preparação: pipeline presente e nenhum conteúdo fictício ativo.');
+}else if(catalog.mode==='notion-daily-adaptive-pending'){
+ required(catalog.peId==='PE105'&&catalog.peId===today.current.pe&&catalog.questionCount===0&&catalog.questions?.length===0,'PE adaptativo diverge do PE105 atual ou contém questão pré-fabricada');
+ required(catalog.plannedQuestionCount===60&&catalog.plannedQuestionCount===today.current.meta&&catalog.availability?.state==='awaiting-prerequisite','planejamento adaptativo diverge da meta oficial de 60');
+ required(catalog.availability?.prerequisitePe==='PE104'&&catalog.availability?.prerequisiteRd==='RD30','pré-requisito adaptativo inválido');
+ required(catalog.keyPath===null,'PE adaptativo pendente contém correção antecipada');
+ const material=await json('data/integration/daily-material.json');
+ required(material.mode==='notion-daily-material'&&material.peId===catalog.peId&&material.html?.length>200,'material diário adaptativo inválido');
+ console.log(`Conteúdo diário validado: ${catalog.peId} aguarda PE104/RD30 para gerar ${catalog.plannedQuestionCount} questões adaptativas.`);
 }else if(catalog.mode==='notion-daily-empty'){
  required(catalog.peId===today.current.pe&&catalog.questionCount===0,'PE sem questões diverge do dia atual');
  console.log(`Conteúdo diário validado: ${catalog.peId} sem questões programadas.`);

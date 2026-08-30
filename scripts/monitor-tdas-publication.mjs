@@ -155,10 +155,19 @@ export function evaluatePublication({
 
   const questionCount = Number(catalog?.questionCount ?? -1);
   const questionsLength = Array.isArray(catalog?.questions) ? catalog.questions.length : -1;
+  const deferredAdaptive = catalog?.mode === 'notion-daily-adaptive-pending'
+    && catalog?.availability?.state === 'awaiting-prerequisite'
+    && peCode(catalog?.peId) === 'PE105'
+    && catalog?.availability?.prerequisitePe === 'PE104'
+    && catalog?.availability?.prerequisiteRd === 'RD30'
+    && Number(catalog?.plannedQuestionCount) === 60
+    && questionCount === 0
+    && questionsLength === 0;
+  const publishedPlanCount = deferredAdaptive ? Number(catalog?.plannedQuestionCount ?? -1) : questionCount;
   if (!Number.isInteger(expectedQuestions) || expectedQuestions < 0) {
     issues.push(issue('QUESTION_TARGET_INVALID', 'A meta de questões do calendário é inválida.', String(expectedDay?.planned_questions ?? expectedDay?.meta ?? today?.current?.meta)));
-  } else if (questionCount !== expectedQuestions || questionsLength !== expectedQuestions) {
-    issues.push(issue('QUESTION_COUNT_DIVERGENCE', 'A quantidade publicada de questões diverge da meta do PE esperado.', `PE esperado: ${expectedPe || 'não identificado'}; meta: ${expectedQuestions}; catálogo: ${questionCount}; lista: ${questionsLength}`));
+  } else if (publishedPlanCount !== expectedQuestions || (!deferredAdaptive && questionsLength !== expectedQuestions)) {
+    issues.push(issue('QUESTION_COUNT_DIVERGENCE', 'A quantidade publicada de questões diverge da meta do PE esperado.', `PE esperado: ${expectedPe || 'não identificado'}; meta: ${expectedQuestions}; plano: ${publishedPlanCount}; catálogo jogável: ${questionCount}; lista: ${questionsLength}`));
   }
 
   if (material?.mode !== 'notion-daily-material' || String(material?.html || '').trim().length < 200) {
@@ -186,8 +195,12 @@ export function evaluatePublication({
     publishedPe,
     expectedQuestions,
     questionCount,
+    plannedQuestionCount: publishedPlanCount,
+    questionAvailability: deferredAdaptive ? 'awaiting-prerequisite' : 'available',
     summary: healthy
-      ? `${expectedPe}: publicação técnica do site íntegra e alinhada entre calendário, snapshot, material, questões e contrato.`
+      ? deferredAdaptive
+        ? `${expectedPe}: publicação técnica íntegra; 60 questões adaptativas aguardam a correção oficial do PE104/RD30 e a Matriz Final.`
+        : `${expectedPe}: publicação técnica do site íntegra e alinhada entre calendário, snapshot, material, questões e contrato.`
       : `O site/GitHub ainda não confirmou integralmente a publicação técnica de ${expectedPe || 'PE do dia'}; isso não altera nem invalida a execução registrada no Notion.`,
     issues
   };
@@ -239,6 +252,39 @@ async function runSelfTest() {
   assert.equal(healthy.expectedPe, 'PE80');
   assert.equal(healthy.publishedPe, 'PE80');
   assert.equal(healthy.issues.length, 0);
+
+  const adaptiveAgenda = {
+    meta: { examDate: '2026-09-06' },
+    current: { pe: 'PE105', date: '2026-08-30', title: 'Autópsia PE104 + Matriz Final', planned_questions: '60' },
+    next: [],
+    allFuture: []
+  };
+  const adaptive = evaluatePublication({
+    ...base,
+    now: new Date('2026-08-30T08:30:00-03:00'),
+    platform: { syncAt: '2026-08-30T08:00:00-03:00', peId: 'PE105' },
+    today: { meta: { snapshotDate: '2026-08-30', examDate: '2026-09-06' }, current: { date: '2026-08-30', pe: 'PE105', meta: 60 } },
+    agenda: adaptiveAgenda,
+    catalog: { peId: 'PE105', mode: 'notion-daily-adaptive-pending', questionCount: 0, plannedQuestionCount: 60, availability: { state: 'awaiting-prerequisite', prerequisitePe: 'PE104', prerequisiteRd: 'RD30' }, questions: [] },
+    material: { mode: 'notion-daily-material', peId: 'PE105', html: 'x'.repeat(300), source: { pageId: 'material-page-105' } },
+    contract: { current: { peId: 'PE105', materialPageId: 'material-page-105' } },
+    history: { entries: [{ at: '2026-08-30T08:00:00-03:00', status: 'success' }] }
+  });
+  assert.equal(adaptive.status, 'healthy','O watchdog deve aceitar a espera explícita pelo pré-requisito quando o plano publicado fecha 60.');
+  assert.equal(adaptive.plannedQuestionCount,60);
+  assert.equal(adaptive.questionCount,0);
+  const adaptiveDivergent=evaluatePublication({
+    ...base,
+    now:new Date('2026-08-30T08:30:00-03:00'),
+    platform:{syncAt:'2026-08-30T08:00:00-03:00',peId:'PE105'},
+    today:{meta:{snapshotDate:'2026-08-30',examDate:'2026-09-06'},current:{date:'2026-08-30',pe:'PE105',meta:60}},
+    agenda:adaptiveAgenda,
+    catalog:{peId:'PE105',mode:'notion-daily-adaptive-pending',questionCount:0,plannedQuestionCount:40,availability:{state:'awaiting-prerequisite',prerequisitePe:'PE104',prerequisiteRd:'RD30'},questions:[]},
+    material:{mode:'notion-daily-material',peId:'PE105',html:'x'.repeat(300),source:{pageId:'material-page-105'}},
+    contract:{current:{peId:'PE105',materialPageId:'material-page-105'}},
+    history:{entries:[{at:'2026-08-30T08:00:00-03:00',status:'success'}]}
+  });
+  assert.ok(adaptiveDivergent.issues.some(item=>item.code==='QUESTION_COUNT_DIVERGENCE'),'Plano adaptativo 40/60 deve continuar bloqueado.');
 
   const stale = evaluatePublication({ ...base, now: new Date('2026-08-05T19:30:00-03:00') });
   assert.equal(stale.status, 'blocked');
