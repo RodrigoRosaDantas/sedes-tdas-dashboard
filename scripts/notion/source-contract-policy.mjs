@@ -44,11 +44,18 @@ export function matchesExpectation(value,expectation){const n=Number(value);if(e
 const dateToNumber=value=>{const date=new Date(`${value}T12:00:00-03:00`);return Number.isNaN(date.getTime())?null:date.getTime()};
 function severityFor({pe,currentPe,date,snapshotDate}){if(pe===currentPe)return'critical';const t=dateToNumber(date),today=dateToNumber(snapshotDate);if(t!=null&&today!=null&&t>today&&t-today<=DAY_MS)return'warning';return'info'}
 function countOf(control){const raw=control?.planned_questions??control?.meta??0;const value=Number(raw);return Number.isFinite(value)?value:null}
+function isDeferredAdaptiveCatalog(catalog){return peCode(catalog?.peId)==='PE105'&&catalog?.mode==='notion-daily-adaptive-pending'&&catalog?.availability?.state==='awaiting-prerequisite'&&catalog?.availability?.prerequisitePe==='PE104'&&catalog?.availability?.prerequisiteRd==='RD30'&&Number(catalog?.plannedQuestionCount)===60&&Number(catalog?.questionCount)===0}
+function catalogPlannedCount(catalog){
+ const deferred=isDeferredAdaptiveCatalog(catalog);
+ const raw=deferred?catalog?.plannedQuestionCount:catalog?.questionCount,value=Number(raw);
+ return Number.isFinite(value)?value:Number.NaN;
+}
 function validatedCanonicalAgreement({pe,currentPe,control,catalog}){
- const controlCount=countOf(control),catalogCount=Number(catalog?.questionCount);
+ const controlCount=countOf(control),catalogCount=catalogPlannedCount(catalog);
+ const deferred=isDeferredAdaptiveCatalog(catalog);
  return pe===currentPe
   &&peCode(catalog?.peId)===currentPe
-  &&catalog?.authorizedSource?.resolution==='validated-child-page'
+  &&(catalog?.authorizedSource?.resolution==='validated-child-page'||deferred)
   &&String(catalog?.authorizedSource?.url||'').trim().length>0
   &&Number.isFinite(controlCount)&&controlCount>0
   &&Number.isFinite(catalogCount)&&catalogCount===controlCount;
@@ -73,7 +80,7 @@ export function buildContractAssessment({controls=[],microDays=[],catalog=null,c
    conflicts.push({code:'adaptive_control_gap',pe,severity:'info',message:`${pe}: Controle registra bateria-base ${count??'—'}; Micro da Semana 16 permanece soberano e adaptativo.`});
   }
  }
- const currentMicro=byMicro.get(currentPe)||null,currentControl=byControl.get(currentPe)||null,catalogCount=Number(catalog?.questionCount);
+ const currentMicro=byMicro.get(currentPe)||null,currentControl=byControl.get(currentPe)||null,catalogCount=catalogPlannedCount(catalog);
  if(currentMicro&&catalog&&['strict','rest'].includes(currentMicro.expectation.mode)&&!matchesExpectation(catalogCount,currentMicro.expectation)){
   const canonical=validatedCanonicalAgreement({pe:currentPe,currentPe,control:currentControl,catalog});
   conflicts.push(canonical
@@ -84,7 +91,7 @@ export function buildContractAssessment({controls=[],microDays=[],catalog=null,c
  const currentConflicts=conflicts.filter(item=>item.pe===currentPe),critical=currentConflicts.filter(item=>item.severity==='critical');
  return{
   status:critical.length?'blocked':conflicts.some(item=>item.severity==='warning')?'ready_with_warnings':'ready',
-  current:{pe:currentPe,status:critical.length?'blocked':'ready',micro:currentMicro,control:currentControl?{questions:countOf(currentControl),date:currentControl.date,status:currentControl.status||''}:null,catalog:catalog?{questions:Number.isFinite(catalogCount)?catalogCount:null,sourceUrl:catalog.authorizedSource?.url||''}:null,conflicts:currentConflicts},
+  current:{pe:currentPe,status:critical.length?'blocked':'ready',micro:currentMicro,control:currentControl?{questions:countOf(currentControl),date:currentControl.date,status:currentControl.status||''}:null,catalog:catalog?{questions:Number.isFinite(catalogCount)?catalogCount:null,playableQuestions:Number(catalog.questionCount)||0,availability:catalog.availability?.state||'available',sourceUrl:catalog.authorizedSource?.url||''}:null,conflicts:currentConflicts},
   conflicts
  };
 }

@@ -32,6 +32,6 @@ required(pipeline.includes('discoverDailyPages')&&pipeline.includes('DAILY_ROOTS
 required(sync.includes('prepareDailyContent')&&sync.includes('daily-material.json')&&sync.includes('question-keys'),'Sincronizador não publica conteúdo diário com correção separada.');
 required(enhance.includes('dailyPeExecution')&&enhance.includes('estudar/?pe=')&&enhance.includes('daily-execution.js'),'Detalhamento do PE não integra o material interno.');
 if(catalog.mode==='operational-empty')required(material.mode==='operational-empty','Estado de preparação diário incoerente.');
-else required(/^PE\d+$/.test(catalog.peId||'')&&['notion-daily','notion-daily-empty'].includes(catalog.mode),'Conteúdo diário ativo inválido.');
+else required(/^PE\d+$/.test(catalog.peId||'')&&['notion-daily','notion-daily-empty','notion-daily-adaptive-pending'].includes(catalog.mode),'Conteúdo diário ativo inválido.');
 required(packageData.scripts?.check?.includes('validate-daily-content.mjs')&&packageData.scripts?.check?.includes('validate-daily-execution.mjs'),'Validadores diários fora do gate principal.');
 console.log(`Execução diária validada: PE01–PE112 descobertos nas árvores oficiais, material incorporado, Lei Seca condicionada, roteador v27 e questões com correção separada.`);
