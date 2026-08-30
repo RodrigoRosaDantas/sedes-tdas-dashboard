@@ -45,7 +45,7 @@ assert.ok(pwaPreserver.includes("HEAVY_DATA_FILE = 'data/notion-mirror/index.jso
 assert.ok(sw.includes('const CORE_ROUTES=')&&sw.includes('const ASSETS=')&&sw.includes('const DATA='),'Service Worker precisa expor as listas preserváveis pelo guard.');
 assert.ok(!sw.includes('data/notion-mirror/index.json'),'Índice do Notion não pode permanecer no precache do PWA.');
 assert.ok(html.includes('assets/notion-mirror.js?v=1.2.0'));
-assert.ok(homeHtml.includes('home-dashboard-pro-2026.js?v=30.0.0'),'Home operacional precisa usar a experiência consolidada.');
+assert.ok(homeHtml.includes('home-dashboard-pro-2026.js?v=30.0.1'),'Home operacional precisa usar a experiência consolidada.');
 assert.ok(!homeHtml.includes('home-notion-mirror.js'),'Home consolidada não deve reempilhar o antigo bloco visual do mapa do Notion.');
 assert.ok(parity.includes('Abrir espelho do Notion')&&parity.includes('notion/'),'Shell v11 precisa manter acesso explícito ao espelho seguro do Notion.');
 assert.ok(more.includes("title:'Meu Notion'")&&more.includes("href:`${BASE}notion/`"),'Mais precisa manter acesso ao mapa.');
