@@ -107,7 +107,7 @@ jobs:
           fs.writeFileSync(`${root}/__seed.html`,draftHtml);
           fs.writeFileSync(`${root}/__review.html`,reviewHtml);
           fs.writeFileSync(`${root}/__review-home.html`,reviewHomeHtml);
-          fs.writeFileSync('/tmp/tdas-expected.env',`QUESTION_INDEX=${currentIndex+1}\nQUESTION_TOTAL=${ids.length}\nDAILY_QUESTION_COUNT=${dailyQuestions.length}\nCURRENT_PE=${currentPe}\nUNLINKED_ERRORS=${unlinked}\nPLATFORM_VERSION=${platform.platformVersion}\nSOURCE_COMMIT_SHORT=${sourceCommit}\nFOCUS_RD=${focusRd}\nFOCUS_PE=${focusPe}\nLAST_SYNC_DATE=${syncDate}\nLAST_SYNC_TIME=${syncTime}\nEXPECT_CYCLE_CLOSURE=${expectCycleClosure}\n`);
+          fs.writeFileSync('/tmp/tdas-expected.env',`QUESTION_INDEX=${currentIndex+1}\nQUESTION_TOTAL=${ids.length}\nDAILY_QUESTION_COUNT=${dailyQuestions.length}\nDAILY_CATALOG_MODE=${dailyCatalog.mode||''}\nDAILY_PLANNED_COUNT=${Number(dailyCatalog.plannedQuestionCount||0)}\nCURRENT_PE=${currentPe}\nUNLINKED_ERRORS=${unlinked}\nPLATFORM_VERSION=${platform.platformVersion}\nSOURCE_COMMIT_SHORT=${sourceCommit}\nFOCUS_RD=${focusRd}\nFOCUS_PE=${focusPe}\nLAST_SYNC_DATE=${syncDate}\nLAST_SYNC_TIME=${syncTime}\nEXPECT_CYCLE_CLOSURE=${expectCycleClosure}\n`);
           NODE
           cd /tmp/tdas-site
           python3 -m http.server 4173 >/tmp/tdas-server.log 2>&1 &
@@ -151,6 +151,17 @@ jobs:
           grep -q "${UNLINKED_ERRORS} pendentes" /tmp/audit.html
           if (( DAILY_QUESTION_COUNT > 0 )); then
             grep -q 'data-daily-question-context="player-active"' /tmp/resolver.html
+          elif [[ "$DAILY_CATALOG_MODE" == 'notion-daily-adaptive-pending' ]]; then
+            [[ "$CURRENT_PE" == 'PE105' ]]
+            [[ "$DAILY_PLANNED_COUNT" == '60' ]]
+            grep -q 'data-daily-question-context="adaptive-pending"' /tmp/resolver.html
+            grep -q 'data-daily-question-availability="awaiting-prerequisite"' /tmp/resolver.html
+            grep -q 'Primeiro, corrigir PE104 e RD30' /tmp/resolver.html
+            grep -q '60 questões planejadas' /tmp/resolver.html
+            grep -q '0 questões pré-fabricadas' /tmp/resolver.html
+            grep -q 'Matriz Final obrigatória' /tmp/resolver.html
+            ! grep -q 'Sincronização pendente' /tmp/resolver.html
+            ! grep -q 'class="pilot-question"' /tmp/resolver.html
           else
             grep -q "data-daily-question-context=\"${CURRENT_PE}\"" /tmp/resolver.html
             grep -q "Questões do dia — ${CURRENT_PE}" /tmp/resolver.html

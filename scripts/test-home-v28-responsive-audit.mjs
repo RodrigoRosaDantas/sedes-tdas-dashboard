@@ -65,7 +65,7 @@ async function inspect(p){
   const primary=hero?.querySelector('[data-continue-action]');
   const shortcuts=[...(hero?.querySelectorAll('.tdas-home-actions a')||[])].filter(visible);
   const heroActions=[primary,...shortcuts].filter(visible).map(n=>({text:n.textContent.trim(),...rect(n)}));
-  const sections=['.pro26-utility-row','.pro26-operational-bridge','.pro26-decision-grid','.pro26-metrics','.pro26-plan','.pro26-analytics'].filter(selector=>visible(document.querySelector(selector)));
+  const sections=['.pro26-operational-bridge','.pro26-decision-grid','.pro26-metrics','.pro26-plan','.pro26-analytics'].filter(selector=>visible(document.querySelector(selector)));
   const headings=[...document.querySelectorAll('.pro26-dashboard h1,.pro26-dashboard h2')].filter(visible).map(n=>({text:n.textContent.trim(),client:n.clientHeight,scroll:n.scrollHeight,overflow:getComputedStyle(n).overflow}));
   const intentionallyScrollable=n=>{const host=n.closest('.pro26-tabs');if(!host)return false;const style=getComputedStyle(host);return ['auto','scroll'].includes(style.overflowX)&&host.scrollWidth>host.clientWidth;};
   const mainOffenders=[...document.querySelectorAll('main *')].filter(visible).filter(n=>!intentionallyScrollable(n)).map(n=>({node:n.tagName.toLowerCase(),cls:String(n.className||'').slice(0,90),text:String(n.textContent||'').trim().slice(0,70),...rect(n)})).filter(r=>r.left<-1||r.right>innerWidth+1).slice(0,12);
@@ -73,13 +73,16 @@ async function inspect(p){
   const mobileNav=document.querySelector('#mobile-nav');
   const sidebar=document.querySelector('.sidebar');
   const navLinks=[...(mobileNav?.querySelectorAll('a')||[])].filter(visible).map(n=>({text:n.textContent.trim(),...rect(n)}));
-  const system=document.querySelector('.pro26-sync-mini');
+  const navStyle=mobileNav?getComputedStyle(mobileNav):null;
+  const system=[...document.querySelectorAll('.publication-chip,.pro26-source-card')].find(visible);
+  const utility=document.querySelector('.pro26-utility-row');
   const tabs=[...document.querySelectorAll('[data-pro26-tab]')].filter(visible);
   const keepY=scrollY;window.scrollTo(9999,keepY);const attemptedX=scrollX;window.scrollTo(0,keepY);
   return {
    width:innerWidth,height:innerHeight,docWidth:document.documentElement.scrollWidth,bodyWidth:document.body.scrollWidth,bodyHeight:document.body.getBoundingClientRect().height,attemptedX,
    sections,heroActions,shortcutCount:shortcuts.length,primaryHref:primary?.href||'',centerStage:bridge?.dataset.primaryStage||'',headings,mainOffenders,tabs:tabs.length,metrics:document.querySelectorAll('.pro26-metrics>.pro26-metric').length,
-   mobileNavVisible:visible(mobileNav),sidebarVisible:visible(sidebar),navLinks,
+   mobileNavVisible:visible(mobileNav),sidebarVisible:visible(sidebar),sidebarRect:rect(sidebar),navLinks,activeNavCurrent:mobileNav?.querySelector('a.active')?.getAttribute('aria-current')||'',navPosition:navStyle?.position||'',navOverflowX:navStyle?.overflowX||'',
+   utilityVisible:visible(utility),
    systemVisible:visible(system),systemRect:rect(system)
   };
  })()`);
@@ -91,7 +94,8 @@ try{
  await waitJson(`http://127.0.0.1:${chromePort}/json/version`);
  for(const p of profiles){
   const d=await inspect(p);console.log(`AUDIT_${p.name}=${JSON.stringify(d)}`);
-  assert.equal(d.sections.length,6,`${p.name}: as seis áreas operacionais da Home unificada devem permanecer visíveis.`);
+  assert.equal(d.sections.length,5,`${p.name}: as cinco áreas operacionais da Home unificada devem permanecer visíveis.`);
+  assert.equal(d.utilityVisible,false,`${p.name}: busca e sincronização redundantes não devem reaparecer abaixo do cabeçalho.`);
   assert.ok(d.primaryHref.includes('/sedes-tdas-dashboard/'),`${p.name}: ação canônica da próxima execução ausente.`);
   assert.ok(d.centerStage,`${p.name}: ponte operacional sem estágio canônico.`);
   assert.equal(d.shortcutCount,3,`${p.name}: a Home deve manter três atalhos diagnósticos.`);
@@ -100,13 +104,22 @@ try{
   assert.equal(d.metrics,4,`${p.name}: quatro KPIs principais devem permanecer visíveis, sem métricas redundantes.`);
   assert.equal(d.attemptedX,0,`${p.name}: rolagem horizontal funcional detectada.`);
   assert.equal(d.mainOffenders.length,0,`${p.name}: elementos saindo da viewport fora de trilhos roláveis: ${JSON.stringify(d.mainOffenders)}.`);
-  assert.equal(d.systemVisible,true,`${p.name}: atualização Notion/GitHub deve permanecer visível.`);
+  assert.equal(d.systemVisible,true,`${p.name}: atualização Notion/GitHub deve permanecer acessível no cabeçalho ou no card de dados oficiais.`);
   assert.ok(d.headings.every(h=>h.overflow!=='hidden'||h.scroll<=h.client+4),`${p.name}: título truncado: ${JSON.stringify(d.headings)}.`);
   if(p.touch){
    assert.ok(d.heroActions.every(a=>a.height>=43.5),`${p.name}: CTA/atalho do hero abaixo de 44px: ${JSON.stringify(d.heroActions)}.`);
-   if(d.mobileNavVisible)assert.ok(d.navLinks.every(a=>a.height>=43.5),`${p.name}: item da navegação móvel abaixo de 44px: ${JSON.stringify(d.navLinks)}.`);
+   if(d.mobileNavVisible){
+    assert.ok(d.navLinks.every(a=>a.height>=55.5),`${p.name}: item da navegação móvel abaixo de 56px: ${JSON.stringify(d.navLinks)}.`);
+    assert.equal(d.navPosition,'fixed',`${p.name}: navegação móvel deve ficar no alcance do polegar.`);
+    assert.ok(['auto','scroll'].includes(d.navOverflowX),`${p.name}: navegação móvel deve permitir rolagem horizontal.`);
+    assert.equal(d.activeNavCurrent,'page',`${p.name}: item ativo deve expor aria-current.`);
+   }
   }
-  if(p.width<=834)assert.equal(d.sidebarVisible,false,`${p.name}: sidebar desktop não deve ocupar tela em retrato/tablet estreito.`);
+  if(p.name.startsWith('mobile-')||p.name.includes('portrait'))assert.equal(d.sidebarVisible,false,`${p.name}: sidebar desktop não deve ocupar tela em celular/iPad retrato.`);
+  if(p.name==='ipad-landscape-1024'){
+   assert.equal(d.sidebarVisible,true,`${p.name}: sidebar compacta deve permanecer disponível no iPad em paisagem.`);
+   assert.ok(d.sidebarRect?.width<=225,`${p.name}: sidebar compacta ocupa largura excessiva: ${JSON.stringify(d.sidebarRect)}.`);
+  }
   if(p.width>=1280&&!p.mobile)assert.equal(d.sidebarVisible,true,`${p.name}: sidebar deve permanecer disponível no desktop.`);
  }
  console.log('Auditoria responsiva da Home unificada aprovada: mobile, iPad retrato/paisagem e desktop sem overflow, truncamento ou alvo de toque crítico.');

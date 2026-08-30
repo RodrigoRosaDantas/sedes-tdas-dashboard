@@ -2,8 +2,8 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 const read=file=>fs.readFile(file,'utf8');
 const readJson=file=>fs.readFile(file,'utf8').then(JSON.parse);
-const [shell,css,proCss,moduleCss,moduleUx,moduleErrorBook,studyUx,homeModule,agendaModule,enhancements,settings,index,configHtml,more,sw,postprocess,platform,homeData,history,reviewPage,reviews,bootstrap,palette,resolverHtml,parityFixes]=await Promise.all([
- read('assets/tdas-mobile-ux.js'),read('assets/tdas-mobile-ux.css'),read('assets/dashboard-pro-2026.css'),read('assets/tdas-pro-modules.css'),read('assets/tdas-pro-modules.js'),read('assets/integration/module-error-book-base.js'),read('assets/integration/study-ux.js'),read('assets/integration/home-dashboard-pro-2026.js'),read('assets/agenda.js'),read('assets/enhance-v20.js'),read('assets/settings.js'),read('index.html'),read('configuracoes/index.html'),read('assets/more.js'),read('sw.js'),read('scripts/postprocess-v26.mjs'),readJson('data/platform-version.json'),readJson('data/home.json'),readJson('data/sync-history.json'),read('revisar/index.html'),read('assets/integration/module-reviews.js'),read('assets/integration/resolver-bootstrap.js'),read('assets/tdas-command-palette.js'),read('resolver/index.html'),read('assets/site-parity-v11-fixes.css')
+const [shell,css,proCss,moduleCss,moduleUx,moduleErrorBook,studyUx,homeModule,agendaModule,enhancements,settings,index,configHtml,more,sw,postprocess,platform,homeData,history,reviewPage,reviews,bootstrap,palette,resolverHtml,parityFixes,modulePlayer,mobileBrowser,browserWorkflow]=await Promise.all([
+ read('assets/tdas-mobile-ux.js'),read('assets/tdas-mobile-ux.css'),read('assets/dashboard-pro-2026.css'),read('assets/tdas-pro-modules.css'),read('assets/tdas-pro-modules.js'),read('assets/integration/module-error-book-base.js'),read('assets/integration/study-ux.js'),read('assets/integration/home-dashboard-pro-2026.js'),read('assets/agenda.js'),read('assets/enhance-v20.js'),read('assets/settings.js'),read('index.html'),read('configuracoes/index.html'),read('assets/more.js'),read('sw.js'),read('scripts/postprocess-v26.mjs'),readJson('data/platform-version.json'),readJson('data/home.json'),readJson('data/sync-history.json'),read('revisar/index.html'),read('assets/integration/module-reviews.js'),read('assets/integration/resolver-bootstrap.js'),read('assets/tdas-command-palette.js'),read('resolver/index.html'),read('assets/site-parity-v11-fixes.css'),read('assets/integration/module-player.js'),read('scripts/test-tdas-mobile-browser.mjs'),read('.github/workflows/browser-smoke.yml')
 ]);
 for(const text of ['Hoje','Questões','Erros','Mentor','Mais'])assert.ok(shell.includes(`'${text}'`),`Barra mobile deve conter ${text}.`);
 const navDefinition=shell.match(/const items=\[([\s\S]*?)\];nav\.innerHTML/)?.[1]||'';
@@ -39,8 +39,11 @@ assert.match(moduleUx,/MutationObserver/,'Camada PRO deve reagir às transiçõe
 assert.match(moduleUx,/data-pro-scorecard/,'Camada PRO deve injetar scorecard contextual.');
 assert.match(moduleUx,/hero\.appendChild\(card\);try\{card\.innerHTML=await buildScorecard/, 'Scorecard deve reservar o nó antes da leitura assíncrona para impedir duplicação.');
 assert.match(moduleUx,/data-pro-crossnav/,'Camada PRO deve manter atalhos entre os módulos do ciclo.');
-assert.match(resolverHtml,/site-parity-v11-fixes\.css\?v=1\.1\.2/,'Resolver deve invalidar o CSS que deixou cartões claros no hero escuro.');
+assert.match(resolverHtml,/site-parity-v11-fixes\.css\?v=1\.2\.0/,'Resolver deve invalidar o CSS que deixou cartões claros no hero escuro.');
 for(const marker of ['tdas-module-score','tdas-module-trail','tdas-module-command'])assert.match(parityFixes,new RegExp(`data-question-mode="daily"[^}]*${marker}`,'s'),`Tema claro do Resolver deve manter contraste em ${marker}.`);
+for(const marker of ['notion-daily-adaptive-pending','Primeiro, corrigir','0 questões pré-fabricadas','Matriz Final obrigatória'])assert.ok(modulePlayer.includes(marker),`Resolver deve preservar o contrato adaptativo: ${marker}.`);
+for(const marker of ["adaptivePending=catalog.mode==='notion-daily-adaptive-pending'",'estado adaptativo pendente','PE105 não pode fabricar player antes da Matriz Final'])assert.ok(mobileBrowser.includes(marker),`Teste mobile deve verificar o estado adaptativo: ${marker}.`);
+for(const marker of ['DAILY_CATALOG_MODE','data-daily-question-context="adaptive-pending"','60 questões planejadas','0 questões pré-fabricadas','Matriz Final obrigatória'])assert.ok(browserWorkflow.includes(marker),`Smoke público deve verificar o estado adaptativo: ${marker}.`);
 assert.ok(!moduleUx.includes('api.notion.com'),'Camada PRO não pode consultar diretamente a API do Notion.');
 assert.match(moduleErrorBook,/Diagnóstico sem histórico pessoal/,'Caderno deve declarar o diagnóstico sem histórico pessoal.');
 assert.match(moduleErrorBook,/não mantém mais um caderno pessoal/i,'Caderno deve declarar que o histórico pessoal foi aposentado.');
@@ -102,5 +105,5 @@ const lastValidSync=(history.entries||[]).find(item=>['success','no_changes'].in
 assert.equal(platform.dataVersion,homeData.meta?.version,'dataVersion deve continuar derivada do snapshot oficial.');
 assert.equal(platform.syncAt,lastValidSync,'syncAt deve continuar derivada da última sincronização real, não da release visual.');
 assert.equal(platform.peId,homeData.today?.pe,'PE do manifesto deve continuar alinhado ao snapshot oficial.');
-assert.match(platform.serviceWorkerVersion,/pro12$/,'Cache visual deve identificar a geração PRO12 otimizada.');
+assert.match(platform.serviceWorkerVersion,/pro13$/,'Cache visual deve identificar a geração PRO13 responsiva.');
 console.log('UX TDAS validada: caderno como diagnóstico local sem overlay legado, revisão externa por prioridades, navegação sem Revisar mobile e separação plataforma/dados preservada.');
