@@ -19,6 +19,15 @@ const unvalidatedPrimary=buildContractAssessment({controls:[{pe:'PE100',date:'20
 const ranged=parseMicroMarkdown(`## PE92 — 17/08/2026 — Reincidências do Caderno de Erros PRO
 <table><tr><td>Questões do tema principal</td><td>30 a 40</td></tr><tr><td>Microdose Português</td><td>8</td></tr><tr><td>Microdose Específicos peso 2</td><td>8</td></tr><tr><td>Total estimado</td><td>46 a 56</td></tr></table>`,14);assert.equal(ranged.length,1);assert.deepEqual(ranged[0].expectation,{mode:'strict',min:46,max:56});assert.equal(matchesExpectation(46,ranged[0].expectation),true);assert.equal(matchesExpectation(51,ranged[0].expectation),true);assert.equal(matchesExpectation(56,ranged[0].expectation),true);assert.equal(matchesExpectation(45,ranged[0].expectation),false);assert.equal(matchesExpectation(57,ranged[0].expectation),false);
 const rangedHealthy=buildContractAssessment({controls:[{pe:'PE92',date:'2026-08-17',planned_questions:'46'}],microDays:ranged,catalog:{questionCount:46},currentPe:'PE92',snapshotDate:'2026-08-17'});assert.equal(rangedHealthy.status,'ready');
+const pe105Micro=parseMicroMarkdown(`## PE105 — 30/08/2026 — Autópsia PE104 + Matriz Final
+<table><tr><td>Total estimado</td><td>60</td></tr></table>`,15);
+const pe105Deferred=buildContractAssessment({controls:[{pe:'PE105',date:'2026-08-30',planned_questions:'60'}],microDays:pe105Micro,catalog:{peId:'PE105',mode:'notion-daily-adaptive-pending',questionCount:0,plannedQuestionCount:60,availability:{state:'awaiting-prerequisite',prerequisitePe:'PE104',prerequisiteRd:'RD30'},authorizedSource:{url:'https://example.test/pe105',resolution:'primary-page'}},currentPe:'PE105',snapshotDate:'2026-08-30'});
+assert.equal(pe105Deferred.status,'ready','O plano oficial de 60 questões após pré-requisito deve concordar com Controle e Micro sem fingir que já é jogável.');
+assert.equal(pe105Deferred.current.catalog.questions,60);
+assert.equal(pe105Deferred.current.catalog.playableQuestions,0);
+assert.equal(pe105Deferred.current.catalog.availability,'awaiting-prerequisite');
+const pe105WrongPlan=buildContractAssessment({controls:[{pe:'PE105',date:'2026-08-30',planned_questions:'60'}],microDays:pe105Micro,catalog:{peId:'PE105',mode:'notion-daily-adaptive-pending',questionCount:0,plannedQuestionCount:40,availability:{state:'awaiting-prerequisite',prerequisitePe:'PE104',prerequisiteRd:'RD30'},authorizedSource:{url:'https://example.test/pe105',resolution:'primary-page'}},currentPe:'PE105',snapshotDate:'2026-08-30'});
+assert.equal(pe105WrongPlan.status,'blocked','Plano adaptativo divergente da meta deve continuar bloqueando a publicação.');
 const finalWeek=parseMicroMarkdown(`## PE106 — 31/08/2026 — Revisão final
 <table><tr><td>Total estimado</td><td>25 a 35</td></tr></table>
 ## PE111 — 05/09/2026 — Descanso estratégico

@@ -15,6 +15,12 @@ function persistDraft(){if(!state.session)return;state.draft=writeSessionDraft({
 function resumeDraft(){if(!state.draft)return false;state.session=state.draft.session;state.responseMeta={...state.draft.responseMeta};startTimer();renderQuestion();return true}
 
 function renderEmpty(){
+ if(state.catalog?.mode==='notion-daily-adaptive-pending'&&state.catalog?.availability?.state==='awaiting-prerequisite'){
+  const catalog=state.catalog,planned=Number(catalog.plannedQuestionCount||0),availability=catalog.availability||{},prerequisite=availability.prerequisitePe||'PE anterior';
+  document.documentElement.dataset.dailyQuestionAvailability='awaiting-prerequisite';
+  main.innerHTML=`<section class="hero"><span class="kicker">${escapeHTML(catalog.peId)} · bateria adaptativa</span><h1>Primeiro, corrigir ${escapeHTML(prerequisite)} e ${escapeHTML(availability.prerequisiteRd||'a redação')}</h1><p>${escapeHTML(catalog.description)}</p><div class="tags"><span class="tag">${planned} questões planejadas</span><span class="tag">0 questões pré-fabricadas</span><span class="tag">Matriz Final obrigatória</span></div><div class="hero-actions"><a class="btn primary" href="${BASE}pe/${Number(String(prerequisite).replace(/\D/g,''))||104}/">Abrir ${escapeHTML(prerequisite)}</a><a class="btn" href="${BASE}estudar/">Voltar ao material</a><a class="btn" href="${BASE}resolver/?modo=banco">Treinar no Banco</a></div><p><small>${escapeHTML(availability.nextAction||'Conclua o pré-requisito para liberar a composição adaptativa.')}</small></p></section>`;
+  return
+ }
  main.innerHTML=`<section class="hero"><span class="kicker">Resolver · uso real</span><h1>Nenhuma questão disponível</h1><p>O player está operacional, mas nenhum catálogo autorizado foi incorporado ao PE atual.</p><div class="hero-actions"><a class="btn primary" href="${BASE}estudar/">Voltar para Estudar</a><a class="btn" href="${BASE}revisar/">Ver prioridades</a></div></section>`
 }
 

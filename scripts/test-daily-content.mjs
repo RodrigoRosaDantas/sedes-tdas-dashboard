@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {isAuxiliaryDailyPage, pageReferencesPe, parseDailyQuestions, peCode, renderMaterialMarkdown, selectDailyQuestionSource} from './notion/daily-content.mjs';
+import {dailyQuestionAvailability, isAuxiliaryDailyPage, pageReferencesPe, parseDailyQuestions, peCode, renderMaterialMarkdown, selectDailyQuestionSource} from './notion/daily-content.mjs';
 
 assert.equal(peCode('PE01 — 18/05/2026 — Virada pós-edital'), 'PE01');
 assert.equal(peCode('PE78 — Revisão administrativa'), 'PE78');
@@ -53,6 +53,22 @@ assert.equal(staleQuestionsOnRest.catalog.mode,'notion-daily-empty');
 assert.equal(staleQuestionsOnRest.catalog.questionCount,0);
 assert.deepEqual(staleQuestionsOnRest.catalog.questions,[]);
 assert.equal(staleQuestionsOnRest.key,null);
+
+const pe105AdaptiveMarkdown=`# PE105 — Autópsia do PE104 + Matriz Final 06/09
+**Este PE começa pela correção do PE104; não há bateria cega nova na abertura.**
+Depois de corrigir integralmente o PE104/RD30 e preencher a Matriz Final, executar 60 questões inéditas/adaptativas de reteste.`;
+const pe105Availability=dailyQuestionAvailability(pe105AdaptiveMarkdown,{pe:'PE105',expectedCount:60});
+assert.deepEqual(pe105Availability,{state:'awaiting-prerequisite',plannedQuestionCount:60,prerequisitePe:'PE104',prerequisiteRd:'RD30',nextAction:'Corrigir integralmente o PE104/RD30 e preencher a Matriz Final 06/09 antes de gerar o reteste.'});
+const pe105Deferred=parseDailyQuestions(pe105AdaptiveMarkdown,{pe:'PE105',title:'Autópsia e Matriz Final',expectedCount:0,sourcePageId:'pe105',availability:pe105Availability});
+assert.equal(pe105Deferred.catalog.mode,'notion-daily-adaptive-pending');
+assert.equal(pe105Deferred.catalog.questionCount,0);
+assert.equal(pe105Deferred.catalog.plannedQuestionCount,60);
+assert.equal(pe105Deferred.catalog.availability.state,'awaiting-prerequisite');
+assert.equal(pe105Deferred.key,null);
+assert.ok(!JSON.stringify(pe105Deferred.catalog).includes('gabarito'));
+assert.equal(dailyQuestionAvailability(pe105AdaptiveMarkdown,{pe:'PE106',expectedCount:60}).state,'available','O desvio adaptativo deve permanecer restrito ao PE105 oficial.');
+assert.equal(dailyQuestionAvailability('PE105 terá 60 questões adaptativas em algum momento.',{pe:'PE105',expectedCount:60}).state,'available','Menção genérica a adaptação não pode liberar uma página incompleta.');
+assert.throws(()=>parseDailyQuestions('PE105 terá 60 questões adaptativas em algum momento.',{pe:'PE105',title:'Incompleto',expectedCount:60}),/nenhuma questão reconhecida/);
 
 const binaryMarkdown = `# 2. Questões
 ## Arquivologia — Questões 1 a 2

@@ -19,7 +19,7 @@ required(routes.revisar.includes('data-ux-review-today="1"')&&routes.revisar.inc
 required(scripts.reviews.includes("dataset.reviewMode='priorities-only'")&&scripts.reviews.includes('O TDAS não executa mais a revisão'),'Módulo de prioridades não preserva o contrato sem execução interna.');
 required(!scripts.reviews.includes('resolver/?review=')&&!scripts.reviews.includes('Iniciar revisão'),'Módulo de prioridades recriou uma sessão de revisão interna.');
 
-required(['operational-empty','notion-daily','notion-daily-empty'].includes(catalog.mode),`Modo de catálogo inválido: ${catalog.mode}.`);
+required(['operational-empty','notion-daily','notion-daily-empty','notion-daily-adaptive-pending'].includes(catalog.mode),`Modo de catálogo inválido: ${catalog.mode}.`);
 if(catalog.mode==='operational-empty'){
  required(catalog.questionCount===0&&Array.isArray(catalog.questions)&&catalog.questions.length===0,'Catálogo de preparação contém questões.');
  required(catalog.keyPath===null&&catalog.authorizedSource===null&&catalog.peId===null,'Catálogo de preparação contém fonte, correção ou PE.');
@@ -29,6 +29,7 @@ if(catalog.mode==='operational-empty'){
  required(catalog.questionCount===catalog.questions.length,'Total do catálogo diário não fecha.');
  required(catalog.authorizedSource?.type==='notion-daily-child-page','Fonte diária não autorizada.');
  if(catalog.mode==='notion-daily')required(/^data\/integration\/question-keys\/pe\d+\.json$/i.test(catalog.keyPath||''),'Caminho da correção inválido.');
+ if(catalog.mode==='notion-daily-adaptive-pending')required(catalog.peId==='PE105'&&catalog.keyPath===null&&catalog.questionCount===0&&catalog.plannedQuestionCount===60&&catalog.availability?.state==='awaiting-prerequisite'&&catalog.availability?.prerequisitePe==='PE104'&&catalog.availability?.prerequisiteRd==='RD30','Estado adaptativo pendente inválido.');
 }
 required(['1.0.0','1.1.0'].includes(daily.schemaVersion)&&daily.mode==='daily-execution-contract'&&daily.materialPageIds.length===112&&daily.questionPageIds.length===112,'Contrato diário ausente ou incompleto.');
 required(navigation.mode==='daily-execution-local-session-only'&&navigation.routes.length===6,'Navegação do módulo divergente.');
@@ -40,6 +41,7 @@ required(scripts.store.includes("mode!=='study'")&&scripts.store.includes('não 
 required(!scripts.store.includes('buildReinforcementReview')&&!scripts.store.includes('setItem(STORAGE_KEY'),'Store não pode gerar reforço adaptativo nem persistir tentativa concluída.');
 required(!scripts.player.includes('review-engine.js')&&!scripts.player.includes('data-review-outcome')&&!scripts.player.includes("mode:'review'")&&!scripts.player.includes('Reforçar em 3 dias')&&!scripts.player.includes('Reforçar em 24 horas'),'Player ativo ainda contém execução interna de revisão.');
 required(scripts.player.includes('Rascunho neste dispositivo')&&scripts.player.includes('não foi salvo como histórico pessoal'),'Player deve distinguir rascunho ativo de resultado efêmero.');
+required(scripts.player.includes('notion-daily-adaptive-pending')&&scripts.player.includes('0 questões pré-fabricadas')&&scripts.dashboard.includes('Aguardando Matriz Final'),'Interface não explica o pré-requisito do PE adaptativo.');
 required(scripts.player.includes('data/integration/question-catalog.json'),'Player não carrega o catálogo diário.');
 required(scripts.player.includes('safeKeyPath')&&scripts.player.includes('question-keys'),'Player não restringe o caminho da correção.');
 const finishPosition=scripts.player.indexOf('async function finishSession'),keyFetchPosition=scripts.player.indexOf('state.catalog.keyPath',finishPosition),savePosition=scripts.player.indexOf("mode:'study'",finishPosition);

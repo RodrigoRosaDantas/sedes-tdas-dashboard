@@ -148,6 +148,7 @@ for (const control of controls) {
     validatePublicCatalog(parsed.catalog, control.pe, effectiveExpectedCount);
     if (effectiveExpectedCount === 0) {
       required(parsed.key === null && parsed.catalog.keyPath === null, `${control.pe}: dia sem questões gerou correção indevida.`);
+      if (parsed.catalog.mode === 'notion-daily-adaptive-pending') correctionMode = 'deferred-adaptive';
     } else {
       const answerCount = parsed.key?.answers?.length ?? 0;
       const policy = correctionPolicy({
@@ -159,9 +160,13 @@ for (const control of controls) {
       correctionMode = policy.mode;
       required(parsed.key.material_id === parsed.catalog.catalogId, `${control.pe}: correção separada não corresponde ao catálogo.`);
     }
-    ready.push({pe: control.pe, date: control.date, questions: effectiveExpectedCount, materialHtml: html.length, correctionMode});
-    const correctionLabel = correctionMode === 'answer-key' ? 'separada' : 'não aplicável';
-    console.log(`${control.pe}: pronto — material ${html.length} caracteres; ${effectiveExpectedCount} questões de treino; correção ${correctionLabel}; fonte ${resolvedQuestions.resolution}.`);
+    const plannedQuestions = parsed.catalog.plannedQuestionCount ?? effectiveExpectedCount;
+    ready.push({pe: control.pe, date: control.date, questions: effectiveExpectedCount, plannedQuestions, materialHtml: html.length, correctionMode});
+    const correctionLabel = correctionMode === 'answer-key' ? 'separada' : correctionMode === 'deferred-adaptive' ? 'após pré-requisito' : 'não aplicável';
+    const questionLabel = correctionMode === 'deferred-adaptive'
+      ? `${plannedQuestions} questões adaptativas planejadas após PE104/RD30; 0 pré-fabricadas`
+      : `${effectiveExpectedCount} questões de treino`;
+    console.log(`${control.pe}: pronto — material ${html.length} caracteres; ${questionLabel}; correção ${correctionLabel}; fonte ${resolvedQuestions.resolution}.`);
   } catch (error) {
     const exactMissingKey = control.expectedCount > 0
       && error.message === `${control.pe}: gabarito possui 0 respostas para ${control.expectedCount} questões.`;
@@ -199,6 +204,8 @@ const summary = {
   pending: pending.length,
   blocked: failures.length,
   totalQuestions: ready.reduce((total, item) => total + item.questions, 0),
+  totalPlannedQuestions: ready.reduce((total, item) => total + (item.plannedQuestions ?? item.questions), 0),
+  deferredAdaptive: ready.filter(item => item.correctionMode === 'deferred-adaptive').map(item => item.pe),
   historicalCorrections: ready.filter(item => item.correctionMode === 'historical-execution').map(item => item.pe),
   pendingItems: pending,
   failures

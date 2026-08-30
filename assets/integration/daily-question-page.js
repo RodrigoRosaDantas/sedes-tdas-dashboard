@@ -6,7 +6,12 @@ try{
  const[{main,heading},today,contract,catalog]=await Promise.all([waitForPlayer(),loadJSON('data/today.json'),loadDailyExecution(),optionalCatalog()]);
  const pe=selectedPe(today.current.pe),item=findDailyExecution(contract,pe);if(!item)throw new Error(`Página de questões não encontrada para ${pe||'o PE solicitado'}.`);
  const incorporated=Array.isArray(catalog?.questions)&&catalog.questions.length>0&&normalizePe(catalog.peId)===pe;
- if(incorporated&&heading!=='Nenhuma questão disponível'){
+ const adaptivePending=catalog?.mode==='notion-daily-adaptive-pending'&&catalog?.availability?.state==='awaiting-prerequisite'&&normalizePe(catalog.peId)===pe;
+ if(adaptivePending){
+  document.documentElement.dataset.dailyQuestionContext='adaptive-pending';
+  const actions=main.querySelector('.hero-actions');
+  if(actions&&!actions.querySelector('[data-question-source]'))actions.insertAdjacentHTML('beforeend',`<a class="btn" data-question-source href="${item.questionsUrl}" target="_blank" rel="noopener">Conferir protocolo no Notion ↗</a>`);
+ }else if(incorporated&&heading!=='Nenhuma questão disponível'){
   document.documentElement.dataset.dailyQuestionContext='player-active';
   const actions=main.querySelector('.hero-actions');
   if(actions&&!actions.querySelector('[data-question-source]'))actions.insertAdjacentHTML('beforeend',`<a class="btn" data-question-source href="${item.questionsUrl}" target="_blank" rel="noopener">Conferir fonte no Notion ↗</a>`);

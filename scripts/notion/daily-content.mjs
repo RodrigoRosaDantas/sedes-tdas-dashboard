@@ -16,6 +16,7 @@ export const DAILY_ROOTS = Object.freeze({
 
 const PE_LIMIT = 112;
 const OPTION_KEYS = Object.freeze(['A', 'B', 'C', 'D', 'E']);
+const foldText = value => String(value ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 export const peCode = value => {
   const normalized = String(value ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   const match = normalized.match(/^\s*PE\s*0*(\d{1,3})\b/i);
@@ -350,14 +351,48 @@ function parseAnswerKey(markdown) {
   return key;
 }
 
-export function parseDailyQuestions(markdown, {pe, title, expectedCount = 0, sourcePageId = ''} = {}) {
+export function dailyQuestionAvailability(markdown, {pe, expectedCount = 0} = {}) {
+  const normalized = foldText(markdown).replace(/\s+/g, ' ');
+  const plannedQuestionCount = Math.max(0, Number(expectedCount || 0));
+  const noQuestionsScheduled = /nao traz bateria artificial de questoes/.test(normalized);
+  if (noQuestionsScheduled) return {state: 'not-scheduled', plannedQuestionCount: 0};
+
+  const adaptiveAfterPrerequisite = peCode(pe) === 'PE105'
+    && plannedQuestionCount === 60
+    && (normalized.includes('nao ha bateria cega nova na abertura') || normalized.includes('pe105 nao comeca com questoes novas'))
+    && /60 questoes[^.]{0,100}adaptativ|60 questoes ineditas\/adaptativas/.test(normalized)
+    && normalized.includes('pe104')
+    && normalized.includes('rd30')
+    && normalized.includes('matriz final');
+  if (adaptiveAfterPrerequisite) {
+    return {
+      state: 'awaiting-prerequisite',
+      plannedQuestionCount,
+      prerequisitePe: 'PE104',
+      prerequisiteRd: 'RD30',
+      nextAction: 'Corrigir integralmente o PE104/RD30 e preencher a Matriz Final 06/09 antes de gerar o reteste.'
+    };
+  }
+  return {state: 'available', plannedQuestionCount};
+}
+
+export function parseDailyQuestions(markdown, {pe, title, expectedCount = 0, sourcePageId = '', availability = null} = {}) {
   const segments = questionSegments(markdown);
   if (expectedCount === 0) {
+    const deferred = availability?.state === 'awaiting-prerequisite';
+    const plannedQuestionCount = deferred ? Math.max(1, Number(availability.plannedQuestionCount || 0)) : 0;
     return {
       catalog: {
-        schemaVersion: '2.1.0', mode: 'notion-daily-empty', catalogId: `tdas-${String(pe).toLowerCase()}-empty`,
-        title: `${pe} — ${title}`, description: 'Este PE não possui questões programadas.', peId: pe,
+        schemaVersion: '2.1.0',
+        mode: deferred ? 'notion-daily-adaptive-pending' : 'notion-daily-empty',
+        catalogId: `tdas-${String(pe).toLowerCase()}-${deferred ? 'adaptive-pending' : 'empty'}`,
+        title: `${pe} — ${title}`,
+        description: deferred
+          ? `As ${plannedQuestionCount} questões adaptativas serão geradas após a correção integral do PE104/RD30 e o preenchimento da Matriz Final 06/09.`
+          : 'Este PE não possui questões programadas.',
+        peId: pe,
         questionCount: 0, suggestedMinutes: 0, keyPath: null,
+        ...(deferred ? {plannedQuestionCount, availability: {...availability, plannedQuestionCount}} : {}),
         authorizedSource: {type: 'notion-daily-child-page', pageId: sourcePageId, contentHash: hash(markdown)}, questions: []
       },
       key: null
@@ -424,7 +459,7 @@ function sourcePriority(source) {
   return /\b(?:final|executavel|auditad[ao]|validad[ao]|protocolo mestre)\b/i.test(normalized) ? 3 : 2;
 }
 
-export function selectDailyQuestionSource(sources, {pe, title, expectedCount = 0} = {}) {
+export function selectDailyQuestionSource(sources, {pe, title, expectedCount = 0, availability = null} = {}) {
   const attempts = sources.map(source => {
     if (source.loadError) return {...source, error: source.loadError, parsed: null};
     try {
@@ -434,7 +469,8 @@ export function selectDailyQuestionSource(sources, {pe, title, expectedCount = 0
           pe,
           title,
           expectedCount,
-          sourcePageId: source.id
+          sourcePageId: source.id,
+          availability
         }),
         error: null
       };
@@ -470,8 +506,8 @@ export async function resolveDailyQuestionSource({questionPage, pe, title, expec
     fetchPageMetadata(questionPage.id),
     fetchMarkdown(questionPage.id)
   ]);
-  const explicitNoQuestions = /não traz bateria artificial de questões/i.test(primaryMarkdown);
-  const effectiveExpectedCount = explicitNoQuestions ? 0 : Math.max(0, Number(expectedCount || 0));
+  const availability = dailyQuestionAvailability(primaryMarkdown, {pe, expectedCount});
+  const effectiveExpectedCount = availability.state === 'available' ? Math.max(0, Number(expectedCount || 0)) : 0;
   const sources = [];
 
   if (effectiveExpectedCount > 0) {
@@ -502,10 +538,12 @@ export async function resolveDailyQuestionSource({questionPage, pe, title, expec
   const selected = selectDailyQuestionSource(sources, {
     pe,
     title,
-    expectedCount: effectiveExpectedCount
+    expectedCount: effectiveExpectedCount,
+    availability
   });
   return {
     ...selected,
+    availability,
     effectiveExpectedCount,
     primaryPageId: compactId(questionPage.id),
     resolution: selected.isPrimary ? 'primary-page' : 'validated-child-page'
@@ -591,6 +629,8 @@ export async function prepareDailyContent({controls, snapshotDate, runStartedAt 
       materialPath: 'data/integration/daily-material.json',
       catalogPath: 'data/integration/question-catalog.json',
       keyPath: parsed.catalog.keyPath,
+      questionAvailability: parsed.catalog.availability?.state || (parsed.catalog.questionCount > 0 ? 'available' : 'not-scheduled'),
+      plannedQuestionCount: parsed.catalog.plannedQuestionCount ?? parsed.catalog.questionCount,
       materialPageId: materialPage.id,
       questionPageId: resolvedQuestions.id,
       questionContainerPageId: questionPage.id
