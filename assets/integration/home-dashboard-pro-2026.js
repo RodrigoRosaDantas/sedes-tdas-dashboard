@@ -62,14 +62,21 @@ function aggregatePatterns(subjects = []) {
   return [...values.entries()].map(([label, value]) => ({ label, value })).sort((a, b) => b.value - a.value).slice(0, 7);
 }
 
-function workflowLabel(run) {
-  if (!run) return { tone: 'neutral', title: 'Status indisponível', detail: 'O último snapshot válido continua ativo.' };
+function workflowLabel(run, publishedAt = '') {
+  const publishedTime = Date.parse(publishedAt || '');
+  const runTime = Date.parse(run?.updated_at || run?.run_started_at || run?.created_at || '');
+  const hasPublishedSnapshot = Number.isFinite(publishedTime);
+  if (!run) return hasPublishedSnapshot
+    ? { tone: 'success', title: 'Snapshot publicado', detail: `Dados validados em ${fmtDateTime(publishedAt)}.` }
+    : { tone: 'neutral', title: 'Status indisponível', detail: 'O último snapshot válido continua ativo.' };
   if (run.status !== 'completed') return { tone: 'running', title: 'Atualização em andamento', detail: 'O GitHub está validando o novo snapshot.' };
   if (run.conclusion === 'success') return { tone: 'success', title: 'Sincronização validada', detail: `Concluída ${fmtDateTime(run.updated_at)}.` };
+  if (hasPublishedSnapshot && Number.isFinite(runTime) && runTime <= publishedTime) return { tone: 'success', title: 'Snapshot publicado', detail: `Dados validados em ${fmtDateTime(publishedAt)}.` };
+  if (hasPublishedSnapshot) return { tone: 'warning', title: 'Snapshot publicado', detail: `Última tentativa não promovida; dados de ${fmtDateTime(publishedAt)} preservados.` };
   return { tone: 'error', title: 'Atualização não promovida', detail: `Resultado ${run.conclusion || 'inconclusivo'}; snapshot anterior preservado.` };
 }
 
-function setupWorkflowStatus() {
+function setupWorkflowStatus(publishedAt = '') {
   const root = document.querySelector('[data-pro26-sync]');
   const openButton = root?.querySelector('[data-pro26-sync-open]');
   const checkButton = root?.querySelector('[data-pro26-sync-check]');
@@ -80,7 +87,7 @@ function setupWorkflowStatus() {
   let timer = 0;
 
   const paint = run => {
-    const info = workflowLabel(run);
+    const info = workflowLabel(run, publishedAt);
     status.dataset.tone = info.tone;
     status.innerHTML = `<i></i><span><strong>${escapeHTML(info.title)}</strong><small>${escapeHTML(info.detail)}</small></span>`;
     return run;
@@ -101,8 +108,7 @@ function setupWorkflowStatus() {
       }
       return run;
     } catch {
-      status.dataset.tone = 'neutral';
-      status.innerHTML = '<i></i><span><strong>Status temporariamente indisponível</strong><small>A atualização autenticada continua no GitHub.</small></span>';
+      paint(null);
       return null;
     }
   };
@@ -341,7 +347,7 @@ try {
   setupClock();
   setupPlan();
   setupTabs();
-  setupWorkflowStatus();
+  setupWorkflowStatus(sourceSync);
   setupSearch(pe);
   document.querySelector('.pro26-pulse-chart button,[data-pro26-open-questions]')?.addEventListener('click', () => document.querySelector('[data-pro26-tab="questions"]')?.click());
 } catch (error) {

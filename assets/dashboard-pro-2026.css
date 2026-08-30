@@ -63,6 +63,7 @@ html[data-dashboard-pro-2026="1"] .mobile-nav a.active{color:var(--pro26-accent)
 .pro26-sync-state>i{width:8px;height:8px;flex:0 0 8px;border-radius:50%;background:#63737d;box-shadow:0 0 0 5px rgba(99,115,125,.09)}
 .pro26-sync-state[data-tone="success"]>i{background:var(--pro26-lime);box-shadow:0 0 0 5px rgba(184,221,101,.09)}
 .pro26-sync-state[data-tone="running"]>i{background:var(--pro26-warn);box-shadow:0 0 0 5px rgba(234,182,118,.1);animation:pro26-pulse 1.6s ease-out infinite}
+.pro26-sync-state[data-tone="warning"]>i{background:var(--pro26-warn);box-shadow:0 0 0 5px rgba(234,182,118,.1)}
 .pro26-sync-state[data-tone="error"]>i{background:var(--pro26-danger);box-shadow:0 0 0 5px rgba(239,139,125,.09)}
 .pro26-sync-state span{display:flex;min-width:0;flex-direction:column}
 .pro26-sync-state strong,.pro26-sync-state small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}

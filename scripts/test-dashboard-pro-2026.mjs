@@ -14,8 +14,8 @@ const [index, dashboard, css, priorities, sw, postprocess, preserve, versionSync
   read('data/platform-version.json').then(JSON.parse)
 ]);
 
-assert.match(index, /dashboard-pro-2026\.css\?v=30\.0\.0/, 'A Home deve carregar uma única camada visual própria.');
-assert.match(index, /home-dashboard-pro-2026\.js\?v=30\.0\.0/, 'A Home deve carregar o módulo operacional unificado.');
+assert.match(index, /dashboard-pro-2026\.css\?v=30\.0\.1/, 'A Home deve carregar uma única camada visual própria.');
+assert.match(index, /home-dashboard-pro-2026\.js\?v=30\.0\.1/, 'A Home deve carregar o módulo operacional unificado.');
 const activeRefs = [...index.matchAll(/(?:src|href)="([^"]+)"/g)].map(match => match[1]);
 for (const legacy of ['home-mobile.js', 'home-study-intelligence.js', 'home-command-center.js', 'home-v27.js', 'home-v28.js', 'home-notion-mirror.js', 'command-center.css', 'tdas-pro-dashboard.css', 'home-mobile-hotfix.css', 'v27.css', 'v28-home.css']) {
   assert.ok(!activeRefs.some(ref => ref.includes(legacy)), `A Home não deve reempilhar a camada legada ${legacy}.`);
@@ -54,6 +54,11 @@ assert.match(priorities, /Continuar questão/, 'A decisão consolidada deve apre
 assert.match(dashboard, /actions\/workflows\/notion-sync\.yml/, 'Atualização deve abrir o workflow Notion existente.');
 assert.match(dashboard, /api\.github\.com\/repos\/\$\{REPOSITORY\}\/actions\/workflows\/notion-sync\.yml\/runs/, 'Dashboard deve acompanhar o status público do workflow.');
 assert.match(dashboard, /Run workflow/, 'A interface deve explicar a confirmação autenticada no GitHub.');
+assert.match(dashboard, /function workflowLabel\(run, publishedAt = ''\)/, 'Status do workflow deve considerar o snapshot já publicado.');
+assert.match(dashboard, /runTime <= publishedTime/, 'Falha anterior ao snapshot publicado não pode manter alerta vermelho obsoleto.');
+assert.match(dashboard, /tone: 'warning', title: 'Snapshot publicado'/, 'Falha posterior deve preservar e explicar o snapshot válido sem tratá-lo como indisponível.');
+assert.match(dashboard, /setupWorkflowStatus\(sourceSync\)/, 'Status visual deve receber a data real da última publicação válida.');
+assert.match(css, /data-tone="warning"/, 'Tentativa não promovida com snapshot válido deve usar aviso, não erro crítico.');
 assert.doesNotMatch(dashboard, /api\.notion\.com|Authorization\s*:|Bearer\s+|ghp_[A-Za-z0-9]|github_pat_/, 'O navegador não pode receber credenciais nem chamar o Notion diretamente.');
 
 for (const marker of [
@@ -75,9 +80,9 @@ for (const asset of ['assets/dashboard-pro-2026.css', 'assets/integration/home-d
   assert.ok(preserve.includes(asset), `Overlay PWA deve exigir ${asset}.`);
 }
 
-assert.match(versionSync, /VISUAL_CACHE_REV='cachefix5-pro11'/, 'Gerador deve usar a revisão visual PRO11 otimizada.');
-assert.match(platform.serviceWorkerVersion, /cachefix5-pro11$/, 'Manifesto publicado deve invalidar o cache visual anterior.');
-assert.match(sw, /cachefix5-pro11/, 'Service worker deve usar a revisão visual PRO11 otimizada.');
+assert.match(versionSync, /VISUAL_CACHE_REV='cachefix6-pro12'/, 'Gerador deve usar a revisão visual PRO12 otimizada.');
+assert.match(platform.serviceWorkerVersion, /cachefix6-pro12$/, 'Manifesto publicado deve invalidar o cache visual anterior.');
+assert.match(sw, /cachefix6-pro12/, 'Service worker deve usar a revisão visual PRO12 otimizada.');
 assert.ok(!sw.includes('question-keys/'), 'Gabaritos devem continuar fora do precache.');
 
-console.log('Dashboard PRO 2026 unificado: uma Home, decisão operacional direta, dados oficiais, PWA PRO11 e responsividade preservados.');
+console.log('Dashboard PRO 2026 unificado: uma Home, decisão operacional direta, dados oficiais, PWA PRO12 e responsividade preservados.');

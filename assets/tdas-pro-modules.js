@@ -53,7 +53,7 @@ async function decorate(){
  document.documentElement.classList.toggle('tdas-pro-session',playerActive);
  if(playerActive)return;
  if(!main.querySelector('[data-pro-context]'))main.prepend(contextBar(key));
- if(!hero.querySelector('[data-pro-scorecard]')){const card=document.createElement('div');card.className='tdas-module-scorecard';card.dataset.proScorecard='';card.innerHTML=await buildScorecard(key);if(card.innerHTML.trim())hero.appendChild(card)}
+ if(!hero.querySelector('[data-pro-scorecard]')){const card=document.createElement('div');card.className='tdas-module-scorecard';card.dataset.proScorecard='';hero.appendChild(card);try{card.innerHTML=await buildScorecard(key);if(!card.innerHTML.trim())card.remove()}catch(error){card.remove();throw error}}
  if(!hero.querySelector('[data-pro-trail]'))hero.insertAdjacentHTML('beforeend',trailMarkup(key));
  const command=nextCommand(key);if(command&&!hero.querySelector('[data-pro-command]')){const block=document.createElement('div');block.className='tdas-module-command';block.dataset.proCommand='';block.innerHTML=`<div><small>Próxima ação</small><b>${esc(command.title)}</b><p>${esc(command.detail)}</p></div>${command.href?`<a class="btn primary" href="${command.href}">${esc(command.label)} →</a>`:''}`;hero.appendChild(block)}
  if(!main.querySelector('[data-pro-crossnav]')){const footer=main.querySelector('.footer');if(footer)footer.insertAdjacentHTML('beforebegin',crossNav(key));else main.insertAdjacentHTML('beforeend',crossNav(key))}

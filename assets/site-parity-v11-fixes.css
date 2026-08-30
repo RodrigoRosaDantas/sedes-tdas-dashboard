@@ -22,6 +22,33 @@ html[data-site-parity="v11"][data-question-mode="daily"] .content .hero{
 }
 html[data-site-parity="v11"][data-question-mode="daily"] .content .hero:after{pointer-events:none}
 
+/* O hero diário é escuro em ambos os temas. Seus componentes operacionais não podem
+   reutilizar as superfícies claras globais, porque isso cria texto claro sobre cartão claro. */
+html[data-site-parity="v11"][data-question-mode="daily"] .content .hero .tdas-module-score{
+ border-color:rgba(112,154,169,.28);
+ background:#172a32;
+ color:#f5f8f3;
+}
+html[data-site-parity="v11"][data-question-mode="daily"] .content .hero .tdas-module-score small,
+html[data-site-parity="v11"][data-question-mode="daily"] .content .hero .tdas-module-score span{color:#aebfbd}
+html[data-site-parity="v11"][data-question-mode="daily"] .content .hero .tdas-module-score strong{color:#f5f8f3}
+html[data-site-parity="v11"][data-question-mode="daily"] .content .hero .tdas-module-score.primary strong{color:#43d3aa}
+html[data-site-parity="v11"][data-question-mode="daily"] .content .hero .tdas-module-trail>span,
+html[data-site-parity="v11"][data-question-mode="daily"] .content .hero .tdas-module-trail>a{
+ border-color:rgba(112,154,169,.25);
+ background:#172a32;
+ color:#f5f8f3;
+}
+html[data-site-parity="v11"][data-question-mode="daily"] .content .hero .tdas-module-trail small{color:#aebfbd}
+html[data-site-parity="v11"][data-question-mode="daily"] .content .hero .tdas-module-trail .active{border-color:rgba(67,211,170,.6);background:#173932}
+html[data-site-parity="v11"][data-question-mode="daily"] .content .hero .tdas-module-command{
+ border-color:rgba(67,211,170,.42);
+ background:#172a32;
+ color:#f5f8f3;
+}
+html[data-site-parity="v11"][data-question-mode="daily"] .content .hero .tdas-module-command small,
+html[data-site-parity="v11"][data-question-mode="daily"] .content .hero .tdas-module-command p{color:#aebfbd!important}
+
 /* Fora do breakpoint móvel do site v11, nenhuma regra antiga pode ressuscitar a barra inferior/fixa. */
 html[data-site-parity="v11"] .mobile-nav{display:none!important;position:static;inset:auto;width:auto;max-width:none;margin:0;border-radius:0;box-shadow:none}
 

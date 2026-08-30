@@ -37,7 +37,7 @@ required(!data.some(file=>file.includes('question-keys/'))&&!sw.includes('questi
 required(!data.includes('data/integration/master-question-bank.json'),'Banco Mestre de vários MB não pode bloquear o install do PWA');
 required(!sw.includes("Array.from({length:112}")&&!sw.includes("SUBJECTS.map(slug=>BASE+'materias/'")&&!sw.includes("data/error-questions/part-"),'páginas históricas ou partições grandes ainda são baixadas no install');
 required(versionSync.includes("replaceConstant(sw,'VERSION'")&&versionSync.includes("ensureArrayEntry(sw,'DATA','data/platform-version.json')"),'sincronizador não governa versão e precache');
-required(/pro11$/u.test(visualCacheRev),`revisão visual do cache deve permanecer na geração PRO11: ${visualCacheRev||'ausente'}`);
+required(/pro12$/u.test(visualCacheRev),`revisão visual do cache deve permanecer na geração PRO12: ${visualCacheRev||'ausente'}`);
 required(sw.includes("if(event.request.mode==='navigate')")&&sw.includes("fetchAndCache(event.request,{fresh:true})"),'navegação não força HTML atualizado');
 required(sw.includes("if(url.pathname.includes('/data/'))")&&sw.includes("matchCached(event.request,{ignoreSearch:true})"),'dados não possuem rede fresca com fallback offline');
 required(sw.includes("url.pathname.startsWith(BASE+'assets/')")&&sw.includes('matchCached(event.request).then(cached=>cached||fetchAndCache(event.request)'),'assets versionados não reutilizam o cache exato');

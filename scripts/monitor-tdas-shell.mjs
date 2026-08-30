@@ -54,8 +54,8 @@ function reportFor(result,{attempt=1,attempts=1,baseUrl=DEFAULT_BASE}={}){
 async function selfTest(){
  const local=await readLocal();
  const index=local['index.html'].toString('utf8'),mentor=local['mentor/index.html'].toString('utf8'),sw=local['sw.js'].toString('utf8');
- assert.match(index,/assets\/dashboard-pro-2026\.css\?v=30\.0\.0/,'Home deve referenciar a camada visual unificada.');
- assert.match(index,/assets\/integration\/home-dashboard-pro-2026\.js\?v=30\.0\.0/,'Home deve referenciar o módulo operacional unificado.');
+ assert.match(index,/assets\/dashboard-pro-2026\.css\?v=30\.0\.1/,'Home deve referenciar a camada visual unificada.');
+ assert.match(index,/assets\/integration\/home-dashboard-pro-2026\.js\?v=30\.0\.1/,'Home deve referenciar o módulo operacional unificado.');
  assert.doesNotMatch(index,/(?:src|href)="[^"]*(?:home-mobile-hotfix\.css|tdas-pro-dashboard\.css|home-v27\.js|home-v28\.js)/,'Home não pode reativar overlays visuais aposentados.');
  assert.match(mentor,/assets\/mentor\.js/,'Rota Mentor deve referenciar o módulo analítico.');
  assert.match(sw,/assets\/dashboard-pro-2026\.css/,'Service worker deve precachear a camada visual da Home unificada.');

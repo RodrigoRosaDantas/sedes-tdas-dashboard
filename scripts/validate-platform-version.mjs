@@ -25,8 +25,8 @@ assert.equal(shellVersion,manifest.platformVersion,'shell visual usa versão dif
 for(const asset of['assets/styles.css','assets/v20.css']){
  assert.ok(index.includes(`${asset}?v=${manifest.platformVersion}`),`${asset} não usa o cache-buster da versão global.`);
 }
-assert.match(index,/assets\/dashboard-pro-2026\.css\?v=30\.0\.0/u,'Home unificada deve carregar sua camada visual própria.');
-assert.match(index,/assets\/integration\/home-dashboard-pro-2026\.js\?v=30\.0\.0/u,'Home unificada deve carregar seu módulo operacional próprio.');
+assert.match(index,/assets\/dashboard-pro-2026\.css\?v=30\.0\.1/u,'Home unificada deve carregar sua camada visual própria.');
+assert.match(index,/assets\/integration\/home-dashboard-pro-2026\.js\?v=30\.0\.1/u,'Home unificada deve carregar seu módulo operacional próprio.');
 for(const retired of['assets/home-mobile.js','assets/home-mobile-hotfix.css','assets/integration/home-v27.js','assets/integration/home-v28.js']){
  assert.ok(!index.includes(retired),`${retired} é legado/rollback e não pode voltar a ser asset ativo da Home.`);
 }
