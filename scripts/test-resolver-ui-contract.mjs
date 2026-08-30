@@ -19,9 +19,9 @@ const contrast = (foreground, background) => {
   return (Math.max(first, second) + 0.05) / (Math.min(first, second) + 0.05);
 };
 
-assert.match(resolverHtml, /site-parity-v11-fixes\.css\?v=1\.1\.2/, 'Resolver deve carregar a correção visual nova sem reutilizar o CSS do Safari.');
+assert.match(resolverHtml, /site-parity-v11-fixes\.css\?v=1\.2\.0/, 'Resolver deve carregar a camada responsiva atual sem reutilizar o CSS do Safari.');
 assert.match(mobileUx, /tdas-pro-modules\.js\?v=1\.1\.1/, 'Camada de módulos deve escapar do cache da implementação que duplicava cartões.');
-assert.match(platform.serviceWorkerVersion, /cachefix6-pro12$/, 'PWA deve invalidar o cache visual anterior no iPad.');
+assert.match(platform.serviceWorkerVersion, /cachefix6-pro13$/, 'PWA deve invalidar o cache visual anterior no iPad.');
 
 for (const marker of ['tdas-module-score', 'tdas-module-trail', 'tdas-module-command']) {
   assert.match(fixes, new RegExp(`data-question-mode="daily"[^}]*${marker}`, 's'), `Hero diário deve aplicar superfície escura em ${marker}.`);
@@ -35,4 +35,4 @@ const hydrate = modules.indexOf('card.innerHTML=await buildScorecard(key)');
 assert.ok(reserve >= 0 && hydrate > reserve, 'Scorecard deve reservar um único nó antes da leitura assíncrona.');
 assert.match(modules, /catch\(error\)\{card\.remove\(\);throw error\}/, 'Falha ao montar o scorecard deve remover o placeholder sem deixar bloco vazio.');
 
-console.log('Resolver validado: contraste AA no tema claro, scorecard único e cache PRO12.');
+console.log('Resolver validado: contraste AA no tema claro, scorecard único e cache PRO13.');

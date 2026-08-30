@@ -39,7 +39,7 @@ assert.match(moduleUx,/MutationObserver/,'Camada PRO deve reagir às transiçõe
 assert.match(moduleUx,/data-pro-scorecard/,'Camada PRO deve injetar scorecard contextual.');
 assert.match(moduleUx,/hero\.appendChild\(card\);try\{card\.innerHTML=await buildScorecard/, 'Scorecard deve reservar o nó antes da leitura assíncrona para impedir duplicação.');
 assert.match(moduleUx,/data-pro-crossnav/,'Camada PRO deve manter atalhos entre os módulos do ciclo.');
-assert.match(resolverHtml,/site-parity-v11-fixes\.css\?v=1\.1\.2/,'Resolver deve invalidar o CSS que deixou cartões claros no hero escuro.');
+assert.match(resolverHtml,/site-parity-v11-fixes\.css\?v=1\.2\.0/,'Resolver deve invalidar o CSS que deixou cartões claros no hero escuro.');
 for(const marker of ['tdas-module-score','tdas-module-trail','tdas-module-command'])assert.match(parityFixes,new RegExp(`data-question-mode="daily"[^}]*${marker}`,'s'),`Tema claro do Resolver deve manter contraste em ${marker}.`);
 assert.ok(!moduleUx.includes('api.notion.com'),'Camada PRO não pode consultar diretamente a API do Notion.');
 assert.match(moduleErrorBook,/Diagnóstico sem histórico pessoal/,'Caderno deve declarar o diagnóstico sem histórico pessoal.');
@@ -102,5 +102,5 @@ const lastValidSync=(history.entries||[]).find(item=>['success','no_changes'].in
 assert.equal(platform.dataVersion,homeData.meta?.version,'dataVersion deve continuar derivada do snapshot oficial.');
 assert.equal(platform.syncAt,lastValidSync,'syncAt deve continuar derivada da última sincronização real, não da release visual.');
 assert.equal(platform.peId,homeData.today?.pe,'PE do manifesto deve continuar alinhado ao snapshot oficial.');
-assert.match(platform.serviceWorkerVersion,/pro12$/,'Cache visual deve identificar a geração PRO12 otimizada.');
+assert.match(platform.serviceWorkerVersion,/pro13$/,'Cache visual deve identificar a geração PRO13 responsiva.');
 console.log('UX TDAS validada: caderno como diagnóstico local sem overlay legado, revisão externa por prioridades, navegação sem Revisar mobile e separação plataforma/dados preservada.');

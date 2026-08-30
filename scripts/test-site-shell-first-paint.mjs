@@ -36,15 +36,19 @@ for(const[relative,html]of tdas){
  for(const[index,label]of[[parityCss,'CSS de paridade'],[fixesCss,'correções de paridade'],[bootCss,'CSS de boot'],[bootstrap,'bootstrap do shell']])assert.ok(index>0&&index<headEnd,`${relative}: ${label} deve estar no head.`);
  assert.ok(parityCss<fixesCss&&fixesCss<bootCss&&bootCss<bootstrap,`${relative}: ordem de carregamento do shell inválida.`);
  assert.equal((html.match(/data-site-shell-bootstrap=/g)||[]).length,1,`${relative}: bootstrap duplicado.`);
+ for(const asset of ['site-parity-v11.css','site-parity-v11-fixes.css','site-shell-boot.css','site-parity-v11.js'])assert.match(html,new RegExp(`${asset.replaceAll('.','\\.')}\\?v=1\\.2\\.0`),`${relative}: ${asset} deve usar a revisão responsiva 1.2.0.`);
+ assert.doesNotMatch(html,/site-(?:parity-v11(?:-fixes)?\.css|shell-boot\.css|parity-v11\.js)\?v=1\.1\./,`${relative}: referência antiga do shell ainda presente.`);
 }
 assert.ok(edas.length>0,'Fixture EDAS ausente.');
 for(const[relative,html]of edas){
  assert.doesNotMatch(html,/data-site-shell-bootstrap|data-site-shell="booting"/,`${relative}: shell TDAS não pode contaminar o EDAS.`);
 }
-const[parity,common,mobileUx,boot,sw,postprocess,preserve]=await Promise.all([
- fs.readFile('assets/integration/site-parity-v11.js','utf8'),fs.readFile('assets/common.js','utf8'),fs.readFile('assets/tdas-mobile-ux.js','utf8'),fs.readFile('assets/site-shell-boot.css','utf8'),fs.readFile('sw.js','utf8'),fs.readFile('scripts/postprocess-v26.mjs','utf8'),fs.readFile('scripts/preserve-v27-pwa.mjs','utf8')
+const[parity,common,mobileUx,boot,sw,postprocess,preserve,shellGenerator]=await Promise.all([
+ fs.readFile('assets/integration/site-parity-v11.js','utf8'),fs.readFile('assets/common.js','utf8'),fs.readFile('assets/tdas-mobile-ux.js','utf8'),fs.readFile('assets/site-shell-boot.css','utf8'),fs.readFile('sw.js','utf8'),fs.readFile('scripts/postprocess-v26.mjs','utf8'),fs.readFile('scripts/preserve-v27-pwa.mjs','utf8'),fs.readFile('scripts/apply-site-shell-first-paint.mjs','utf8')
 ]);
 assert.match(parity,/dataset\.siteShell='ready'/,'Shell deve liberar a interface após a reconstrução síncrona.');
+assert.match(parity,/site-parity-v11\.css\?v=1\.2\.0/,'Fallback do shell deve usar CSS responsivo 1.2.0.');
+assert.match(shellGenerator,/BOOT_VERSION='1\.2\.0'/,'Gerador deve preservar a revisão responsiva do shell.');
 assert.match(common,/siteParityActive/,'setupShell deve preservar o shell já inicializado.');
 assert.match(mobileUx,/siteParityActive.*if\(!siteParityActive\)\{renderHeader\(\);renderBottomNav\(\);augmentDesktop\(\)\}/,'UX mobile legada não pode sobrescrever um shell já pronto.');
 assert.match(boot,/data-site-shell="booting"/,'CSS deve possuir estado de carregamento explícito.');

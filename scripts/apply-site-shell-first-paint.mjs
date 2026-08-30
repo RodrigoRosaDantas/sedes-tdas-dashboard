@@ -3,7 +3,7 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 
 const ROOT=process.cwd();
-const BOOT_VERSION='1.1.0';
+const BOOT_VERSION='1.2.0';
 const BOOT_HEAD=`<script data-site-theme-bootstrap>try{document.documentElement.dataset.theme=localStorage.getItem('tdas-theme')||'light'}catch{document.documentElement.dataset.theme='light'}setTimeout(()=>{if(document.documentElement.dataset.siteShell==='booting')document.documentElement.dataset.siteShell='fallback'},2500)</script>`;
 const SHELL_ASSETS=`<link rel="stylesheet" href="/sedes-tdas-dashboard/assets/site-parity-v11.css?v=${BOOT_VERSION}" data-site-parity-v11="1"><link rel="stylesheet" href="/sedes-tdas-dashboard/assets/site-parity-v11-fixes.css?v=${BOOT_VERSION}" data-site-parity-v11-fixes="1"><link rel="stylesheet" href="/sedes-tdas-dashboard/assets/site-shell-boot.css?v=${BOOT_VERSION}" data-site-shell-boot="1"><link rel="modulepreload" href="/sedes-tdas-dashboard/assets/integration/site-parity-v11.js?v=${BOOT_VERSION}"><script type="module" src="/sedes-tdas-dashboard/assets/integration/site-parity-v11.js?v=${BOOT_VERSION}" data-site-shell-bootstrap="1"></script>`;
 

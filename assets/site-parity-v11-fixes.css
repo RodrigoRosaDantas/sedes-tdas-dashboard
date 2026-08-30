@@ -3,11 +3,6 @@ html[data-site-parity="v11"]{--blue:#3f6df3}
 html[data-site-parity="v11"][data-theme="dark"]{--blue:#86a2ff}
 html[data-site-parity="v11"] .site-sr-only{position:absolute!important;width:1px!important;height:1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;clip-path:inset(50%)!important}
 
-/* A Home PRO precisa manter busca e sincronização disponíveis em todas as larguras.
-   A camada de paridade escondia a utility row; este override preserva o layout
-   responsivo definido em dashboard-pro-2026.css e mantém Atualizar dados acessível. */
-html[data-site-parity="v11"] .pro26-utility-row{display:grid!important}
-
 /* Resolver diário: alguns componentes operacionais podem envolver o hero em um wrapper.
    Nesse cenário o seletor direto de site-parity-v11.css deixa o fundo legado claro ativo,
    enquanto títulos, textos e botões continuam usando a paleta clara do hero escuro.
@@ -52,8 +47,91 @@ html[data-site-parity="v11"][data-question-mode="daily"] .content .hero .tdas-mo
 /* Fora do breakpoint móvel do site v11, nenhuma regra antiga pode ressuscitar a barra inferior/fixa. */
 html[data-site-parity="v11"] .mobile-nav{display:none!important;position:static;inset:auto;width:auto;max-width:none;margin:0;border-radius:0;box-shadow:none}
 
-@media(max-width:900px){
- html[data-site-parity="v11"] .mobile-nav{position:sticky!important;top:63px;right:auto;bottom:auto;left:auto;z-index:29;display:flex!important;width:100%;max-width:100%;gap:6px;overflow-x:auto;border:0;border-bottom:1px solid var(--line);border-radius:0;background:color-mix(in srgb,var(--bg) 96%,transparent);padding:8px 16px;box-shadow:none;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);overscroll-behavior-x:contain}
- html[data-site-parity="v11"] .mobile-nav a{display:flex;min-width:max-content;min-height:44px;align-items:center;justify-content:center;gap:6px;border:1px solid var(--line);border-radius:18px;background:var(--surface);color:var(--muted);padding:7px 11px;font-size:9px;white-space:nowrap}
- html[data-site-parity="v11"] .mobile-nav a.active{border-color:var(--text);background:var(--text);color:var(--lime)}
+/* UX responsiva 1.2: leitura confortável, alvos de toque consistentes e uma única
+   navegação móvel ao alcance do polegar. Esta camada é compartilhada por todas as
+   rotas TDAS; o EDAS não carrega o contrato data-site-parity. */
+html[data-site-parity="v11"] .sidebar .nav.sidebar-nav a{min-height:48px;font-size:13px}
+html[data-site-parity="v11"] .sidebar .nav a small{font-size:10px}
+html[data-site-parity="v11"] .sidebar-context span,
+html[data-site-parity="v11"] .nav-heading{font-size:10px}
+html[data-site-parity="v11"] .sidebar-settings{min-height:48px}
+html[data-site-parity="v11"] .sidebar-settings strong{font-size:11px}
+html[data-site-parity="v11"] .sidebar-settings small{font-size:9px}
+html[data-site-parity="v11"] .source-link{min-height:44px;font-size:11px}
+html[data-site-parity="v11"] .global-search{height:46px}
+html[data-site-parity="v11"] .global-search>span:nth-child(2){font-size:12px}
+html[data-site-parity="v11"] .publication-chip{min-height:44px}
+html[data-site-parity="v11"] .publication-chip b{font-size:10px}
+html[data-site-parity="v11"] .publication-chip small{font-size:9px}
+html[data-site-parity="v11"] .btn{min-height:44px;font-size:11px}
+html[data-site-parity="v11"] .section-head p{font-size:12px;line-height:1.55}
+html[data-site-parity="v11"] .metric small,
+html[data-site-parity="v11"] .metric span{font-size:10px;line-height:1.4}
+html[data-site-parity="v11"] .panel p,
+html[data-site-parity="v11"] .tdas-settings-list span{font-size:13px;line-height:1.55}
+html[data-site-parity="v11"] :where(a,button,[role="button"]){touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+
+/* iPad em paisagem e notebooks compactos: preserva o shell de desktop sem
+   sacrificar a largura útil do conteúdo. */
+@media(min-width:901px) and (max-width:1180px){
+ html[data-site-parity="v11"] .sidebar{width:224px;padding-right:14px;padding-left:14px}
+ html[data-site-parity="v11"] .shell{margin-left:224px}
+ html[data-site-parity="v11"] .sidebar-context{margin:16px 4px 18px;padding:13px 14px}
+ html[data-site-parity="v11"] .sidebar .nav.sidebar-nav{gap:3px}
+ html[data-site-parity="v11"] .sidebar .nav.sidebar-nav a{min-height:45px;padding:7px 9px;font-size:12px}
+ html[data-site-parity="v11"] .sidebar .nav-icon{width:24px;height:24px;flex-basis:24px}
+ html[data-site-parity="v11"] .exam-card{padding:13px}
+ html[data-site-parity="v11"] .content{padding:24px 22px 64px}
+ html[data-site-parity="v11"] .pro26-decision-grid{grid-template-columns:minmax(0,1fr) 232px}
+ html[data-site-parity="v11"] .pro26-decision,
+ html[data-site-parity="v11"] .pro26-decision.tdas-home-focus{padding:30px 32px}
+ html[data-site-parity="v11"] .pro26-command h1{font-size:clamp(38px,4.4vw,50px)}
+ html[data-site-parity="v11"] .pro26-pulse,
+ html[data-site-parity="v11"] .pro26-pulse.tdas-hero-aside{padding:23px 19px}
+}
+
+/* Celular e iPad em retrato: barra inferior flutuante, respeitando a safe area.
+   O trilho continua contendo todas as áreas e centraliza automaticamente a ativa. */
+@media(max-width:900px), (orientation:portrait) and (min-width:781px) and (max-width:1024px){
+ html[data-site-parity="v11"] .sidebar{display:none!important}
+ html[data-site-parity="v11"] .shell{margin-left:0!important}
+ html[data-site-parity="v11"] .topbar{grid-template-columns:minmax(0,1fr) auto;gap:8px;min-height:64px;padding:9px max(14px,env(safe-area-inset-right)) 9px max(14px,env(safe-area-inset-left))}
+ html[data-site-parity="v11"] .breadcrumb{display:none}
+ html[data-site-parity="v11"] .global-search{min-width:0}
+ html[data-site-parity="v11"] .install-btn{display:none}
+ html[data-site-parity="v11"] .content{padding-right:max(14px,env(safe-area-inset-right));padding-bottom:calc(104px + env(safe-area-inset-bottom));padding-left:max(14px,env(safe-area-inset-left))}
+ html[data-site-parity="v11"] .mobile-nav{position:fixed!important;top:auto!important;right:max(10px,env(safe-area-inset-right))!important;bottom:max(8px,env(safe-area-inset-bottom))!important;left:max(10px,env(safe-area-inset-left))!important;z-index:80;display:flex!important;width:auto;max-width:none;height:auto;gap:4px;overflow-x:auto;overflow-y:hidden;border:1px solid var(--line);border-radius:20px;background:color-mix(in srgb,var(--bg) 91%,transparent);padding:6px;box-shadow:0 18px 48px rgba(0,0,0,.26);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);overscroll-behavior-x:contain;scroll-behavior:smooth;scroll-snap-type:x proximity;scrollbar-width:none}
+ html[data-site-parity="v11"] .mobile-nav::-webkit-scrollbar{display:none}
+ html[data-site-parity="v11"] .mobile-nav a{display:grid;min-width:96px;min-height:56px;flex:0 0 96px;place-items:center;align-content:center;gap:3px;border:0;border-radius:14px;background:transparent;color:var(--muted);padding:5px 7px;font-size:10px;font-weight:750;line-height:1.15;text-align:center;white-space:normal;scroll-snap-align:center}
+ html[data-site-parity="v11"] .mobile-nav a>span:first-child{font-size:18px;line-height:1}
+ html[data-site-parity="v11"] .mobile-nav a.active{background:var(--surface2);color:var(--text);box-shadow:inset 0 0 0 1px var(--line)}
+ html[data-site-parity="v11"] .mobile-nav a.active>span:first-child{color:var(--lime-dark)}
+ html[data-site-parity="v11"] .pro26-decision-grid{grid-template-columns:minmax(0,1fr)}
+ html[data-site-parity="v11"] .pro26-pulse,
+ html[data-site-parity="v11"] .pro26-pulse.tdas-hero-aside{border-top:1px solid rgba(255,255,255,.1)}
+}
+
+@media(max-width:680px){
+ html[data-site-parity="v11"] .topbar-tools{gap:5px}
+ html[data-site-parity="v11"] .topbar .icon-btn{width:44px;min-width:44px}
+ html[data-site-parity="v11"] .content{padding-top:16px}
+ html[data-site-parity="v11"] .content>.hero,
+ html[data-site-parity="v11"] .content>section.hero{border-radius:18px;padding:25px 20px}
+ html[data-site-parity="v11"] .hero h1{font-size:clamp(34px,10vw,40px)}
+ html[data-site-parity="v11"] .hero p{font-size:14px;line-height:1.6}
+ html[data-site-parity="v11"] .pro26-decision,
+ html[data-site-parity="v11"] .pro26-decision.tdas-home-focus{padding:25px 20px}
+ html[data-site-parity="v11"] .pro26-command h1{font-size:clamp(34px,10vw,40px);line-height:1.02}
+ html[data-site-parity="v11"] .pro26-command p{font-size:13px}
+ html[data-site-parity="v11"] .pro26-priority p{font-size:12px}
+ html[data-site-parity="v11"] .pro26-metrics{gap:9px}
+ html[data-site-parity="v11"] .pro26-metric{min-height:112px;padding:14px}
+ html[data-site-parity="v11"] .pro26-plan,
+ html[data-site-parity="v11"] .pro26-analytics{padding:18px}
+}
+
+@media(max-width:430px){
+ html[data-site-parity="v11"] .mobile-nav a{min-width:88px;flex-basis:88px}
+ html[data-site-parity="v11"] .publication-chip{padding:7px 8px}
+ html[data-site-parity="v11"] .pro26-metric strong{font-size:23px}
 }
