@@ -34,7 +34,7 @@ const expectedCommands = {
 
 for (const [name, command] of Object.entries(expectedCommands)) assert.equal(scripts[name], command, `O comando ${name} deve permanecer padronizado.`);
 assert.match(scripts.check, /test-site-operations\.mjs/, 'A auditoria operacional deve fazer parte do gate integral.');
-assert.match(scripts.check, /test-edas-operations\.mjs/, 'A auditoria operacional EDAS deve fazer parte do gate integral.');
+assert.doesNotMatch(scripts.check, /test-edas-operations\.mjs/, 'O gate integral TDAS não deve depender da auditoria EDAS removida.');
 assert.match(scripts.check, /test-tdas-mobile-ux\.mjs/, 'A UX mobile TDAS deve fazer parte do gate integral.');
 assert.equal(scripts['test:tdas-mobile-browser'],'node scripts/test-tdas-mobile-browser.mjs','O browser smoke mobile TDAS deve ter comando oficial.');
 
