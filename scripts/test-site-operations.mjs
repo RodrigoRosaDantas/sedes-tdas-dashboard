@@ -21,20 +21,17 @@ const readme = read('README.md');
 
 const scripts = packageData.scripts || {};
 const expectedCommands = {
-  'check:site': 'node scripts/validate-platform-version.mjs && node scripts/validate-pwa-integration.mjs && node scripts/validate-redactions-publication.mjs && node scripts/monitor-edas-publication.mjs',
-  'check:operations': 'node scripts/test-site-operations.mjs && node scripts/test-edas-operations.mjs',
+  'check:site': 'node scripts/validate-platform-version.mjs && node scripts/validate-pwa-integration.mjs && node scripts/validate-redactions-publication.mjs',
+  'check:operations': 'node scripts/test-site-operations.mjs',
   'monitor:publication': 'node scripts/monitor-tdas-publication.mjs',
   'monitor:redactions': 'node scripts/test-redactions-operational.mjs && node scripts/validate-redactions-publication.mjs',
   'monitor:live-site': 'node scripts/monitor-live-site.mjs',
-  'monitor:edas': 'node scripts/monitor-edas-publication.mjs',
-  'monitor:edas-live': 'node scripts/monitor-edas-live-site.mjs',
   'ops:check': 'npm run check:operations && npm run check:site',
-  'ops:full': 'npm run check && npm run monitor:live-site && npm run monitor:edas-live'
+  'ops:full': 'npm run check && npm run monitor:live-site'
 };
 
 for (const [name, command] of Object.entries(expectedCommands)) assert.equal(scripts[name], command, `O comando ${name} deve permanecer padronizado.`);
 assert.match(scripts.check, /test-site-operations\.mjs/, 'A auditoria operacional deve fazer parte do gate integral.');
-assert.doesNotMatch(scripts.check, /test-edas-operations\.mjs/, 'O gate integral TDAS não deve depender da auditoria EDAS removida.');
 assert.match(scripts.check, /test-tdas-mobile-ux\.mjs/, 'A UX mobile TDAS deve fazer parte do gate integral.');
 assert.equal(scripts['test:tdas-mobile-browser'],'node scripts/test-tdas-mobile-browser.mjs','O browser smoke mobile TDAS deve ter comando oficial.');
 
@@ -94,12 +91,15 @@ assert.match(liveMonitor, /LIVE_SITE_MAX_ATTEMPTS/, 'O monitor implantado deve t
 for (const command of Object.keys(expectedCommands)) assert.ok(documentation.includes(`npm run ${command}`), `O manual deve documentar npm run ${command}.`);
 assert.match(documentation, /00h50/, 'O manual deve registrar os horários de sincronização.');
 assert.match(documentation, /GitHub Pages/, 'O manual deve explicar a validação do site implantado.');
-assert.match(documentation, /EDAS/, 'O manual deve cobrir o Cargo 400.');
 assert.match(documentation, /\*\*Hoje, Questões, Erros, Mentor e Mais\*\*/, 'O manual deve refletir a barra mobile vigente.');
 assert.doesNotMatch(documentation, /\*\*Hoje, Questões, Revisar, Erros e Mais\*\*/, 'O manual não pode restaurar a navegação de revisão interna legada.');
 assert.match(documentation, /\*\*Prioridades\*\* é diagnóstico\/direcionamento para revisão externa/, 'O manual deve registrar que Prioridades é diagnóstico, não execução de revisão.');
 assert.match(documentation, /push[^\n]*480 minutos/, 'O manual deve explicar a tolerância de frescor específica do push técnico.');
 assert.match(readme, /OPERACAO_SITE_TDAS\.md/, 'O README deve apontar para o manual operacional.');
-assert.match(readme, /monitor:edas/, 'O README deve expor o monitor operacional do EDAS.');
 
-console.log('Rotinas operacionais validadas: TDAS, UX mobile, Prioridades externas, Banco Discursivo, EDAS, consumidores pós-sync v28, ausência de referências v26, navegadores e GitHub Pages alinhados.');
+const retiredProjectPattern = /\bEDAS\b|Cargo 400|edas-administracao|monitor:edas|test:edas|check:edas/i;
+assert.doesNotMatch(JSON.stringify(packageData), retiredProjectPattern, 'O package.json não pode manter comandos do projeto removido.');
+assert.doesNotMatch(readme, retiredProjectPattern, 'O README não pode manter referências ao projeto removido.');
+assert.doesNotMatch(documentation, retiredProjectPattern, 'O manual TDAS não pode manter referências ao projeto removido.');
+
+console.log('Rotinas operacionais validadas: TDAS, UX mobile, Prioridades externas, Banco Discursivo, consumidores pós-sync v28, ausência de referências v26 e do projeto removido, navegadores e GitHub Pages alinhados.');
