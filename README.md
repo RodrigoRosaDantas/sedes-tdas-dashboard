@@ -1,6 +1,6 @@
 # sedes-tdas-dashboard
 
-Plataforma pública de preparação SEDES/DF, com TDAS/Cargo 202, Banco Discursivo e EDAS/Administração/Cargo 400, sincronizada a partir das fontes oficiais do Notion, validada no GitHub e publicada no GitHub Pages.
+Plataforma pública de preparação SEDES/DF para TDAS/Cargo 202 e Banco Discursivo, sincronizada a partir das fontes oficiais do Notion, validada no GitHub e publicada no GitHub Pages.
 
 ## Operação
 
@@ -12,6 +12,4 @@ Comandos principais:
 npm run check
 npm run ops:check
 npm run monitor:live-site
-npm run monitor:edas
-npm run monitor:edas-live
 ```
