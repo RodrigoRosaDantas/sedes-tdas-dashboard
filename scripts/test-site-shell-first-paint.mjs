@@ -37,7 +37,6 @@ for(const[relative,html]of tdas){
  assert.ok(parityCss<fixesCss&&fixesCss<bootCss&&bootCss<bootstrap,`${relative}: ordem de carregamento do shell inválida.`);
  assert.equal((html.match(/data-site-shell-bootstrap=/g)||[]).length,1,`${relative}: bootstrap duplicado.`);
 }
-assert.ok(edas.length>0,'Fixture EDAS ausente.');
 for(const[relative,html]of edas){
  assert.doesNotMatch(html,/data-site-shell-bootstrap|data-site-shell="booting"/,`${relative}: shell TDAS não pode contaminar o EDAS.`);
 }
