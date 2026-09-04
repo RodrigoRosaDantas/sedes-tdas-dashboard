@@ -3,6 +3,6 @@ Acionador técnico da sincronização TDAS.
 Atualize este arquivo somente quando for necessário solicitar uma recuperação manual da publicação automática.
 
 Última solicitação:
-- data: 2026-08-22
-- hora: 19:06 BRT
-- motivo: reexecutar a sincronização oficial após saneamento da fonte PE97. A versão auditada foi delimitada como seção ativa de 60 questões e recebeu gabarito auditado separado; o arquivo histórico permanece preservado e fora do escopo de importação. Validar Notion vivo, promover o corte PE96 e confirmar publicação sem edição manual dos snapshots gerados.
+- data: 2026-09-03
+- hora: 21h BRT
+- motivo: reexecutar a sincronização oficial após saneamento da fonte PE109 no Notion. A bateria final foi consolidada em 60 questões A–E, com gabarito completo e referências internas coerentes, preservando o bloqueio de publicação para fonte diária incompleta. Validar Notion vivo, gerar o snapshot atual, promover atomicamente para main e confirmar a publicação no GitHub Pages.
