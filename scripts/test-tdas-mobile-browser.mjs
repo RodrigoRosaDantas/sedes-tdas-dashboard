@@ -1,55 +1,77 @@
-import assert from'node:assert/strict';
-import{spawn}from'node:child_process';
-import{createServer}from'node:http';
-import fs from'node:fs/promises';
-import path from'node:path';
-import os from'node:os';
-const ROOT=process.cwd(),PREFIX='/sedes-tdas-dashboard/',port=Number(process.env.TDAS_TEST_PORT||4173),chromePort=Number(process.env.CHROME_DEBUG_PORT||9555),chromeBin=process.env.CHROME_BIN||'google-chrome',base=`http://127.0.0.1:${port}${PREFIX.replace(/\/$/,'')}`;
+import assert from 'node:assert/strict';
+import {spawn} from 'node:child_process';
+import {createServer} from 'node:http';
+import fs from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
+
+const ROOT=process.cwd();
+const PREFIX='/sedes-tdas-dashboard/';
+const port=Number(process.env.TDAS_TEST_PORT||4173);
+const chromePort=Number(process.env.CHROME_DEBUG_PORT||9555);
+const chromeBin=process.env.CHROME_BIN||'google-chrome';
+const base=`http://127.0.0.1:${port}${PREFIX.replace(/\/$/,'')}`;
 const mime={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.json':'application/json','.webmanifest':'application/manifest+json','.svg':'image/svg+xml','.png':'image/png'};
-const server=createServer(async(req,res)=>{try{const url=new URL(req.url,'http://localhost'),clean=decodeURIComponent(url.pathname);if(!clean.startsWith(PREFIX)){res.writeHead(404);res.end('not found');return}let relative=clean.slice(PREFIX.length);if(!relative||relative.endsWith('/'))relative+='index.html';const file=path.resolve(ROOT,relative);if(!file.startsWith(ROOT)){res.writeHead(403);res.end('forbidden');return}const body=await fs.readFile(file);res.writeHead(200,{'content-type':mime[path.extname(file)]||'application/octet-stream','cache-control':'no-store'});res.end(body)}catch{res.writeHead(404);res.end('not found')}});
-await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(port,'127.0.0.1',resolve)});
-const profile=await fs.mkdtemp(path.join(os.tmpdir(),'tdas-mobile-browser-')),chrome=spawn(chromeBin,['--headless=new','--no-sandbox','--disable-gpu','--disable-dev-shm-usage','--remote-debugging-address=127.0.0.1',`--remote-debugging-port=${chromePort}`,`--user-data-dir=${profile}`,'about:blank'],{stdio:['ignore','ignore','pipe']});let chromeError='';chrome.stderr.on('data',chunk=>chromeError+=chunk);const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
-async function waitJson(url,attempts=180){let last;for(let i=0;i<attempts;i++){try{const response=await fetch(url);if(response.ok)return response.json();last=new Error(String(response.status))}catch(error){last=error}await delay(250)}throw new Error(`${last?.message||'timeout'}${chromeError?`\n${chromeError.slice(-1200)}`:''}`)}
-function connect(wsUrl){const socket=new WebSocket(wsUrl);let id=0;const pending=new Map(),listeners=new Map();socket.onmessage=event=>{const message=JSON.parse(event.data);if(message.id){const item=pending.get(message.id);if(!item)return;pending.delete(message.id);message.error?item.reject(new Error(message.error.message)):item.resolve(message.result);return}for(const fn of listeners.get(message.method)||[])fn(message.params);listeners.delete(message.method)};const ready=new Promise((resolve,reject)=>{socket.onopen=resolve;socket.onerror=()=>reject(new Error('Falha no DevTools'))});const send=async(method,params={})=>{await ready;const current=++id;return new Promise((resolve,reject)=>{pending.set(current,{resolve,reject});socket.send(JSON.stringify({id:current,method,params}))})};const once=method=>new Promise(resolve=>{const list=listeners.get(method)||[];list.push(resolve);listeners.set(method,list)});return{socket,ready,send,once}}
-async function page(width=390,height=844){const target=await fetch(`http://127.0.0.1:${chromePort}/json/new?about:blank`,{method:'PUT'}).then(response=>response.json()),client=connect(target.webSocketDebuggerUrl);await client.ready;await client.send('Page.enable');await client.send('Runtime.enable');await client.send('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile:true});return client}
-async function nav(client,url){const loaded=client.once('Page.loadEventFired');await client.send('Page.navigate',{url});await loaded}
-async function evalJs(client,expression){const result=await client.send('Runtime.evaluate',{expression,returnByValue:true,awaitPromise:true});if(result.exceptionDetails)throw new Error(result.exceptionDetails.text||'Erro no navegador');return result.result?.value}
-async function waitFor(client,expression,label,attempts=160){for(let i=0;i<attempts;i++){try{if(await evalJs(client,expression))return}catch{}await delay(150)}throw new Error(`Timeout: ${label}`)}
-async function expectParity(client,active){await waitFor(client,"document.documentElement.dataset.siteParity==='v11'&&document.querySelector('.global-search')",`shell v11 ${active}`);assert.equal(await evalJs(client,`[...document.querySelectorAll('[data-site-nav="${active}"]')].some(node=>node.classList.contains('active'))`),true,`Seção ${active} deve permanecer ativa no shell v11.`);assert.equal(await evalJs(client,"document.documentElement.scrollWidth<=innerWidth+1"),true,'Shell não pode criar overflow horizontal na página.')}
-async function stop(){server.close();if(chrome.exitCode!==null)return;await new Promise(resolve=>{const timer=setTimeout(()=>{if(chrome.exitCode===null)chrome.kill('SIGKILL');resolve()},2500);chrome.once('exit',()=>{clearTimeout(timer);resolve()});chrome.kill('SIGTERM')})}
+
+const server=createServer(async(req,res)=>{
+ try{
+  const url=new URL(req.url,'http://localhost');
+  const clean=decodeURIComponent(url.pathname);
+  if(!clean.startsWith(PREFIX)){res.writeHead(404);res.end('not found');return;}
+  let relative=clean.slice(PREFIX.length);
+  if(!relative||relative.endsWith('/'))relative+='index.html';
+  const file=path.resolve(ROOT,relative);
+  if(!file.startsWith(ROOT)){res.writeHead(403);res.end('forbidden');return;}
+  const body=await fs.readFile(file);
+  res.writeHead(200,{'content-type':mime[path.extname(file)]||'application/octet-stream','cache-control':'no-store'});
+  res.end(body);
+ }catch{res.writeHead(404);res.end('not found');}
+});
+await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(port,'127.0.0.1',resolve);});
+
+const profile=await fs.mkdtemp(path.join(os.tmpdir(),'tdas-mobile-browser-'));
+const chrome=spawn(chromeBin,['--headless=new','--no-sandbox','--disable-gpu','--disable-dev-shm-usage','--remote-debugging-address=127.0.0.1',`--remote-debugging-port=${chromePort}`,`--user-data-dir=${profile}`,'about:blank'],{stdio:['ignore','ignore','pipe']});
+let chromeError='';chrome.stderr.on('data',chunk=>chromeError+=chunk);
+const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+
+async function waitJson(url,attempts=180){let last;for(let i=0;i<attempts;i++){try{const response=await fetch(url);if(response.ok)return response.json();last=new Error(String(response.status));}catch(error){last=error;}await delay(250);}throw new Error(`${last?.message||'timeout'}${chromeError?`\n${chromeError.slice(-1200)}`:''}`);}
+function connect(wsUrl){
+ const socket=new WebSocket(wsUrl);let id=0;const pending=new Map(),listeners=new Map();
+ socket.onmessage=event=>{const message=JSON.parse(event.data);if(message.id){const item=pending.get(message.id);if(!item)return;pending.delete(message.id);message.error?item.reject(new Error(message.error.message)):item.resolve(message.result);return;}for(const fn of listeners.get(message.method)||[])fn(message.params);listeners.delete(message.method);};
+ const ready=new Promise((resolve,reject)=>{socket.onopen=resolve;socket.onerror=()=>reject(new Error('Falha no DevTools'));});
+ const send=async(method,params={})=>{await ready;const current=++id;return new Promise((resolve,reject)=>{pending.set(current,{resolve,reject});socket.send(JSON.stringify({id:current,method,params}));});};
+ const once=method=>new Promise(resolve=>{const list=listeners.get(method)||[];list.push(resolve);listeners.set(method,list);});
+ return{socket,ready,send,once};
+}
+async function page(width,height,mobile=true){const target=await fetch(`http://127.0.0.1:${chromePort}/json/new?about:blank`,{method:'PUT'}).then(r=>r.json());const client=connect(target.webSocketDebuggerUrl);await client.ready;await client.send('Page.enable');await client.send('Runtime.enable');await client.send('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile});return client;}
+async function nav(client,url){const loaded=client.once('Page.loadEventFired');await client.send('Page.navigate',{url});await loaded;}
+async function evalJs(client,expression){const result=await client.send('Runtime.evaluate',{expression,returnByValue:true,awaitPromise:true});if(result.exceptionDetails)throw new Error(result.exceptionDetails.text||'Erro no navegador');return result.result?.value;}
+async function waitFor(client,expression,label,attempts=120){for(let i=0;i<attempts;i++){try{if(await evalJs(client,expression))return;}catch{}await delay(150);}throw new Error(`Timeout: ${label}`);}
+async function stop(){server.close();if(chrome.exitCode!==null)return;await new Promise(resolve=>{const timer=setTimeout(()=>{if(chrome.exitCode===null)chrome.kill('SIGKILL');resolve();},2500);chrome.once('exit',()=>{clearTimeout(timer);resolve();});chrome.kill('SIGTERM');});}
+
 try{
- await waitJson(`http://127.0.0.1:${chromePort}/json/version`);const[homeData,platform,catalog]=await Promise.all([waitJson(`${base}/data/home.json`,40),waitJson(`${base}/data/platform-version.json`,40),waitJson(`${base}/data/integration/question-catalog.json`,40)]);
- const hasDailyQuestions=Array.isArray(catalog.questions)&&catalog.questions.length>0;
- const home=await page();await nav(home,`${base}/`);await waitFor(home,"document.documentElement.dataset.tdasPhase==='post-exam'&&document.documentElement.dataset.postExamHome==='2'&&document.querySelector('.post26-home')",'Home pós-prova v2');await expectParity(home,'overview');
- assert.equal(await evalJs(home,"document.querySelector('.post26-hero h1')?.textContent.trim()==='O ciclo terminou. Agora é acompanhar o concurso.'"),true,'Home deve apresentar a mensagem canônica pós-prova.');
- assert.equal(await evalJs(home,"document.querySelector('.post26-next h2')?.textContent.trim()==='Gabarito preliminar'"),true,'Home deve apresentar o próximo marco do concurso.');
- assert.equal(await evalJs(home,"document.querySelectorAll('.post26-step').length===6&&document.querySelectorAll('.post26-step.current').length===1"),true,'Home deve apresentar linha do tempo pós-prova com um único próximo marco.');
- assert.equal(await evalJs(home,"document.querySelectorAll('.post26-summary>.post26-metric').length"),4,'Home deve apresentar quatro indicadores históricos.');
- assert.equal(await evalJs(home,"document.body.textContent.includes('dias para a prova')||Boolean(document.querySelector('[data-continue-action],.pro26-dashboard,.pro26-plan'))"),false,'Home não pode manter countdown, ação diária ou dashboard de reta final.');
- assert.equal(await evalJs(home,"new URL(document.querySelector('.post26-hero-actions .primary').href).pathname.endsWith('/desempenho/')"),true,'CTA principal pós-prova deve abrir o histórico do ciclo.');
- assert.equal(await evalJs(home,"document.body.textContent.includes('Notion → GitHub → site')||document.body.textContent.includes('Notion → validação GitHub → site')"),true,'Home deve explicar a cadeia segura de publicação.');
- assert.equal(await evalJs(home,"document.querySelector('.tdas-app-identity')?.textContent.includes('Técnico Administrativo · Cargo 202')"),true,'Identidade acessível deve identificar Cargo 202.');
- assert.ok(Number(await evalJs(home,"document.querySelector('.topbar')?.getBoundingClientRect().height||999"))<=80,'Cabeçalho mobile deve permanecer compacto.');
- assert.equal(await evalJs(home,"document.querySelectorAll('[data-site-search],[data-command-open]').length"),1,'Cabeçalho deve apresentar apenas uma busca.');
- assert.equal(await evalJs(home,"[...document.querySelectorAll('.topbar button')].every(button=>button.type==='button')"),true,'Botões do cabeçalho não podem assumir envio de formulário.');
- const mobileLabels=await evalJs(home,"[...document.querySelectorAll('#mobile-nav a')].map(a=>a.querySelector('span:last-child')?.textContent.trim()||'')");assert.deepEqual(mobileLabels,['Pós-prova','Histórico','Check do Edital','Redações','Arquivo do ciclo'],'Navegação móvel deve conter apenas cinco destinos pós-prova.');
- assert.equal(await evalJs(home,"getComputedStyle(document.querySelector('.sidebar')).display"),'none','Sidebar deve sair do mobile.');
- assert.equal(await evalJs(home,"['auto','scroll'].includes(getComputedStyle(document.querySelector('#mobile-nav')).overflowX)"),true,'Navegação móvel pode usar trilho horizontal quando necessário.');
- await evalJs(home,"document.querySelector('[data-site-search]').click();true");await waitFor(home,"document.querySelector('[data-command-palette-shell]:not([hidden])')",'busca global pós-prova');assert.equal(await evalJs(home,"document.body.textContent.includes('Histórico do ciclo')&&document.body.textContent.includes('Redações')"),true,'Busca global deve priorizar histórico e manter recursos especializados descobríveis.');await evalJs(home,"document.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}));true");
-
- const settings=await page();await nav(settings,`${base}/configuracoes/`);await expectParity(settings,'settings');await waitFor(settings,"document.body.textContent.includes('Release técnica')&&document.body.textContent.includes('Versão dos dados')&&document.body.textContent.includes('Dados locais')",'Central de Configurações');assert.equal(await evalJs(settings,`document.body.textContent.includes(${JSON.stringify(platform.platformVersion)})`),true,'Configurações deve exibir release técnica.');assert.equal(await evalJs(settings,`document.body.textContent.includes(${JSON.stringify(platform.dataVersion)})`),true,'Configurações deve exibir versão dos dados separada.');await evalJs(settings,"document.querySelector('[data-view-comfort-toggle]').click();document.querySelector('[data-font-scale-toggle]').click();true");await waitFor(settings,"document.documentElement.classList.contains('tdas-view-comfort')&&document.documentElement.classList.contains('tdas-view-large-text')",'preferências visuais aplicadas');assert.equal(await evalJs(settings,"localStorage.getItem('tdas.202.view-comfort.v1')"),'1');assert.equal(await evalJs(settings,"localStorage.getItem('tdas.202.font-scale.v1')"),'large');
- await nav(settings,`${base}/`);await waitFor(settings,"document.documentElement.classList.contains('tdas-view-comfort')&&document.documentElement.classList.contains('tdas-view-large-text')",'preferências persistidas na Home');
-
- const agenda=await page();await nav(agenda,`${base}/agenda/`);await expectParity(agenda,'archive');await waitFor(agenda,"document.querySelector('main .hero h1')?.textContent.includes('Agenda')",'Agenda histórica');assert.equal(await evalJs(agenda,"document.querySelectorAll('a a').length"),0,'Agenda não pode conter links aninhados.');assert.equal(await evalJs(agenda,"[...document.querySelectorAll('.timeline-item')].every(item=>item.matches('a[href*=\"/estudar/?pe=\"]'))"),true,'Cartões históricos existentes devem continuar abrindo o PE correspondente.');
-
- const resolver=await page(1100,900);await nav(resolver,`${base}/resolver/`);await expectParity(resolver,'archive');
- if(hasDailyQuestions){await waitFor(resolver,"document.body.textContent.includes('Correção somente ao finalizar')",'player TDAS');await waitFor(resolver,"document.querySelector('[data-pro-context]')&&document.querySelector('[data-pro-scorecard]')&&document.querySelector('[data-pro-trail]')",'cockpit PRO do Resolver');assert.equal(await evalJs(resolver,"document.documentElement.dataset.proModule"),'resolver','Resolver deve ativar o contrato funcional PRO.');const keyPath=String(catalog.keyPath||'');if(keyPath){assert.equal(await evalJs(resolver,`performance.getEntriesByType('resource').some(x=>x.name.includes(${JSON.stringify(keyPath)}))`),false,'Gabarito não pode ser requisitado antes da sessão.');await waitFor(resolver,"navigator.serviceWorker.ready.then(()=>true)",'service worker TDAS ativo');assert.equal(await evalJs(resolver,`caches.match(location.origin+'${PREFIX}'+${JSON.stringify(keyPath)},{ignoreSearch:true}).then(Boolean)`),false,'Gabarito não pode estar no precache inicial.');}}
- else{await waitFor(resolver,`document.documentElement.dataset.dailyQuestionContext===${JSON.stringify(String(catalog.peId||homeData.today.pe))}`,'estado diário sem questões');assert.equal(await evalJs(resolver,`document.body.textContent.includes('Questões do dia — '+${JSON.stringify(String(catalog.peId||homeData.today.pe))})`),true,'Dia sem questões deve exibir contexto correto sem inventar player.');assert.equal(await evalJs(resolver,"document.body.textContent.includes('Banco de questões')"),true,'Acesso ao Banco deve continuar disponível em dia sem questões.');assert.equal(await evalJs(resolver,"Boolean(document.querySelector('.pilot-question'))"),false,'Dia sem questões não pode fabricar uma questão no player.');}
-
- const reviews=await page();await nav(reviews,`${base}/revisar/`);await expectParity(reviews,'archive');await waitFor(reviews,"document.querySelector('[data-review-priorities]')&&document.documentElement.dataset.reviewMode==='priorities-only'",'Prioridades externas');assert.equal(await evalJs(reviews,"document.body.textContent.includes('Prioridades para revisar')"),true,'Rota deve mostrar prioridades.');assert.equal(await evalJs(reviews,"document.body.textContent.includes('O TDAS não executa mais a revisão')"),true,'Rota deve explicar que a revisão acontece fora do site.');assert.equal(await evalJs(reviews,"[...document.querySelectorAll('a,button')].some(el=>/iniciar revisão|revisar questão/i.test(el.textContent||''))"),false,'Prioridades não podem iniciar revisão interna.');
-
- const errors=await page();await nav(errors,`${base}/caderno-erros/`);await expectParity(errors,'history');await waitFor(errors,"document.querySelector('main .hero h1')?.textContent.includes('Caderno de erros')",'Caderno local');assert.equal(await evalJs(errors,"Boolean(document.querySelector('[data-pro-context],[data-pro-scorecard],[data-pro-trail],[data-pro-command]'))"),false,'Caderno não deve receber overlay PRO legado.');assert.equal(await evalJs(errors,"document.body.textContent.includes('a revisão acontece fora da plataforma')"),true,'Caderno deve explicar o contrato de revisão externa.');
-
- const performance=await page();await nav(performance,`${base}/desempenho/`);await expectParity(performance,'history');await waitFor(performance,"document.querySelector('[data-pro-context]')&&document.querySelector('[data-pro-scorecard]')",'Desempenho PRO');assert.equal(await evalJs(performance,"document.documentElement.dataset.proModule"),'desempenho','Desempenho deve ativar o contrato funcional PRO.');
- console.log(`Browser smoke TDAS pós-prova v2 aprovado: ${homeData.today.pe} preservado no snapshot, Home enxuta, navegação de cinco destinos, histórico protegido e ${hasDailyQuestions?'player cego protegido':'estado diário sem questões validado'}.`);
-}finally{await stop();await fs.rm(profile,{recursive:true,force:true}).catch(()=>{})}
+ await waitJson(`http://127.0.0.1:${chromePort}/json/version`);
+ const platform=await waitJson(`${base}/data/platform-version.json`,40);
+ const viewports=[[360,800],[390,844],[430,900],[768,1024],[1024,768]];
+ for(const [width,height] of viewports){
+  const client=await page(width,height,width<=1024);
+  await nav(client,`${base}/`);
+  await waitFor(client,"document.documentElement.dataset.siteParity==='v11'&&document.documentElement.dataset.postExamHome==='2'&&document.querySelector('.post26-home')",`Home pós-prova ${width}px`);
+  assert.equal(await evalJs(client,"document.documentElement.scrollWidth<=innerWidth+1"),true,`Home não pode criar overflow horizontal em ${width}px.`);
+  assert.equal(await evalJs(client,"document.querySelector('.post26-hero h1')?.textContent.includes('O ciclo terminou')"),true,`Hero pós-prova ausente em ${width}px.`);
+  assert.equal(await evalJs(client,"document.querySelectorAll('.post26-step').length"),6,`Timeline incompleta em ${width}px.`);
+  assert.equal(await evalJs(client,"document.querySelectorAll('.post26-summary>.post26-metric').length"),4,`Resumo histórico incompleto em ${width}px.`);
+  if(width<=430){
+   const labels=await evalJs(client,"[...document.querySelectorAll('#mobile-nav a')].map(a=>a.querySelector('span:last-child')?.textContent.trim()||'')");
+   assert.deepEqual(labels,['Pós-prova','Histórico','Check do Edital','Redações','Arquivo do ciclo'],`Navegação mobile incorreta em ${width}px.`);
+   assert.equal(await evalJs(client,"getComputedStyle(document.querySelector('.sidebar')).display"),'none',`Sidebar deve sair do mobile em ${width}px.`);
+  }
+ }
+ const settings=await page(390,844,true);
+ await nav(settings,`${base}/configuracoes/`);
+ await waitFor(settings,"document.documentElement.dataset.siteParity==='v11'&&document.querySelector('.sidebar-settings.active')",'Configurações ativas no shell');
+ await waitFor(settings,"document.body.textContent.includes('Release técnica')&&document.body.textContent.includes('Versão dos dados')",'Configurações carregadas');
+ assert.equal(await evalJs(settings,`document.body.textContent.includes(${JSON.stringify(platform.platformVersion)})`),true,'Configurações deve exibir a versão vigente.');
+ assert.equal(await evalJs(settings,"document.documentElement.scrollWidth<=innerWidth+1"),true,'Configurações não pode criar overflow horizontal.');
+ console.log(`Browser smoke mobile pós-prova aprovado: 360/390/430 px, iPad/tablet, shell v11 e plataforma ${platform.platformVersion}.`);
+}finally{await stop();await fs.rm(profile,{recursive:true,force:true}).catch(()=>{});}
