@@ -3,181 +3,54 @@ import {BASE,loadJSON,setupShell,fmtNumber,fmtPct,fmtDate,fmtDateTime,escapeHTML
 const REPOSITORY='RodrigoRosaDantas/sedes-tdas-dashboard';
 const WORKFLOW_URL=`https://github.com/${REPOSITORY}/actions/workflows/notion-sync.yml`;
 const WORKFLOW_API=`https://api.github.com/repos/${REPOSITORY}/actions/workflows/notion-sync.yml/runs?per_page=1`;
-const TRANSITION_PLAN='https://app.notion.com/p/239cf5a2673180a1a2a2df40b502a899';
 const number=value=>Number.isFinite(Number(value))?Number(value):0;
 
-function metric(label,value,detail,href=''){
- const content=`<span>${escapeHTML(label)}</span><strong>${escapeHTML(value)}</strong><small>${escapeHTML(detail)}</small>`;
- return href?`<a class="post26-metric" href="${escapeHTML(href)}">${content}<b>›</b></a>`:`<article class="post26-metric">${content}</article>`;
-}
-
-function timelineStep(index,title,detail,state='future'){
- const stateLabel=state==='done'?'Concluído':state==='current'?'Próximo':'Depois';
- return `<article class="post26-step ${state}"><div class="post26-step-index">${state==='done'?'✓':String(index).padStart(2,'0')}</div><div><span>${stateLabel}</span><h3>${escapeHTML(title)}</h3><p>${escapeHTML(detail)}</p></div></article>`;
-}
-
-function archiveLink(icon,title,detail,href,external=false){
- return `<a class="post26-archive-link" href="${escapeHTML(href)}"${external?' target="_blank" rel="noopener noreferrer"':''}><i>${icon}</i><span><strong>${escapeHTML(title)}</strong><small>${escapeHTML(detail)}</small></span><b>${external?'↗':'›'}</b></a>`;
+function ensureV3Style(){
+ if(document.querySelector('[data-postv3-style]'))return;
+ const style=document.createElement('style');style.dataset.postv3Style='1';style.textContent=`
+ .postv3-home{display:grid;gap:16px;width:100%;min-width:0}.postv3-home *{box-sizing:border-box}.postv3-home a{text-decoration:none}
+ .postv3-hero{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:18px;border:1px solid var(--line);border-radius:20px;background:var(--surface);padding:28px;box-shadow:0 14px 40px rgba(20,30,36,.05)}
+ .postv3-copy{min-width:0}.postv3-kicker{display:block;color:var(--muted);font-size:9px;font-weight:800;letter-spacing:.13em;text-transform:uppercase}.postv3-state{display:inline-flex;align-items:center;gap:8px;margin-top:13px;border-radius:999px;background:color-mix(in srgb,var(--green) 10%,var(--surface2));padding:7px 10px;color:var(--text);font-size:10px}.postv3-state i{width:7px;height:7px;border-radius:50%;background:var(--green)}
+ .postv3-hero h1{max-width:760px;margin:16px 0 10px;color:var(--text);font-size:clamp(34px,4vw,52px);font-weight:760;letter-spacing:-.055em;line-height:1.02}.postv3-copy>p{max-width:760px;margin:0;color:var(--muted);font-size:13px;line-height:1.65}.postv3-actions{display:flex;gap:9px;margin-top:20px}.postv3-actions .btn{min-height:40px}
+ .postv3-next{display:flex;min-width:0;flex-direction:column;border:1px solid color-mix(in srgb,var(--accent) 24%,var(--line));border-radius:15px;background:color-mix(in srgb,var(--accent) 4%,var(--surface2));padding:20px}.postv3-next>span{color:var(--muted);font-size:8px;font-weight:800;letter-spacing:.12em}.postv3-next h2{margin:9px 0 7px;color:var(--text);font-size:21px;letter-spacing:-.035em}.postv3-next p{margin:0;color:var(--muted);font-size:10px;line-height:1.55}.postv3-next-foot{display:flex;align-items:center;gap:8px;margin-top:auto;border-top:1px solid var(--line);padding-top:14px;color:var(--muted);font-size:9px}.postv3-next-foot i{width:7px;height:7px;border-radius:50%;background:#d9a84c}
+ .postv3-card{border:1px solid var(--line);border-radius:17px;background:var(--surface);padding:22px}.postv3-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px}.postv3-head span{display:block;color:var(--muted);font-size:8px;font-weight:800;letter-spacing:.12em;text-transform:uppercase}.postv3-head h2{margin:5px 0 0;color:var(--text);font-size:20px;letter-spacing:-.035em}.postv3-progress{color:var(--muted);font-size:9px;font-weight:700}
+ .postv3-track{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;margin:18px 0 0;padding:0;list-style:none}.postv3-step{position:relative;min-width:0;border:1px solid var(--line);border-radius:12px;background:var(--surface2);padding:14px 12px}.postv3-step:before{display:block;width:9px;height:9px;margin-bottom:10px;border:2px solid var(--line);border-radius:50%;background:var(--surface);content:""}.postv3-step strong{display:block;color:var(--text);font-size:10px;line-height:1.3}.postv3-step small{display:block;margin-top:4px;color:var(--muted);font-size:8px;line-height:1.4}.postv3-step.done:before{border-color:var(--green);background:var(--green)}.postv3-step.current{border-color:color-mix(in srgb,var(--accent) 32%,var(--line));background:color-mix(in srgb,var(--accent) 4%,var(--surface2))}.postv3-step.current:before{border-color:var(--accent);background:var(--accent)}
+ .postv3-bottom{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:14px}.postv3-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:16px}.postv3-metric{display:flex;min-height:104px;flex-direction:column;border:1px solid var(--line);border-radius:12px;background:var(--surface2);padding:15px}.postv3-metric span{color:var(--muted);font-size:8px;font-weight:800;text-transform:uppercase}.postv3-metric strong{margin-top:7px;color:var(--text);font-size:24px;letter-spacing:-.045em}.postv3-metric small{margin-top:auto;color:var(--muted);font-size:8px}
+ .postv3-links{display:grid;gap:8px;margin-top:15px}.postv3-link{display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid var(--line);border-radius:11px;background:var(--surface2);color:var(--text);padding:12px 13px;font-size:10px;font-weight:700}.postv3-link span{color:var(--muted);font-weight:500}.postv3-link b{font-size:15px;color:var(--accent)}
+ .postv3-sync{display:flex;align-items:center;justify-content:space-between;gap:14px;border-top:1px solid var(--line);padding:13px 2px 2px;color:var(--muted);font-size:9px}.postv3-sync-main{display:flex;min-width:0;align-items:center;gap:9px}.postv3-sync-main>i{width:7px;height:7px;flex:0 0 7px;border-radius:50%;background:#8f9b97}.postv3-sync-main[data-tone="success"]>i{background:#83bf43}.postv3-sync-main[data-tone="running"]>i,.postv3-sync-main[data-tone="warning"]>i{background:#d9a84c}.postv3-sync-main[data-tone="error"]>i{background:#df6a58}.postv3-sync-copy{display:flex;min-width:0;flex-direction:column}.postv3-sync-copy strong{color:var(--text);font-size:9px}.postv3-sync-copy small{margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.postv3-sync-actions{display:flex;gap:7px}.postv3-sync-actions button{border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--text);padding:8px 10px;font:inherit;font-weight:700;cursor:pointer}.postv3-sync-actions button.primary{border-color:transparent;background:var(--accent);color:white}
+ @media(max-width:1050px){.postv3-hero{grid-template-columns:1fr}.postv3-next{min-height:170px}.postv3-track{grid-template-columns:repeat(3,minmax(0,1fr))}.postv3-bottom{grid-template-columns:1fr}}
+ @media(max-width:780px){html[data-post-exam-home="3"] .content{padding:18px 16px 88px}.postv3-home{gap:12px}.postv3-hero{padding:20px;border-radius:16px}.postv3-hero h1{font-size:clamp(30px,9vw,40px)}.postv3-copy>p{font-size:11px}.postv3-actions{flex-direction:column}.postv3-actions .btn{width:100%;justify-content:center}.postv3-next{min-height:150px;padding:16px}.postv3-card{padding:17px}.postv3-track{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.postv3-step{min-height:86px;padding:12px 10px}.postv3-metrics{grid-template-columns:1fr 1fr}.postv3-metric:last-child{grid-column:1/-1}.postv3-sync{align-items:flex-start;flex-direction:column}.postv3-sync-actions{width:100%}.postv3-sync-actions button{flex:1}.postv3-head{align-items:flex-start;flex-direction:column}.postv3-progress{align-self:flex-start}}
+ `;document.head.appendChild(style);
 }
 
 function workflowInfo(run,publishedAt=''){
- const publishedTime=Date.parse(publishedAt||'');
- const runTime=Date.parse(run?.updated_at||run?.run_started_at||run?.created_at||'');
- const hasSnapshot=Number.isFinite(publishedTime);
- if(!run)return hasSnapshot
-  ?{tone:'success',title:'Snapshot publicado',detail:`Dados validados em ${fmtDateTime(publishedAt)}.`}
-  :{tone:'neutral',title:'Publicação não verificada',detail:'O último snapshot local continua disponível.'};
- if(run.status!=='completed')return{tone:'running',title:'Atualização em andamento',detail:'O GitHub está validando o novo snapshot.'};
- if(run.conclusion==='success')return{tone:'success',title:'Sincronização validada',detail:`Concluída ${fmtDateTime(run.updated_at)}.`};
- if(hasSnapshot&&Number.isFinite(runTime)&&runTime<=publishedTime)return{tone:'success',title:'Snapshot publicado',detail:`Dados validados em ${fmtDateTime(publishedAt)}.`};
- if(hasSnapshot)return{tone:'warning',title:'Snapshot preservado',detail:`A última tentativa não foi promovida; dados de ${fmtDateTime(publishedAt)} continuam ativos.`};
- return{tone:'error',title:'Atualização não promovida',detail:'O snapshot anterior foi preservado.'};
+ const publishedTime=Date.parse(publishedAt||''),runTime=Date.parse(run?.updated_at||run?.run_started_at||run?.created_at||''),hasSnapshot=Number.isFinite(publishedTime);
+ if(!run)return hasSnapshot?{tone:'success',title:'Snapshot publicado',detail:`Dados de ${fmtDateTime(publishedAt)}.`}:{tone:'neutral',title:'Publicação não verificada',detail:'Snapshot local preservado.'};
+ if(run.status!=='completed')return{tone:'running',title:'Atualização em andamento',detail:'Validando novo snapshot.'};
+ if(run.conclusion==='success')return{tone:'success',title:'Dados atualizados',detail:`Validado ${fmtDateTime(run.updated_at)}.`};
+ if(hasSnapshot&&Number.isFinite(runTime)&&runTime<=publishedTime)return{tone:'success',title:'Snapshot publicado',detail:`Dados de ${fmtDateTime(publishedAt)}.`};
+ return{tone:'warning',title:'Snapshot preservado',detail:'A última tentativa não substituiu os dados publicados.'};
 }
-
 function setupSyncStatus(publishedAt=''){
- const root=document.querySelector('[data-post26-sync]');
- const status=root?.querySelector('[data-post26-sync-status]');
- const checkButton=root?.querySelector('[data-post26-sync-check]');
- const openButton=root?.querySelector('[data-post26-sync-open]');
- const guide=root?.querySelector('[data-post26-sync-guide]');
- if(!root||!status)return;
- let timer=0;
- const paint=run=>{
-  const info=workflowInfo(run,publishedAt);
-  status.dataset.tone=info.tone;
-  status.innerHTML=`<i></i><span><strong>${escapeHTML(info.title)}</strong><small>${escapeHTML(info.detail)}</small></span>`;
-  return run;
- };
- const check=async()=>{
-  try{
-   const response=await fetch(`${WORKFLOW_API}&t=${Date.now()}`,{cache:'no-store',headers:{Accept:'application/vnd.github+json'}});
-   if(!response.ok)throw new Error(String(response.status));
-   const run=(await response.json()).workflow_runs?.[0]||null;
-   paint(run);
-   if(run?.status==='completed')clearInterval(timer);
-   return run;
-  }catch{
-   paint(null);
-   return null;
-  }
- };
- checkButton?.addEventListener('click',check);
- openButton?.addEventListener('click',()=>{
-  window.open(WORKFLOW_URL,'_blank','noopener,noreferrer');
-  if(guide){guide.hidden=false;guide.innerHTML='<strong>Atualização aberta no GitHub.</strong><span>Use <b>Run workflow</b> na branch <b>main</b>. Ao voltar, o site verifica se um novo snapshot foi publicado.</span>';}
-  clearInterval(timer);timer=setInterval(check,15000);setTimeout(check,1200);
- });
- window.addEventListener('focus',()=>{if(!document.hidden)check();});
- check();
+ const status=document.querySelector('[data-postv3-sync-status]'),checkButton=document.querySelector('[data-postv3-sync-check]'),openButton=document.querySelector('[data-postv3-sync-open]');if(!status)return;
+ const paint=run=>{const info=workflowInfo(run,publishedAt);status.dataset.tone=info.tone;status.querySelector('strong').textContent=info.title;status.querySelector('small').textContent=info.detail};
+ const check=async()=>{try{const response=await fetch(`${WORKFLOW_API}&t=${Date.now()}`,{cache:'no-store',headers:{Accept:'application/vnd.github+json'}});if(!response.ok)throw new Error(String(response.status));paint((await response.json()).workflow_runs?.[0]||null)}catch{paint(null)}};
+ checkButton?.addEventListener('click',check);openButton?.addEventListener('click',()=>window.open(WORKFLOW_URL,'_blank','noopener,noreferrer'));check();
 }
 
 try{
- const[home,edital,subjectsData,platform,syncHistory]=await Promise.all([
-  loadJSON('data/home.json'),
-  loadJSON('data/edital-status.json'),
-  loadJSON('data/subjects.json'),
-  loadJSON('data/platform-version.json'),
-  loadJSON('data/sync-history.json').catch(()=>({entries:[]}))
- ]);
- setupShell('home',home.meta||{});
- const main=document.querySelector('main');
- if(!main)throw new Error('Área principal não encontrada.');
-
- const metrics=home.metrics||{};
- const editalSummary=edital.summary||{};
- const editalTotal=number(editalSummary.total||82);
- const editalStudied=number(editalSummary.coverage?.studied);
- const editalPct=editalTotal?editalStudied/editalTotal*100:0;
- const subjects=[...(subjectsData.subjects||[])].sort((a,b)=>number(b.errors)-number(a.errors));
- const topSubject=subjects[0]||{};
- const latestSync=platform.syncAt||syncHistory.entries?.[0]?.at||home.meta?.snapshotDate||'';
- const sourceCommit=platform.sourceCommit&&platform.sourceCommit!=='unknown'?String(platform.sourceCommit).slice(0,7):'—';
- const examDate=home.meta?.examDate||'2026-09-06';
- const completedPes=number(metrics.completed);
- const totalPes=number(metrics.totalPE||112);
- const redactions=number(metrics.redactions);
- const errors=number(metrics.errors);
-
- document.documentElement.dataset.tdasPhase='post-exam';
- document.documentElement.dataset.postExamHome='2';
- document.body.classList.remove('tdas-dashboard-pro-2026');
- document.body.classList.add('tdas-post-exam-home');
-
- main.innerHTML=`<div class="post26-home">
-  <section class="post26-hero" aria-labelledby="post26-title">
-   <div class="post26-hero-copy">
-    <span class="post26-eyebrow">SEDES/DF 2026 · TÉCNICO ADMINISTRATIVO · CARGO 202</span>
-    <div class="post26-status-pill"><i></i><span>Prova realizada</span><b>${escapeHTML(fmtDate(examDate))}</b></div>
-    <h1 id="post26-title">O ciclo terminou. Agora é acompanhar o concurso.</h1>
-    <p>A preparação foi encerrada em 06/09/2026. O site agora preserva sua trajetória e acompanha os próximos atos sem transformar PEs, revisões ou erros antigos em novas pendências.</p>
-    <div class="post26-hero-actions"><a class="btn primary" href="${BASE}desempenho/">Ver histórico do ciclo</a><a class="btn" href="${TRANSITION_PLAN}" target="_blank" rel="noopener noreferrer">Plano de transição ↗</a></div>
-   </div>
-   <aside class="post26-next" aria-label="Próximo marco do concurso">
-    <div class="post26-next-head"><span>PRÓXIMO MARCO</span><b>Aguardando</b></div>
-    <div class="post26-next-number">02</div>
-    <h2>Gabarito preliminar</h2>
-    <p>Quando houver publicação oficial, o fluxo avança para correção da prova, análise de recursos e resultados.</p>
-    <div class="post26-next-note"><i></i><span>Sem data oficial cadastrada. O site não inventa prazo.</span></div>
-   </aside>
+ const[home,platform,syncHistory]=await Promise.all([loadJSON('data/home.json'),loadJSON('data/platform-version.json'),loadJSON('data/sync-history.json').catch(()=>({entries:[]}))]);
+ setupShell('home',home.meta||{});ensureV3Style();const main=document.querySelector('main');if(!main)throw new Error('Área principal não encontrada.');
+ const metrics=home.metrics||{},completedPes=number(metrics.completed),totalPes=number(metrics.totalPE||112),latestSync=platform.syncAt||syncHistory.entries?.[0]?.at||home.meta?.snapshotDate||'',examDate=home.meta?.examDate||'2026-09-06';
+ document.documentElement.dataset.tdasPhase='post-exam';document.documentElement.dataset.postExamHome='3';document.body.classList.remove('tdas-dashboard-pro-2026');document.body.classList.add('tdas-post-exam-home');
+ main.innerHTML=`<div class="postv3-home">
+  <section class="postv3-hero">
+   <div class="postv3-copy"><span class="postv3-kicker">SEDES/DF 2026 · TÉCNICO ADMINISTRATIVO · CARGO 202</span><div class="postv3-state"><i></i><span>Prova realizada em ${escapeHTML(fmtDate(examDate))}</span></div><h1>Pós-prova, sem ruído.</h1><p>O ciclo de estudos acabou. A partir daqui o TDAS acompanha os próximos atos do concurso e guarda sua preparação como histórico — sem transformar ferramentas antigas em tarefas atuais.</p><div class="postv3-actions"><a class="btn primary" href="${BASE}desempenho/">Ver histórico</a><a class="btn" href="${BASE}mais/">Abrir arquivo do ciclo</a></div></div>
+   <aside class="postv3-next"><span>PRÓXIMO MARCO OFICIAL</span><h2>Gabarito preliminar</h2><p>Quando for publicado, o fluxo passa para correção da prova e análise de eventuais recursos.</p><div class="postv3-next-foot"><i></i><span>Sem data oficial cadastrada.</span></div></aside>
   </section>
-
-  <section class="post26-summary" aria-label="Fotografia final do ciclo">
-   ${metric('PEs concluídos',`${fmtNumber(completedPes)}/${fmtNumber(totalPes)}`,'Ciclo PE01–PE112 encerrado',`${BASE}agenda/`)}
-   ${metric('Questões',fmtNumber(metrics.questions||0),'Questões registradas no ciclo',`${BASE}desempenho/`)}
-   ${metric('Aproveitamento',fmtPct(metrics.accuracy||0,2),'Indicador histórico publicado',`${BASE}desempenho/`)}
-   ${metric('Edital',`${fmtNumber(editalStudied)}/${fmtNumber(editalTotal)}`,`${fmtPct(editalPct,1)} de cobertura`,`${BASE}edital/`)}
-  </section>
-
-  <section class="post26-section">
-   <header class="post26-section-head"><div><span>LINHA DO TEMPO</span><h2>O que acontece agora</h2><p>O TDAS só muda de etapa quando houver um novo marco oficial.</p></div><a href="${TRANSITION_PLAN}" target="_blank" rel="noopener noreferrer">Ver plano completo ↗</a></header>
-   <div class="post26-timeline">
-    ${timelineStep(1,'Prova realizada','06/09/2026 · ciclo de preparação encerrado','done')}
-    ${timelineStep(2,'Gabarito preliminar','Aguardar publicação oficial para iniciar a correção','current')}
-    ${timelineStep(3,'Correção e recursos','Registrar nota estimada e analisar questões recorríveis')}
-    ${timelineStep(4,'Gabarito definitivo','Recalcular a prova após alterações ou anulações')}
-    ${timelineStep(5,'Resultados','Objetiva e discursiva entram no histórico do concurso')}
-    ${timelineStep(6,'Classificação e convocações','Acompanhar posição, chamadas, nomeação e posse')}
-   </div>
-  </section>
-
-  <section class="post26-lower">
-   <article class="post26-final-card">
-    <div class="post26-card-head"><div><span>FOTOGRAFIA FINAL</span><h2>O que ficou do ciclo</h2></div><a href="${BASE}desempenho/">Detalhar desempenho →</a></div>
-    <p class="post26-lead">Os números abaixo são memória de preparação. Eles servem para analisar a prova e alimentar ciclos futuros — não para criar obrigação de estudo depois da prova.</p>
-    <div class="post26-facts">
-     <div><span>Erros catalogados</span><strong>${fmtNumber(errors)}</strong><small>Histórico preservado</small></div>
-     <div><span>Redações registradas</span><strong>${fmtNumber(redactions)}</strong><small>Banco discursivo do TDAS</small></div>
-     <div><span>Maior concentração histórica</span><strong>${escapeHTML(topSubject.subject||'—')}</strong><small>${fmtNumber(topSubject.errors||0)} erros catalogados</small></div>
-     <div><span>Snapshot final</span><strong>${escapeHTML(fmtDate(home.meta?.snapshotDate))}</strong><small>Fonte oficial preservada</small></div>
-    </div>
-    <div class="post26-inline-actions"><a href="${BASE}caderno-erros/">Consultar caderno de erros</a><a href="${BASE}evolucao/">Ver evolução</a></div>
-   </article>
-
-   <article class="post26-archive">
-    <div class="post26-card-head"><div><span>ARQUIVO DO CICLO</span><h2>Tudo continua acessível</h2></div></div>
-    <p class="post26-lead">As ferramentas antigas saíram do centro da Home, mas nada foi apagado.</p>
-    <div class="post26-archive-list">
-     ${archiveLink('↗','Plano PE01–PE112','Agenda e histórico dos PEs',`${BASE}agenda/`)}
-     ${archiveLink('✓','Check do Edital','Cobertura e evidências do Cargo 202',`${BASE}edital/`)}
-     ${archiveLink('✎','Redações','Banco discursivo preservado',`${BASE}redacoes/`)}
-     ${archiveLink('▤','Biblioteca','Matérias, leis e materiais',`${BASE}materias/`)}
-     ${archiveLink('▦','Dados do ciclo','Registros locais e persistência',`${BASE}dados-locais/`)}
-     ${archiveLink('◉','Operações','Auditoria, publicação e Notion',`${BASE}auditoria/`)}
-    </div>
-   </article>
-  </section>
-
-  <section class="post26-system" data-post26-sync>
-   <div class="post26-system-meta"><span>PUBLICAÇÃO TDAS</span><strong>Snapshot ${escapeHTML(fmtDate(home.meta?.snapshotDate))}</strong><small>Última sincronização: ${escapeHTML(fmtDateTime(latestSync))} · commit ${escapeHTML(sourceCommit)}</small></div>
-   <div class="post26-sync-state" data-post26-sync-status data-tone="neutral"><i></i><span><strong>Verificando publicação…</strong><small>Notion → GitHub → site</small></span></div>
-   <div class="post26-system-actions"><button type="button" data-post26-sync-check>Verificar</button><button class="primary" type="button" data-post26-sync-open>↻ Atualizar dados</button></div>
-   <div class="post26-sync-guide" data-post26-sync-guide hidden></div>
-  </section>
+  <section class="postv3-card"><div class="postv3-head"><div><span>ANDAMENTO DO CONCURSO</span><h2>Da prova à convocação</h2></div><div class="postv3-progress">1 de 6 marcos concluído</div></div><ol class="postv3-track"><li class="postv3-step done"><strong>Prova</strong><small>06/09/2026</small></li><li class="postv3-step current"><strong>Gabarito preliminar</strong><small>Próximo marco</small></li><li class="postv3-step"><strong>Recursos</strong><small>Após correção</small></li><li class="postv3-step"><strong>Gabarito definitivo</strong><small>Depois</small></li><li class="postv3-step"><strong>Resultados</strong><small>Objetiva e discursiva</small></li><li class="postv3-step"><strong>Classificação</strong><small>Convocações</small></li></ol></section>
+  <section class="postv3-bottom"><article class="postv3-card"><div class="postv3-head"><div><span>RESUMO FINAL</span><h2>O que ficou da preparação</h2></div></div><div class="postv3-metrics"><div class="postv3-metric"><span>PEs concluídos</span><strong>${fmtNumber(completedPes)}/${fmtNumber(totalPes)}</strong><small>Ciclo encerrado</small></div><div class="postv3-metric"><span>Questões</span><strong>${fmtNumber(metrics.questions||0)}</strong><small>Registradas no ciclo</small></div><div class="postv3-metric"><span>Aproveitamento</span><strong>${fmtPct(metrics.accuracy||0,2)}</strong><small>Indicador histórico</small></div></div></article><article class="postv3-card"><div class="postv3-head"><div><span>CONSULTAR</span><h2>Dois caminhos</h2></div></div><div class="postv3-links"><a class="postv3-link" href="${BASE}desempenho/"><span>Desempenho, evolução e números</span><b>›</b></a><a class="postv3-link" href="${BASE}mais/"><span>PEs, questões, edital, redações e dados</span><b>›</b></a></div></article></section>
+  <footer class="postv3-sync"><div class="postv3-sync-main" data-postv3-sync-status data-tone="neutral"><i></i><div class="postv3-sync-copy"><strong>Verificando dados…</strong><small>Último snapshot: ${escapeHTML(fmtDateTime(latestSync))}</small></div></div><div class="postv3-sync-actions"><button type="button" data-postv3-sync-check>Verificar</button><button class="primary" type="button" data-postv3-sync-open>↻ Atualizar dados</button></div></footer>
  </div>`;
-
  setupSyncStatus(latestSync);
-}catch(error){
- console.error('Home pós-prova TDAS indisponível',error);
- const main=document.querySelector('main');
- if(main)main.innerHTML=`<section class="card panel"><h1>Não foi possível carregar o pós-prova.</h1><p>${escapeHTML(error.message)}</p><button class="btn" type="button" onclick="location.reload()">Tentar novamente</button></section>`;
-}
+}catch(error){console.error('Home pós-prova TDAS indisponível',error);const main=document.querySelector('main');if(main)main.innerHTML=`<section class="card panel"><h1>Não foi possível carregar o pós-prova.</h1><p>${escapeHTML(error.message)}</p><button class="btn" type="button" onclick="location.reload()">Tentar novamente</button></section>`}
