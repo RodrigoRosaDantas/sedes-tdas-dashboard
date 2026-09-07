@@ -3,7 +3,7 @@ const BASE='/sedes-tdas-dashboard/';
 const groups=[
  ['Preparação arquivada',[
   {title:'PE01–PE112',desc:'Plano completo, agenda e registros dos PEs concluídos.',href:`${BASE}agenda/`},
-  {title:'Resolver questões',desc:'Banco de questões preservado para consulta opcional.',href:`${BASE}resolver/?modo=banco`},
+  {title:'Questões',desc:'Resolver questões no Banco de questões preservado para consulta opcional.',href:`${BASE}resolver/?modo=banco`},
   {title:'Revisões',desc:'Prioridades e sinais que fizeram parte do ciclo de estudos.',href:`${BASE}revisar/`},
   {title:'Caderno de erros',desc:'Erros, reincidências e classificações registradas durante a preparação.',href:`${BASE}caderno-erros/`},
   {title:'Redações',desc:'Banco discursivo, textos e correções preservados.',href:`${BASE}redacoes/`},
