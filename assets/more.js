@@ -3,8 +3,8 @@ const BASE='/sedes-tdas-dashboard/';
 const groups=[
  ['Preparação arquivada',[
   {title:'PE01–PE112',desc:'Plano completo, agenda e registros dos PEs concluídos.',href:`${BASE}agenda/`},
-  {title:'Questões',desc:'Player e banco de questões preservados para consulta opcional.',href:`${BASE}resolver/?modo=banco`},
-  {title:'Revisões',desc:'Sinais e prioridades que fizeram parte do ciclo de estudos.',href:`${BASE}revisar/`},
+  {title:'Resolver questões',desc:'Banco de questões preservado para consulta opcional.',href:`${BASE}resolver/?modo=banco`},
+  {title:'Revisões',desc:'Prioridades e sinais que fizeram parte do ciclo de estudos.',href:`${BASE}revisar/`},
   {title:'Caderno de erros',desc:'Erros, reincidências e classificações registradas durante a preparação.',href:`${BASE}caderno-erros/`},
   {title:'Redações',desc:'Banco discursivo, textos e correções preservados.',href:`${BASE}redacoes/`},
   {title:'Biblioteca',desc:'Matérias, leis e materiais utilizados no ciclo.',href:`${BASE}materias/`}
@@ -21,7 +21,8 @@ const groups=[
   {title:'Dados locais',desc:'Backup e persistência dos registros deste dispositivo.',href:`${BASE}dados-locais/`},
   {title:'Publicação',desc:'Status de sincronização e versão publicada.',href:`${BASE}sincronizacao/`},
   {title:'Auditoria',desc:'Diagnóstico técnico e qualidade dos dados.',href:`${BASE}auditoria/`},
-  {title:'Configurações',desc:'Preferências, versão e integrações.',href:`${BASE}configuracoes/`}
+  {title:'Configurações',desc:'Preferências, versão e integrações.',href:`${BASE}configuracoes/`},
+  {title:'Fila de IA',desc:'Recurso técnico legado preservado no arquivo; sem ação atual.',href:`${BASE}fila-ia/`}
  ]]
 ];
 try{
