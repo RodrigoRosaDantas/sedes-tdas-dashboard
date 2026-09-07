@@ -1,4 +1,4 @@
-import './post-exam-shell.js?v=1.0.0';
+import './post-exam-shell.js?v=1.0.1';
 
 const BASE='/sedes-tdas-dashboard/';
 const SOURCE_SITE_VERSION='v11';
@@ -6,7 +6,7 @@ let clockTimer=null;
 let brandObserver=null;
 
 const navItems=[
- {id:'overview',label:'Faça agora',hint:'Comando',icon:'⌂',href:BASE},
+ {id:'overview',label:'Pós-prova',hint:'Acompanhar',icon:'⌂',href:BASE},
  {id:'execute',label:'Resolver questões',hint:'Executar',icon:'▶',href:BASE+'resolver/'},
  {id:'reviews',label:'Revisões',hint:'Reter',icon:'↻',href:BASE+'revisar/'},
  {id:'errors',label:'Caderno de erros',hint:'Corrigir',icon:'!',href:BASE+'caderno-erros/'},
@@ -20,7 +20,7 @@ const navItems=[
 ];
 
 const pageLabels={
- '/':'Faça agora','/index.html':'Faça agora','/hoje/':'Faça agora','/estudar/':'Biblioteca','/resolver/':'Resolver questões','/revisar/':'Revisões','/caderno-erros/':'Caderno de erros','/questoes-erros/':'Caderno de erros','/edital/':'Check do Edital','/riscos/':'Check do Edital','/desempenho/':'Recursos v28','/evolucao/':'Recursos v28','/mais/':'Recursos v28','/auditoria/':'Operações','/sincronizacao/':'Operações','/agenda/':'Plano PE01–PE112','/pe/':'Plano PE01–PE112','/materias/':'Biblioteca','/redacoes/':'Biblioteca','/mentor/':'Recursos v28','/dados-locais/':'Dados pessoais','/notion/':'Configurações','/configuracoes/':'Configurações'
+ '/':'Pós-prova','/index.html':'Pós-prova','/hoje/':'Pós-prova','/estudar/':'Biblioteca','/resolver/':'Resolver questões','/revisar/':'Revisões','/caderno-erros/':'Caderno de erros','/questoes-erros/':'Caderno de erros','/edital/':'Check do Edital','/riscos/':'Check do Edital','/desempenho/':'Recursos v28','/evolucao/':'Recursos v28','/mais/':'Recursos v28','/auditoria/':'Operações','/sincronizacao/':'Operações','/agenda/':'Plano PE01–PE112','/pe/':'Plano PE01–PE112','/materias/':'Biblioteca','/redacoes/':'Biblioteca','/mentor/':'Recursos v28','/dados-locais/':'Dados pessoais','/notion/':'Configurações','/configuracoes/':'Configurações'
 };
 const activeMap={
  '/':'overview','/index.html':'overview','/hoje/':'overview','/estudar/':'library','/resolver/':'execute','/revisar/':'reviews','/caderno-erros/':'errors','/questoes-erros/':'errors','/edital/':'syllabus','/riscos/':'syllabus','/desempenho/':'tools','/evolucao/':'tools','/mais/':'tools','/mentor/':'tools','/auditoria/':'operations','/sincronizacao/':'operations','/agenda/':'plan','/pe/':'plan','/materias/':'library','/redacoes/':'library','/dados-locais/':'databases','/notion/':'settings','/configuracoes/':'settings'
@@ -47,13 +47,6 @@ function ensureStyle(){
  const styles=[['site-parity-v11','assets/site-parity-v11.css?v=1.1.0'],['site-parity-v11-fixes','assets/site-parity-v11-fixes.css?v=1.1.0'],['site-shell-boot','assets/site-shell-boot.css?v=1.1.0']];
  for(const[key,href]of styles){if(document.querySelector(`link[data-${key}]`))continue;const link=document.createElement('link');link.rel='stylesheet';link.href=BASE+href;link.dataset[key.replace(/-([a-z])/g,(_,letter)=>letter.toUpperCase())]='1';document.head.appendChild(link)}
 }
-function brasiliaNow(){return new Date(new Date().toLocaleString('en-US',{timeZone:'America/Sao_Paulo'}));}
-function examState(){
- const now=brasiliaNow(),exam=new Date(2026,8,6,13,0,0),start=new Date(2026,7,4,0,0,0);
- const days=Math.max(0,Math.ceil((exam-now)/86400000));
- const total=Math.max(1,exam-start),elapsed=Math.max(0,Math.min(total,now-start));
- return{days,progress:Math.round(elapsed/total*100)};
-}
 function renderNav(active){return navItems.filter(item=>item.id!=='settings').map(item=>`<a href="${item.href}" class="${item.id===active?'active':''}" data-site-nav="${item.id}"><span class="nav-icon">${item.icon}</span><span><b>${esc(item.label)}</b><small>${esc(item.hint)}</small></span></a>`).join('')}
 function renderMobileNav(active){return navItems.map(item=>`<a href="${item.href}" class="${item.id===active?'active':''}" data-site-nav="${item.id}"><span>${item.icon}</span><span>${esc(item.label)}</span></a>`).join('')}
 function protectBranding(){
@@ -69,8 +62,7 @@ function protectBranding(){
 }
 function rebuildSidebar(active){
  const sidebar=document.querySelector('.sidebar');if(!sidebar)return;
- const{days,progress}=examState();
- sidebar.innerHTML=`<a class="brand" href="${BASE}" aria-label="TDAS Dashboard PRO"><span class="brand-mark">T<span>.</span></span><span><strong>TDAS</strong><small>Dashboard PRO · SEDES/DF · v28.0.0</small></span></a><div class="sidebar-context"><span>Projeto ativo</span><strong>SEDES / DF</strong><small>Técnico Administrativo · Cargo 202</small></div><nav id="desktop-nav" class="nav sidebar-nav" aria-label="Navegação principal"><span class="nav-heading">Central de comando</span>${renderNav(active)}</nav><div class="exam-card"><div class="exam-top"><span>Prova oficial</span><b>${days} ${days===1?'dia':'dias'}</b></div><strong>06 SET 2026</strong><div class="exam-progress"><i style="width:${progress}%"></i></div><small>Turno vespertino · Objetiva + redação</small></div><a class="source-link" href="${BASE}notion/">Abrir espelho do Notion <span>↗</span></a><a class="sidebar-settings ${active==='settings'?'active':''}" href="${BASE}configuracoes/"><span>⚙</span><div><strong>Configurações</strong><small><i class="connected"></i> Notion e publicação</small></div><b>›</b></a>`;
+ sidebar.innerHTML=`<a class="brand" href="${BASE}" aria-label="TDAS Dashboard PRO"><span class="brand-mark">T<span>.</span></span><span><strong>TDAS</strong><small>Dashboard PRO · SEDES/DF · v28.0.0</small></span></a><div class="sidebar-context"><span>Ciclo encerrado</span><strong>SEDES / DF</strong><small>Técnico Administrativo · Cargo 202</small></div><nav id="desktop-nav" class="nav sidebar-nav" aria-label="Navegação principal"><span class="nav-heading">Acompanhamento</span>${renderNav(active)}</nav><div class="exam-card" data-post-exam="1"><div class="exam-top"><span>Prova realizada</span><b>Concluído</b></div><strong>06 SET 2026</strong><div class="exam-progress"><i style="width:100%"></i></div><small>Pós-prova · aguardando gabarito e resultados</small></div><a class="source-link" href="${BASE}notion/">Abrir espelho do Notion <span>↗</span></a><a class="sidebar-settings ${active==='settings'?'active':''}" href="${BASE}configuracoes/"><span>⚙</span><div><strong>Configurações</strong><small><i class="connected"></i> Notion e publicação</small></div><b>›</b></a>`;
  protectBranding();
 }
 function rebuildTopbar(label){
