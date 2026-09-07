@@ -23,14 +23,13 @@ try{
  await waitJson(`http://127.0.0.1:${port}/json/version`);
  const [platform,redactions]=await Promise.all([waitJson(`${base}/data/platform-version.json`),waitJson(`${base}/data/redactions.json`)]);
  const lockedRd=(redactions.redactions||[]).find(item=>item.locked===true)?.rd||'';
-
  const home=await newPage(1280,900);
  await navigate(home,`${base}/`);
- await waitFor(home,"document.documentElement.dataset.tdasPhase==='post-exam'&&document.documentElement.dataset.postExamHome==='2'&&document.querySelector('.post26-home')",'Home pós-prova v2');
+ await waitFor(home,"document.documentElement.dataset.tdasPhase==='post-exam'&&document.documentElement.dataset.postExamHome==='3'&&document.querySelector('.postv3-home')",'Home pós-prova v3');
  await waitFor(home,"document.documentElement.dataset.siteParity==='v11'",'shell v11 na Home');
- assert.equal(await evaluate(home,"document.querySelector('.post26-hero h1')?.textContent.includes('O ciclo terminou')"),true,'Home deve usar a mensagem pós-prova v2.');
- assert.equal(await evaluate(home,"document.body.textContent.includes('Prova realizada')"),true,'Home deve indicar a prova realizada.');
- assert.equal(await evaluate(home,`document.body.textContent.includes(${JSON.stringify(platform.platformVersion)})`),true,'Home deve expor a versão vigente.');
+ assert.equal(await evaluate(home,"document.querySelector('.postv3-hero h1')?.textContent.trim()==='Pós-prova, sem ruído.'"),true,'Home deve usar a mensagem pós-prova v3.');
+ assert.equal(await evaluate(home,"document.body.textContent.includes('Gabarito preliminar')"),true,'Home deve indicar o próximo marco.');
+ assert.equal(await evaluate(home,`document.body.textContent.includes(${JSON.stringify(platform.platformVersion)})`),true,'Shell deve expor a versão vigente.');
  assert.equal(await evaluate(home,"document.documentElement.scrollWidth<=innerWidth+1"),true,'Home não pode criar overflow horizontal.');
 
  const mobile=await newPage(390,844);
@@ -41,8 +40,8 @@ try{
  assert.equal(await evaluate(mobile,"getComputedStyle(document.querySelector('.rd-bank-table')).display"),'none');
  assert.notEqual(await evaluate(mobile,"getComputedStyle(document.querySelector('.rd-bank-cards')).display"),'none');
  const mobileNav=await evaluate(mobile,"[...document.querySelectorAll('#mobile-nav a')].map(a=>a.querySelector('span:last-child')?.textContent.trim()||'')");
- assert.deepEqual(mobileNav,['Pós-prova','Histórico','Check do Edital','Redações','Arquivo do ciclo'],'Redações deve usar a navegação móvel pós-prova de cinco destinos.');
- assert.equal(await evaluate(mobile,"[...document.querySelectorAll('[data-site-nav=writing]')].some(node=>node.classList.contains('active'))"),true,'Redações deve ficar ativa no shell.');
+ assert.deepEqual(mobileNav,['Pós-prova','Histórico','Arquivo'],'Redações deve usar a navegação móvel v3 de três destinos.');
+ assert.equal(await evaluate(mobile,"[...document.querySelectorAll('[data-site-nav=archive]')].some(node=>node.classList.contains('active'))"),true,'Redações deve ficar agrupada no Arquivo.');
  assert.equal(await evaluate(mobile,"getComputedStyle(document.querySelector('.sidebar')).display"),'none','Sidebar não pode espremer Redações no mobile.');
  assert.equal(await evaluate(mobile,"document.documentElement.scrollWidth<=innerWidth+1"),true,'Redações não pode criar overflow horizontal.');
  await evaluate(mobile,"document.querySelector('[data-site-search]').click();true");
@@ -64,8 +63,6 @@ try{
  await waitFor(detail,"localStorage.getItem('tdas-redactions-offline-index-v1')?.includes('RD01')",'índice offline');
  await waitFor(detail,"caches.keys().then(keys=>keys.includes('tdas-redactions-user-v1'))",'cache offline');
  assert.equal(await evaluate(detail,"caches.open('tdas-redactions-user-v1').then(cache=>Promise.all([cache.match(location.origin+'/sedes-tdas-dashboard/redacoes/detalhe/?rd=RD01'),cache.match(location.origin+'/sedes-tdas-dashboard/data/redactions/rd01.json')])).then(items=>items.every(Boolean))"),true,'Recursos essenciais da RD01 devem existir na cache.');
-
  if(lockedRd){const locked=await newPage(1100,900);await navigate(locked,`${base}/redacoes/detalhe/?rd=${lockedRd}`);await waitFor(locked,"document.body.textContent.includes('Aplicação cega protegida')",`bloqueio ${lockedRd}`);assert.equal(await evaluate(locked,"document.querySelector('#offline-rd')===null"),true);assert.equal(await evaluate(locked,"document.body.textContent.includes('Proposta completa')"),false);}
-
- console.log(JSON.stringify({browser:'ok',siteParity:'v11',phase:'post-exam-v2',homePublication:true,mobileCards:true,globalDiscovery:true,tabsAccessible:true,paragraphs:true,offlinePersistent:true,futureLocked:Boolean(lockedRd),lockedRd:lockedRd||null}));
+ console.log(JSON.stringify({browser:'ok',siteParity:'v11',phase:'post-exam-v3',mainAreas:3,redactionsInArchive:true,mobileCards:true,globalDiscovery:true,tabsAccessible:true,paragraphs:true,offlinePersistent:true,futureLocked:Boolean(lockedRd),lockedRd:lockedRd||null}));
 }finally{await stopChrome();await fs.rm(profile,{recursive:true,force:true,maxRetries:8,retryDelay:200}).catch(()=>{});}
