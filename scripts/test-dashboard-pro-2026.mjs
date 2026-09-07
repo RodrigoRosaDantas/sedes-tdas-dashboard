@@ -80,9 +80,9 @@ for (const asset of ['assets/dashboard-pro-2026.css', 'assets/integration/home-d
   assert.ok(preserve.includes(asset), `Overlay PWA deve exigir ${asset}.`);
 }
 
-assert.match(versionSync, /VISUAL_CACHE_REV='cachefix6-pro12'/, 'Gerador deve usar a revisão visual PRO12 otimizada.');
-assert.match(platform.serviceWorkerVersion, /cachefix6-pro12$/, 'Manifesto publicado deve invalidar o cache visual anterior.');
-assert.match(sw, /cachefix6-pro12/, 'Service worker deve usar a revisão visual PRO12 otimizada.');
+assert.match(versionSync, /VISUAL_CACHE_REV='cachefix7-postexam-pro12'/, 'Gerador deve usar a revisão pós-prova PRO12 e invalidar o shell antigo.');
+assert.match(platform.serviceWorkerVersion, /cachefix7-postexam-pro12$/, 'Manifesto publicado deve invalidar o cache visual e o shell pré-prova anteriores.');
+assert.match(sw, /cachefix7-postexam-pro12/, 'Service worker deve usar a revisão pós-prova PRO12.');
 assert.ok(!sw.includes('question-keys/'), 'Gabaritos devem continuar fora do precache.');
 
-console.log('Dashboard PRO 2026 unificado: uma Home, decisão operacional direta, dados oficiais, PWA PRO12 e responsividade preservados.');
+console.log('Dashboard PRO 2026 unificado: Home pós-prova, dados oficiais, PWA pós-prova PRO12 e responsividade preservados.');
