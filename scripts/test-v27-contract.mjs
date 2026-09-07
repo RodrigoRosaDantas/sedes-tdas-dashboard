@@ -1,14 +1,17 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 const read=file=>fs.readFile(file,'utf8');
-const[homeHtml,resolverHtml,bootstrap,bank,player,continuity,homeUnified,bridge,guard,archive,more,sw,syncWorkflow,preserveV27,preserveHistory]=await Promise.all([
- 'index.html','resolver/index.html','assets/integration/resolver-bootstrap.js','assets/integration/question-bank.js','assets/integration/question-bank-player.js','assets/integration/continuity-engine.js','assets/integration/home-dashboard-pro-2026.js','assets/integration/review-catalog-bridge.js','assets/integration/bank-draft-guard.js','assets/integration/question-catalog-archive.js','assets/more.js','sw.js','.github/workflows/notion-sync.yml','scripts/preserve-v27-pwa.mjs','scripts/preserve-private-history-pwa.mjs'
+const[homeHtml,resolverHtml,bootstrap,bank,player,continuity,homeLegacy,postExam,bridge,guard,archive,more,sw,syncWorkflow,preserveV27,preserveHistory]=await Promise.all([
+ 'index.html','resolver/index.html','assets/integration/resolver-bootstrap.js','assets/integration/question-bank.js','assets/integration/question-bank-player.js','assets/integration/continuity-engine.js','assets/integration/home-dashboard-pro-2026.js','assets/integration/post-exam-home.js','assets/integration/review-catalog-bridge.js','assets/integration/bank-draft-guard.js','assets/integration/question-catalog-archive.js','assets/more.js','sw.js','.github/workflows/notion-sync.yml','scripts/preserve-v27-pwa.mjs','scripts/preserve-private-history-pwa.mjs'
 ].map(read));
 const homeRefs=[...homeHtml.matchAll(/(?:src|href)="([^"]+)"/g)].map(match=>match[1]);
-assert.ok(homeRefs.some(ref=>ref.includes('home-dashboard-pro-2026.js')),'Home não carrega a experiência operacional unificada.');
-assert.ok(!homeRefs.some(ref=>ref.includes('home-v27.js')||ref.includes('v27.css')),'Home não pode reempilhar a camada visual v27 após a consolidação.');
-assert.ok(homeUnified.includes('selectPrimaryAction')&&homeUnified.includes('readSessionDraft')&&homeUnified.includes('data-v27-continuity'),'Home unificada precisa absorver continuidade, retomada e contrato v27.');
-assert.ok(homeUnified.includes('buildOfficialCycleTasks')&&homeUnified.includes('selectPrimaryAction'),'Home unificada deve manter o handoff do ciclo oficial sem reintroduzir uma revisão interna paralela.');
+assert.ok(homeRefs.some(ref=>ref.includes('post-exam-home.js?v=2.0.0')),'Home deve carregar o renderer pós-prova nativo.');
+assert.ok(!homeRefs.some(ref=>ref.includes('home-dashboard-pro-2026.js')||ref.includes('home-v27.js')||ref.includes('v27.css')),'Home pós-prova não pode reempilhar execução diária ou camada visual v27.');
+assert.match(homeHtml,/data-post-exam-home="2"/,'Home deve declarar o contrato pós-prova v2.');
+assert.ok(postExam.includes('O ciclo terminou. Agora é acompanhar o concurso.')&&postExam.includes('Gabarito preliminar'),'Home pós-prova deve priorizar acompanhamento do concurso.');
+assert.ok(!postExam.includes('selectPrimaryAction')&&!postExam.includes('readSessionDraft')&&!postExam.includes('buildOfficialCycleTasks'),'Continuidade v27 não pode preemptar a Home depois da prova.');
+assert.ok(homeLegacy.includes('selectPrimaryAction')&&homeLegacy.includes('readSessionDraft')&&homeLegacy.includes('data-v27-continuity'),'Módulo histórico de execução deve permanecer disponível para compatibilidade e rotas antigas.');
+assert.ok(homeLegacy.includes('buildOfficialCycleTasks'),'Infraestrutura legada do ciclo deve continuar íntegra sem ser ativada na Home pós-prova.');
 assert.ok(resolverHtml.includes('assets/v27.css')&&resolverHtml.includes('resolver-bootstrap.js'),'Resolver não usa o bootstrap v27.');
 assert.ok(!resolverHtml.includes('src="/sedes-tdas-dashboard/assets/integration/module-player.js'),'Player diário não pode ser carregado em paralelo ao roteador.');
 assert.ok(bootstrap.includes("params.get('modo')==='banco'")&&bootstrap.includes('question-bank-player.js'),'Modo Banco não está roteado.');
@@ -36,4 +39,4 @@ const notionIndex=syncWorkflow.indexOf('node scripts/preserve-notion-mirror-pwa.
 const v27Index=syncWorkflow.indexOf('node scripts/preserve-v27-pwa.mjs');
 const checkIndex=syncWorkflow.indexOf('npm run check');
 assert.ok(postprocessIndex>=0&&platformIndex>postprocessIndex&&historyIndex>platformIndex&&telemetryIndex>historyIndex&&notionIndex>telemetryIndex&&v27Index>notionIndex&&checkIndex>v27Index,'Sync operacional deve regenerar/versionar, reaplicar todas as preservações e só depois validar.');
-console.log('TDAS v27: Banco, continuidade, prioridades externas e Home unificada sem overlay v27 validados.');
+console.log('TDAS v27: Banco, continuidade e prioridades externas preservados; Home pós-prova isolada da execução diária e do overlay v27.');
