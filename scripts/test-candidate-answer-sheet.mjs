@@ -1,7 +1,10 @@
 import fs from 'node:fs';
 
 const sheet=JSON.parse(fs.readFileSync('data/candidate-answer-sheet.json','utf8'));
+const schedule=JSON.parse(fs.readFileSync('data/post-exam-official-schedule.json','utf8'));
 const home=fs.readFileSync('assets/integration/post-exam-home.js','utf8');
+const scheduleRuntime=fs.readFileSync('assets/integration/post-exam-official-schedule.js','utf8');
+const index=fs.readFileSync('index.html','utf8');
 
 const fail=message=>{throw new Error(`Gabarito do candidato: ${message}`)};
 const responses=sheet?.candidate?.responses||[];
@@ -29,6 +32,10 @@ const preliminary=sheet?.official?.preliminary||{};
 if(preliminary.status!=='not_published'||(preliminary.answers||[]).length!==0)fail('não pode haver gabarito preliminar inventado.');
 if(sheet?.comparison?.status!=='pending_preliminary_key')fail('comparação deve permanecer pendente até publicação oficial.');
 
+const preliminarySchedule=schedule?.milestones?.preliminaryKey||{};
+if(preliminarySchedule.date!=='2026-09-09'||preliminarySchedule.status!=='scheduled')fail('data oficial do gabarito preliminar deve ser 09/09/2026.');
+if(schedule?.source?.organization!=='Instituto Quadrix'||schedule?.source?.url!=='https://quadrix.org.br/informacoes/3056/')fail('cronograma deve apontar para a fonte oficial da Quadrix.');
+
 for(const token of [
  'data/candidate-answer-sheet.json',
  'MEU GABARITO · PROVA REAL',
@@ -39,5 +46,7 @@ for(const token of [
 ])if(!home.includes(token))fail(`Home não contém o contrato ${token}.`);
 
 if(!home.includes("preliminary.status==='published'")||!home.includes('officialByQuestion'))fail('Home não está preparada para o cruzamento futuro com o preliminar.');
+for(const token of ['data/post-exam-official-schedule.json','Divulgação prevista:','preliminaryDate'])if(!scheduleRuntime.includes(token))fail(`Runtime do cronograma não contém ${token}.`);
+if(!index.includes('post-exam-official-schedule.js?v=1.0.0'))fail('Home não carrega o cronograma oficial.');
 
-console.log('Gabarito real do candidato validado: 60 questões, 59 simples, Q8=B, Q30 dupla e comparação oficial ainda pendente.');
+console.log('Gabarito real validado: 60 questões, 59 simples, Q8=B, Q30 dupla; preliminar ainda não publicado e divulgação oficial prevista para 09/09/2026.');

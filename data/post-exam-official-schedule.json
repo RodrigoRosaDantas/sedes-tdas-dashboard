@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "contest": "SEDES/DF 2026",
+  "source": {
+    "organization": "Instituto Quadrix",
+    "url": "https://quadrix.org.br/informacoes/3056/",
+    "verifiedAt": "2026-09-07"
+  },
+  "milestones": {
+    "exam": {
+      "date": "2026-09-06",
+      "status": "completed",
+      "label": "Prova objetiva e discursiva"
+    },
+    "preliminaryKey": {
+      "date": "2026-09-09",
+      "status": "scheduled",
+      "label": "Gabarito preliminar da prova objetiva"
+    },
+    "preliminaryObjectiveResult": {
+      "date": "2026-10-13",
+      "status": "scheduled",
+      "label": "Resultado preliminar da prova objetiva"
+    }
+  }
+}
