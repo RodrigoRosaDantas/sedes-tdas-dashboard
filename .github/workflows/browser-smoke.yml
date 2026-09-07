@@ -142,7 +142,8 @@ jobs:
           grep -q 'data-last-sync-at=' /tmp/home.html
           ! grep -q '00h50 · 06h50 · 12h50 · 18h50</span>' /tmp/home.html
           ! grep -q 'versão carregando' /tmp/home.html
-          grep -q "Continuar questão ${QUESTION_INDEX} de ${QUESTION_TOTAL}" /tmp/resume.html
+          ! grep -q "Continuar questão ${QUESTION_INDEX} de ${QUESTION_TOTAL}" /tmp/resume.html
+          grep -q 'Consultar histórico do ciclo' /tmp/resume.html
           grep -q 'Prioridades para revisar' /tmp/review.html
           grep -q 'O TDAS não executa mais a revisão' /tmp/review.html
           grep -q 'data-review-mode="priorities-only"' /tmp/review.html
@@ -176,7 +177,7 @@ jobs:
           ! grep -q 'assets/integration/review-engine.js' /tmp/tdas-site/sedes-tdas-dashboard/sw.js
           ! grep -Eqi 'private-history|result-persistence-links|firebase-history' /tmp/tdas-site/sedes-tdas-dashboard/sw.js
           ! grep -q 'question-keys/' /tmp/tdas-site/sedes-tdas-dashboard/sw.js
-          printf '{"browser":"ok","postExam":true,"lastSync":"%sT%s","cycleClosure":%s,"priorityHandoff":true,"internalReview":false,"reviewEnginePrecached":false,"personalHistoryPrecached":false,"focusedRedaction":"%s","platformVersion":"%s","publication":"%s","resume":"question-%s-of-%s","dailyQuestionCount":%s,"unlinkedErrors":%s,"questionBankVisible":true,"answerKeyPrecached":false}\n' "$LAST_SYNC_DATE" "$LAST_SYNC_TIME" "$EXPECT_CYCLE_CLOSURE" "$FOCUS_RD" "$PLATFORM_VERSION" "$SOURCE_COMMIT_SHORT" "$QUESTION_INDEX" "$QUESTION_TOTAL" "$DAILY_QUESTION_COUNT" "$UNLINKED_ERRORS"
+          printf '{"browser":"ok","postExam":true,"lastSync":"%sT%s","cycleClosure":%s,"priorityHandoff":true,"internalReview":false,"reviewEnginePrecached":false,"personalHistoryPrecached":false,"focusedRedaction":"%s","platformVersion":"%s","publication":"%s","homePriority":"post-exam-history","dailyQuestionCount":%s,"unlinkedErrors":%s,"questionBankVisible":true,"answerKeyPrecached":false}\n' "$LAST_SYNC_DATE" "$LAST_SYNC_TIME" "$EXPECT_CYCLE_CLOSURE" "$FOCUS_RD" "$PLATFORM_VERSION" "$SOURCE_COMMIT_SHORT" "$DAILY_QUESTION_COUNT" "$UNLINKED_ERRORS"
 
       - name: Diagnosticar falha do navegador
         if: failure()
@@ -187,7 +188,7 @@ jobs:
           for file in /tmp/home.html /tmp/resume.html /tmp/review.html /tmp/review-home.html /tmp/audit.html /tmp/resolver.html /tmp/redactions.html; do
             [[ -f "$file" ]] || continue
             echo "=== $file ==="
-            grep -Eo 'SEDES/DF · v[^<]+|Pós-prova|Prova realizada|Ciclo encerrado|Plataforma [^<]+|publicação [0-9a-z]+|[0-9]{2}/[0-9]{2}/[0-9]{4} às [0-9]{2}:[0-9]{2}|Continuar questão [^<]+|Prioridades para revisar|O TDAS não executa mais a revisão|Questões do dia — PE[0-9]+|Banco de questões|data-primary-stage="[^"]+"|data-review-mode="[^"]+"|data-focused-redaction="[^"]+"|Produzir RD[0-9]+|data-daily-question-context="[^"]+"|[0-9]+ pendentes|Não foi possível carregar esta página' "$file" | head -60 || true
+            grep -Eo 'SEDES/DF · v[^<]+|Pós-prova|Prova realizada|Ciclo encerrado|Consultar histórico do ciclo|Plataforma [^<]+|publicação [0-9a-z]+|[0-9]{2}/[0-9]{2}/[0-9]{4} às [0-9]{2}:[0-9]{2}|Continuar questão [^<]+|Prioridades para revisar|O TDAS não executa mais a revisão|Questões do dia — PE[0-9]+|Banco de questões|data-primary-stage="[^"]+"|data-review-mode="[^"]+"|data-focused-redaction="[^"]+"|Produzir RD[0-9]+|data-daily-question-context="[^"]+"|[0-9]+ pendentes|Não foi possível carregar esta página' "$file" | head -60 || true
           done
           for file in /tmp/*.stderr; do
             [[ -f "$file" ]] || continue
