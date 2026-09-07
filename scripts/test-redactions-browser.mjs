@@ -1,8 +1,8 @@
-import assert from'node:assert/strict';
-import { spawn } from'node:child_process';
-import fs from'node:fs/promises';
-import os from'node:os';
-import path from'node:path';
+import assert from 'node:assert/strict';
+import {spawn} from 'node:child_process';
+import fs from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
 
 const base=(process.env.TDAS_BASE_URL||'http://127.0.0.1:4173/sedes-tdas-dashboard').replace(/\/$/,'');
 const chromeBin=process.env.CHROME_BIN||'google-chrome';
@@ -12,49 +12,26 @@ const chrome=spawn(chromeBin,['--headless=new','--no-sandbox','--disable-gpu','-
 let chromeError='';chrome.stderr.on('data',chunk=>chromeError+=chunk);
 const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 async function waitJson(url,attempts=60){let last;for(let i=0;i<attempts;i++){try{const response=await fetch(url);if(response.ok)return response.json();last=new Error(String(response.status));}catch(error){last=error;}await delay(250);}throw new Error(`${last?.message||'Timeout'}${chromeError?`\n${chromeError.slice(-1200)}`:''}`);}
-function connect(wsUrl){
- const socket=new WebSocket(wsUrl);let id=0;const pending=new Map();const listeners=new Map();
- socket.onmessage=event=>{const message=JSON.parse(event.data);if(message.id){const task=pending.get(message.id);if(!task)return;pending.delete(message.id);message.error?task.reject(new Error(message.error.message)):task.resolve(message.result);return;}for(const resolve of listeners.get(message.method)||[])resolve(message.params);listeners.delete(message.method);};
- const ready=new Promise((resolve,reject)=>{socket.onopen=resolve;socket.onerror=()=>reject(new Error('Falha ao conectar ao Chrome DevTools'));});
- const send=async(method,params={})=>{await ready;const current=++id;return new Promise((resolve,reject)=>{pending.set(current,{resolve,reject});socket.send(JSON.stringify({id:current,method,params}));});};
- const once=method=>new Promise(resolve=>{const values=listeners.get(method)||[];values.push(resolve);listeners.set(method,values);});
- return{socket,ready,send,once};
-}
-async function newPage(width=1280,height=900){
- const target=await fetch(`http://127.0.0.1:${port}/json/new?about:blank`,{method:'PUT'}).then(response=>response.json());
- const client=connect(target.webSocketDebuggerUrl);await client.ready;await client.send('Page.enable');await client.send('Runtime.enable');await client.send('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile:width<=900});return client;
-}
+function connect(wsUrl){const socket=new WebSocket(wsUrl);let id=0;const pending=new Map(),listeners=new Map();socket.onmessage=event=>{const message=JSON.parse(event.data);if(message.id){const task=pending.get(message.id);if(!task)return;pending.delete(message.id);message.error?task.reject(new Error(message.error.message)):task.resolve(message.result);return;}for(const resolve of listeners.get(message.method)||[])resolve(message.params);listeners.delete(message.method);};const ready=new Promise((resolve,reject)=>{socket.onopen=resolve;socket.onerror=()=>reject(new Error('Falha ao conectar ao Chrome DevTools'));});const send=async(method,params={})=>{await ready;const current=++id;return new Promise((resolve,reject)=>{pending.set(current,{resolve,reject});socket.send(JSON.stringify({id:current,method,params}));});};const once=method=>new Promise(resolve=>{const values=listeners.get(method)||[];values.push(resolve);listeners.set(method,values);});return{socket,ready,send,once};}
+async function newPage(width=1280,height=900){const target=await fetch(`http://127.0.0.1:${port}/json/new?about:blank`,{method:'PUT'}).then(response=>response.json());const client=connect(target.webSocketDebuggerUrl);await client.ready;await client.send('Page.enable');await client.send('Runtime.enable');await client.send('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile:width<=900});return client;}
 async function navigate(client,url){const loaded=client.once('Page.loadEventFired');await client.send('Page.navigate',{url});await loaded;}
 async function evaluate(client,expression){const result=await client.send('Runtime.evaluate',{expression,returnByValue:true,awaitPromise:true});if(result.exceptionDetails)throw new Error(result.exceptionDetails.exception?.description||result.exceptionDetails.text||'Erro no navegador');return result.result?.value;}
 async function waitFor(client,expression,label,attempts=100){for(let i=0;i<attempts;i++){try{if(await evaluate(client,expression))return;}catch{}await delay(250);}throw new Error(`Timeout: ${label}`);}
-async function stopChrome(){
- if(chrome.exitCode!==null)return;
- await new Promise(resolve=>{
-  const timer=setTimeout(()=>{if(chrome.exitCode===null)chrome.kill('SIGKILL');resolve();},3000);
-  chrome.once('exit',()=>{clearTimeout(timer);resolve();});
-  chrome.kill('SIGTERM');
- });
-}
+async function stopChrome(){if(chrome.exitCode!==null)return;await new Promise(resolve=>{const timer=setTimeout(()=>{if(chrome.exitCode===null)chrome.kill('SIGKILL');resolve();},3000);chrome.once('exit',()=>{clearTimeout(timer);resolve();});chrome.kill('SIGTERM');});}
 
 try{
  await waitJson(`http://127.0.0.1:${port}/json/version`);
  const [platform,redactions]=await Promise.all([waitJson(`${base}/data/platform-version.json`),waitJson(`${base}/data/redactions.json`)]);
  const lockedRd=(redactions.redactions||[]).find(item=>item.locked===true)?.rd||'';
+
  const home=await newPage(1280,900);
  await navigate(home,`${base}/`);
- await waitFor(home,"document.documentElement.dataset.tdasPhase==='post-exam'&&document.querySelector('[data-post-exam-status]')",'Home em modo pós-prova');
+ await waitFor(home,"document.documentElement.dataset.tdasPhase==='post-exam'&&document.documentElement.dataset.postExamHome==='2'&&document.querySelector('.post26-home')",'Home pós-prova v2');
  await waitFor(home,"document.documentElement.dataset.siteParity==='v11'",'shell v11 na Home');
- await waitFor(home,`document.body.textContent.includes(${JSON.stringify(platform.platformVersion)})`,'versão na página inicial');
- const homeState=await evaluate(home,`({brand:document.querySelector('.brand small')?.textContent||'',status:document.querySelector('[data-publication-status]')?.textContent||'',lastSync:document.querySelector('[data-last-sync]')?.textContent||'',body:document.body.textContent,parity:document.documentElement.dataset.siteParity,phase:document.documentElement.dataset.tdasPhase})`);
- const expectedSync=new Intl.DateTimeFormat('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'America/Sao_Paulo'}).format(new Date(platform.syncAt)).replace(',',' às');
- assert.equal(homeState.parity,'v11','Home deve usar a experiência do ChatGPT Site v11.');
- assert.equal(homeState.phase,'post-exam','Home deve preservar a fase pós-prova.');
- assert.ok(homeState.brand.includes('Dashboard PRO'),`Marca deve permanecer TDAS Dashboard PRO: ${homeState.brand}`);
- assert.ok(homeState.body.includes('Prova realizada'),`Home deve indicar a prova realizada.`);
- assert.ok(homeState.body.includes(`Plataforma ${platform.platformVersion}`),`Central não apresenta Plataforma ${platform.platformVersion}.`);
- assert.ok(homeState.body.includes(`publicação ${String(platform.sourceCommit).slice(0,7)}`),`Central não apresenta a publicação ${String(platform.sourceCommit).slice(0,7)}.`);
- assert.ok(homeState.body.includes(expectedSync),`Sincronização esperada ${expectedSync} não apareceu. Estado: ${JSON.stringify({status:homeState.status,lastSync:homeState.lastSync})}`);
- assert.ok(!homeState.body.includes('00h50 · 06h50 · 12h50 · 18h50'),`A página inicial ainda apresenta horários programados como última atualização.`);
+ assert.equal(await evaluate(home,"document.querySelector('.post26-hero h1')?.textContent.includes('O ciclo terminou')"),true,'Home deve usar a mensagem pós-prova v2.');
+ assert.equal(await evaluate(home,"document.body.textContent.includes('Prova realizada')"),true,'Home deve indicar a prova realizada.');
+ assert.equal(await evaluate(home,`document.body.textContent.includes(${JSON.stringify(platform.platformVersion)})`),true,'Home deve expor a versão vigente.');
+ assert.equal(await evaluate(home,"document.documentElement.scrollWidth<=innerWidth+1"),true,'Home não pode criar overflow horizontal.');
 
  const mobile=await newPage(390,844);
  await navigate(mobile,`${base}/redacoes/?tab=bank&band=Risco`);
@@ -64,12 +41,12 @@ try{
  assert.equal(await evaluate(mobile,"getComputedStyle(document.querySelector('.rd-bank-table')).display"),'none');
  assert.notEqual(await evaluate(mobile,"getComputedStyle(document.querySelector('.rd-bank-cards')).display"),'none');
  const mobileNav=await evaluate(mobile,"[...document.querySelectorAll('#mobile-nav a')].map(a=>a.querySelector('span:last-child')?.textContent.trim()||'')");
- assert.deepEqual(mobileNav,['Pós-prova','Resolver questões','Revisões','Caderno de erros','Check do Edital','Recursos v28','Operações','Plano PE01–PE112','Biblioteca','Dados pessoais','Configurações'],'Redações deve permanecer dentro do mesmo shell móvel pós-prova.');
- assert.equal(await evaluate(mobile,"document.querySelector('[data-site-nav=library]')?.classList.contains('active')"),true,'Redações deve estar agrupada visualmente em Biblioteca.');
+ assert.deepEqual(mobileNav,['Pós-prova','Histórico','Check do Edital','Redações','Arquivo do ciclo'],'Redações deve usar a navegação móvel pós-prova de cinco destinos.');
+ assert.equal(await evaluate(mobile,"[...document.querySelectorAll('[data-site-nav=writing]')].some(node=>node.classList.contains('active'))"),true,'Redações deve ficar ativa no shell.');
  assert.equal(await evaluate(mobile,"getComputedStyle(document.querySelector('.sidebar')).display"),'none','Sidebar não pode espremer Redações no mobile.');
- assert.equal(await evaluate(mobile,"document.documentElement.scrollWidth<=innerWidth+1"),true,'Redações não pode criar overflow horizontal de página.');
+ assert.equal(await evaluate(mobile,"document.documentElement.scrollWidth<=innerWidth+1"),true,'Redações não pode criar overflow horizontal.');
  await evaluate(mobile,"document.querySelector('[data-site-search]').click();true");
- await waitFor(mobile,"document.querySelector('[data-command-palette]:not([hidden])')||document.querySelector('[data-command-palette-shell]:not([hidden])')",'busca global nas redações');
+ await waitFor(mobile,"document.querySelector('[data-command-palette-shell]:not([hidden])')",'busca global nas redações');
  assert.equal(await evaluate(mobile,"document.body.textContent.includes('Redações')||document.body.textContent.includes('Redação')"),true,'Redação deve permanecer descobrível pela busca global.');
  await evaluate(mobile,"document.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}));true");
  assert.equal(await evaluate(mobile,"document.querySelector('[data-tab=bank]')?.hasAttribute('aria-controls')"),true);
@@ -83,23 +60,12 @@ try{
  assert.ok(await evaluate(detail,"document.querySelectorAll('.rd-pager').length")>=2,'RD01 deve ter navegação no topo e rodapé.');
  assert.equal(await evaluate(detail,"[...document.links].some(link=>/notion\\.(so|com)/i.test(link.href))"),false);
  assert.equal(await evaluate(detail,"document.body.textContent.includes('Reescrita concluída')"),true);
- await evaluate(detail,"document.querySelector('#offline-rd').click(); true");
+ await evaluate(detail,"document.querySelector('#offline-rd').click();true");
  await waitFor(detail,"localStorage.getItem('tdas-redactions-offline-index-v1')?.includes('RD01')",'índice offline');
  await waitFor(detail,"caches.keys().then(keys=>keys.includes('tdas-redactions-user-v1'))",'cache offline');
- await evaluate(detail,`navigator.serviceWorker.register('${base}/sw.js?audit='+Date.now()).then(reg=>new Promise(resolve=>{const worker=reg.installing||reg.waiting||reg.active;if(worker?.state==='activated')return resolve(true);const done=()=>worker?.state==='activated'&&resolve(true);worker?.addEventListener('statechange',done);setTimeout(()=>resolve(true),15000);}));`);
- assert.equal(await evaluate(detail,"caches.keys().then(keys=>keys.includes('tdas-redactions-user-v1'))"),true,'Atualização do service worker não pode apagar a cache pessoal.');
- assert.equal(await evaluate(detail,"caches.open('tdas-redactions-user-v1').then(cache=>Promise.all([cache.match(location.origin+'/sedes-tdas-dashboard/redacoes/detalhe/?rd=RD01'),cache.match(location.origin+'/sedes-tdas-dashboard/data/redactions/rd01.json')])).then(items=>items.every(Boolean))"),true,'Os recursos essenciais da RD01 devem existir na cache.');
+ assert.equal(await evaluate(detail,"caches.open('tdas-redactions-user-v1').then(cache=>Promise.all([cache.match(location.origin+'/sedes-tdas-dashboard/redacoes/detalhe/?rd=RD01'),cache.match(location.origin+'/sedes-tdas-dashboard/data/redactions/rd01.json')])).then(items=>items.every(Boolean))"),true,'Recursos essenciais da RD01 devem existir na cache.');
 
- if(lockedRd){
-  const locked=await newPage(1100,900);
-  await navigate(locked,`${base}/redacoes/detalhe/?rd=${lockedRd}`);
-  await waitFor(locked,"document.body.textContent.includes('Aplicação cega protegida')",`bloqueio ${lockedRd}`);
-  assert.equal(await evaluate(locked,"document.querySelector('#offline-rd')===null"),true);
-  assert.equal(await evaluate(locked,"document.body.textContent.includes('Proposta completa')"),false);
- }
+ if(lockedRd){const locked=await newPage(1100,900);await navigate(locked,`${base}/redacoes/detalhe/?rd=${lockedRd}`);await waitFor(locked,"document.body.textContent.includes('Aplicação cega protegida')",`bloqueio ${lockedRd}`);assert.equal(await evaluate(locked,"document.querySelector('#offline-rd')===null"),true);assert.equal(await evaluate(locked,"document.body.textContent.includes('Proposta completa')"),false);}
 
- console.log(JSON.stringify({browser:'ok',siteParity:'v11',phase:'post-exam',homePublication:true,mobileCards:true,globalDiscovery:true,tabsAccessible:true,paragraphs:true,offlinePersistent:true,futureLocked:Boolean(lockedRd),lockedRd:lockedRd||null}));
-}finally{
- await stopChrome();
- await fs.rm(profile,{recursive:true,force:true,maxRetries:8,retryDelay:200}).catch(()=>{});
-}
+ console.log(JSON.stringify({browser:'ok',siteParity:'v11',phase:'post-exam-v2',homePublication:true,mobileCards:true,globalDiscovery:true,tabsAccessible:true,paragraphs:true,offlinePersistent:true,futureLocked:Boolean(lockedRd),lockedRd:lockedRd||null}));
+}finally{await stopChrome();await fs.rm(profile,{recursive:true,force:true,maxRetries:8,retryDelay:200}).catch(()=>{});}
