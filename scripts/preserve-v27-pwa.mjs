@@ -36,12 +36,21 @@ function preserveFreshNetwork(source){
  return updated;
 }
 
+function preservePostExamRuntime(source){
+ const marker="if(url.pathname.startsWith(BASE+'assets/')||url.pathname.startsWith(BASE+'icons/')){";
+ const runtime="const postExamRuntime=url.pathname===BASE+'assets/integration/site-parity-v11.js'||url.pathname===BASE+'assets/integration/post-exam-shell.js'||url.pathname===BASE+'assets/integration/post-exam-home.js';if(postExamRuntime){event.respondWith(fetchAndCache(event.request,{fresh:true}).catch(()=>matchCached(event.request,{ignoreSearch:true})));return}";
+ if(source.includes('const postExamRuntime='))return source;
+ if(!source.includes(marker))throw new Error('TDAS PWA: contrato de assets não encontrado para proteger o runtime pós-prova.');
+ return source.replace(marker,`${runtime}${marker}`);
+}
+
 const swPath=path.join(ROOT,'sw.js');
 let sw=await fs.readFile(swPath,'utf8');
 for(const asset of REQUIRED)sw=ensureArrayEntry(sw,'ASSETS',asset);
 for(const dataFile of RUNTIME_ONLY_DATA)sw=removeArrayEntry(sw,'DATA',dataFile);
 sw=preserveFreshNetwork(sw);
+sw=preservePostExamRuntime(sw);
 await fs.writeFile(swPath,sw,'utf8');
 for(const file of REQUIRED)await fs.access(path.join(ROOT,file));
 if(/question-keys\//.test((sw.match(/const (?:ASSETS|DATA)=\[[^;]+/g)||[]).join('\n')))throw new Error('TDAS PWA: gabarito detectado no precache.');
-console.log(`TDAS v27/v28 + shell de paridade preservados no PWA: ${REQUIRED.length} assets essenciais, Banco Mestre sob demanda, rede fresca e zero gabarito no precache.`);
+console.log(`TDAS v27/v28 + shell pós-prova preservados no PWA: ${REQUIRED.length} assets essenciais, runtime de transição em rede fresca, Banco Mestre sob demanda e zero gabarito no precache.`);
