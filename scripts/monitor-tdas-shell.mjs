@@ -13,8 +13,12 @@ const FILES=[
  'mentor/index.html',
  'assets/tdas-mobile-ux.js',
  'assets/tdas-mobile-ux.css',
- 'assets/dashboard-pro-2026.css',
- 'assets/integration/home-dashboard-pro-2026.js',
+ 'assets/site-parity-v11.css',
+ 'assets/site-parity-v11-fixes.css',
+ 'assets/site-shell-boot.css',
+ 'assets/integration/site-parity-v11.js',
+ 'assets/integration/post-exam-home.js',
+ 'assets/integration/post-exam-shell.js',
  'assets/tdas-pro-modules.js',
  'assets/tdas-pro-modules.css',
  'assets/tdas-command-palette.js',
@@ -44,8 +48,8 @@ async function fetchLive(base){
 }
 function reportFor(result,{attempt=1,attempts=1,baseUrl=DEFAULT_BASE}={}){
  const summary=result.healthy
-  ? `Camada TDAS PRO unificada confirmada no GitHub Pages (${result.checked} arquivos críticos idênticos à main, incluindo Home e Mentor).`
-  : `Camada TDAS PRO divergente no GitHub Pages: ${[...result.missing,...result.mismatched].join(', ')||'falha não classificada'}.`;
+  ? `Camada TDAS pós-prova confirmada no GitHub Pages (${result.checked} arquivos críticos idênticos à main, incluindo Home, shell e Mentor).`
+  : `Camada TDAS pós-prova divergente no GitHub Pages: ${[...result.missing,...result.mismatched].join(', ')||'falha não classificada'}.`;
  const lines=['## Paridade da interface TDAS','',`- **Estado:** ${result.healthy?'íntegro':'divergente'}`,`- **Arquivos críticos:** ${result.checked}`,`- **Tentativa:** ${attempt}/${attempts}`,`- **Timeout HTTP:** ${REQUEST_TIMEOUT_MS} ms`,`- **Resumo:** ${summary}`];
  if(result.missing.length)lines.push(`- **Ausentes:** ${result.missing.join(', ')}`);
  if(result.mismatched.length)lines.push(`- **Divergentes:** ${result.mismatched.join(', ')}`);
@@ -53,13 +57,20 @@ function reportFor(result,{attempt=1,attempts=1,baseUrl=DEFAULT_BASE}={}){
 }
 async function selfTest(){
  const local=await readLocal();
- const index=local['index.html'].toString('utf8'),mentor=local['mentor/index.html'].toString('utf8'),sw=local['sw.js'].toString('utf8');
- assert.match(index,/assets\/dashboard-pro-2026\.css\?v=30\.0\.1/,'Home deve referenciar a camada visual unificada.');
- assert.match(index,/assets\/integration\/home-dashboard-pro-2026\.js\?v=30\.0\.1/,'Home deve referenciar o módulo operacional unificado.');
- assert.doesNotMatch(index,/(?:src|href)="[^"]*(?:home-mobile-hotfix\.css|tdas-pro-dashboard\.css|home-v27\.js|home-v28\.js)/,'Home não pode reativar overlays visuais aposentados.');
+ const index=local['index.html'].toString('utf8'),postExam=local['assets/integration/post-exam-home.js'].toString('utf8'),shell=local['assets/integration/site-parity-v11.js'].toString('utf8'),mentor=local['mentor/index.html'].toString('utf8'),sw=local['sw.js'].toString('utf8');
+ assert.match(index,/data-post-exam-home="2"/,'Home deve declarar o contrato pós-prova v2.');
+ assert.match(index,/assets\/integration\/post-exam-home\.js\?v=2\.0\.0/,'Home deve referenciar o renderer pós-prova nativo.');
+ assert.match(index,/assets\/integration\/site-parity-v11\.js\?v=1\.2\.0/,'Home deve referenciar o shell pós-prova atual.');
+ assert.doesNotMatch(index,/(?:src|href)="[^"]*(?:home-dashboard-pro-2026\.js|dashboard-pro-2026\.css|home-mobile-hotfix\.css|tdas-pro-dashboard\.css|home-v27\.js|home-v28\.js)/,'Home não pode reativar dashboard de reta final nem overlays visuais aposentados.');
+ assert.match(postExam,/O ciclo terminou\. Agora é acompanhar o concurso\./,'Renderer deve manter a mensagem canônica pós-prova.');
+ assert.match(postExam,/Gabarito preliminar/,'Renderer deve manter o próximo marco oficial sem inventar data.');
+ assert.doesNotMatch(postExam,/selectPrimaryAction|readSessionDraft|buildOfficialCycleTasks/,'Home pós-prova não pode recalcular execução diária.');
+ assert.match(shell,/label:'Pós-prova'/,'Shell deve nascer em modo pós-prova.');
+ assert.match(shell,/label:'Histórico'/,'Shell deve expor histórico como destino principal.');
+ assert.match(shell,/label:'Arquivo do ciclo'/,'Shell deve agrupar ferramentas antigas no arquivo do ciclo.');
  assert.match(mentor,/assets\/mentor\.js/,'Rota Mentor deve referenciar o módulo analítico.');
- assert.match(sw,/assets\/dashboard-pro-2026\.css/,'Service worker deve precachear a camada visual da Home unificada.');
- assert.match(sw,/assets\/integration\/home-dashboard-pro-2026\.js/,'Service worker deve precachear o módulo da Home unificada.');
+ assert.match(sw,/assets\/integration\/post-exam-home\.js/,'Service worker deve precachear o renderer pós-prova.');
+ assert.match(sw,/assets\/integration\/site-parity-v11\.js/,'Service worker deve precachear o shell global.');
  assert.match(sw,/mentor\//,'Service worker deve precachear a rota Mentor.');
  assert.match(sw,/assets\/integration\/mentor-engine\.js/,'Service worker deve precachear o motor do Mentor.');
  assert.ok(!sw.includes('question-keys/'),'Gabarito não pode entrar no shell precacheado.');
@@ -70,7 +81,7 @@ async function selfTest(){
  const broken=compareShell(sig,changed);
  assert.equal(broken.healthy,false);
  assert.deepEqual(broken.mismatched,['assets/mentor.js']);
- console.log(`Monitor do shell validado: ${FILES.length} arquivos críticos, Home unificada, Mentor e PWA, timeout HTTP de ${REQUEST_TIMEOUT_MS} ms.`);
+ console.log(`Monitor do shell validado: ${FILES.length} arquivos críticos, Home pós-prova, navegação enxuta, Mentor e PWA, timeout HTTP de ${REQUEST_TIMEOUT_MS} ms.`);
 }
 
 if(process.env.SHELL_MONITOR_SELF_TEST==='true'){
@@ -85,7 +96,7 @@ if(process.env.SHELL_MONITOR_SELF_TEST==='true'){
    report=reportFor(compareShell(local,live),{attempt,attempts,baseUrl});
   }catch(error){
    report=reportFor({healthy:false,missing:FILES,mismatched:[],checked:FILES.length},{attempt,attempts,baseUrl});
-   report.summary=`Não foi possível verificar integralmente a camada TDAS PRO: ${error instanceof Error?error.message:String(error)}`;
+   report.summary=`Não foi possível verificar integralmente a camada TDAS pós-prova: ${error instanceof Error?error.message:String(error)}`;
    report.markdown+=`\n- **Erro:** ${report.summary}`;
   }
   if(report.healthy||attempt===attempts)break;
