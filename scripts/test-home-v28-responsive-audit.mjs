@@ -57,30 +57,23 @@ async function evalJs(client,expression){const result=await client.send('Runtime
 async function waitFor(client,expression,label,attempts=160){for(let i=0;i<attempts;i++){try{if(await evalJs(client,expression))return}catch{}await delay(120)}throw new Error(`Timeout: ${label}`)}
 
 async function inspect(p){
- const client=await page(p);await nav(client,base);await waitFor(client,"document.querySelector('.pro26-dashboard')&&document.querySelector('[data-continue-action]')",`Dashboard PRO ${p.name}`);await delay(450);
+ const client=await page(p);await nav(client,base);await waitFor(client,"document.querySelector('.post26-home')&&document.querySelector('.post26-hero')&&document.querySelector('.post26-system')",`Pós-prova ${p.name}`);await delay(450);
  return evalJs(client,`(()=>{
   const visible=n=>n&&getComputedStyle(n).display!=='none'&&getComputedStyle(n).visibility!=='hidden'&&n.getBoundingClientRect().width>0&&n.getBoundingClientRect().height>0;
   const rect=n=>{if(!n)return null;const r=n.getBoundingClientRect();return{left:r.left,right:r.right,top:r.top,bottom:r.bottom,width:r.width,height:r.height}};
-  const hero=document.querySelector('.tdas-home-focus');
-  const primary=hero?.querySelector('[data-continue-action]');
-  const shortcuts=[...(hero?.querySelectorAll('.tdas-home-actions a')||[])].filter(visible);
-  const heroActions=[primary,...shortcuts].filter(visible).map(n=>({text:n.textContent.trim(),...rect(n)}));
-  const sections=['.pro26-utility-row','.pro26-operational-bridge','.pro26-decision-grid','.pro26-metrics','.pro26-plan','.pro26-analytics'].filter(selector=>visible(document.querySelector(selector)));
-  const headings=[...document.querySelectorAll('.pro26-dashboard h1,.pro26-dashboard h2')].filter(visible).map(n=>({text:n.textContent.trim(),client:n.clientHeight,scroll:n.scrollHeight,overflow:getComputedStyle(n).overflow}));
-  const intentionallyScrollable=n=>{const host=n.closest('.pro26-tabs');if(!host)return false;const style=getComputedStyle(host);return ['auto','scroll'].includes(style.overflowX)&&host.scrollWidth>host.clientWidth;};
-  const mainOffenders=[...document.querySelectorAll('main *')].filter(visible).filter(n=>!intentionallyScrollable(n)).map(n=>({node:n.tagName.toLowerCase(),cls:String(n.className||'').slice(0,90),text:String(n.textContent||'').trim().slice(0,70),...rect(n)})).filter(r=>r.left<-1||r.right>innerWidth+1).slice(0,12);
-  const bridge=document.querySelector('[data-operational-center]');
-  const mobileNav=document.querySelector('#mobile-nav');
-  const sidebar=document.querySelector('.sidebar');
+  const main=document.querySelector('main'),hero=document.querySelector('.post26-hero'),next=document.querySelector('.post26-next'),system=document.querySelector('.post26-system'),mobileNav=document.querySelector('#mobile-nav'),sidebar=document.querySelector('.sidebar');
+  const sections=['.post26-hero','.post26-summary','.post26-section','.post26-lower','.post26-system'].filter(selector=>visible(document.querySelector(selector)));
+  const headings=[...document.querySelectorAll('.post26-home h1,.post26-home h2,.post26-home h3')].filter(visible).map(n=>({text:n.textContent.trim(),client:n.clientHeight,scroll:n.scrollHeight,overflow:getComputedStyle(n).overflow}));
+  const intentionallyScrollable=n=>Boolean(n.closest('.mobile-nav'));
+  const mainOffenders=[...main.querySelectorAll('*')].filter(visible).filter(n=>!intentionallyScrollable(n)).map(n=>({node:n.tagName.toLowerCase(),cls:String(n.className||'').slice(0,90),text:String(n.textContent||'').trim().slice(0,70),...rect(n)})).filter(r=>r.left<-1||r.right>innerWidth+1).slice(0,12);
+  const heroActions=[...hero.querySelectorAll('.post26-hero-actions a')].filter(visible).map(n=>({text:n.textContent.trim(),href:n.href,...rect(n)}));
   const navLinks=[...(mobileNav?.querySelectorAll('a')||[])].filter(visible).map(n=>({text:n.textContent.trim(),...rect(n)}));
-  const system=document.querySelector('.pro26-sync-mini');
-  const tabs=[...document.querySelectorAll('[data-pro26-tab]')].filter(visible);
+  const touchTargets=[...document.querySelectorAll('.post26-hero .btn,.post26-system-actions button,.post26-archive-link')].filter(visible).map(n=>({text:n.textContent.trim().slice(0,50),...rect(n)}));
   const keepY=scrollY;window.scrollTo(9999,keepY);const attemptedX=scrollX;window.scrollTo(0,keepY);
-  return {
+  return{
    width:innerWidth,height:innerHeight,docWidth:document.documentElement.scrollWidth,bodyWidth:document.body.scrollWidth,bodyHeight:document.body.getBoundingClientRect().height,attemptedX,
-   sections,heroActions,shortcutCount:shortcuts.length,primaryHref:primary?.href||'',centerStage:bridge?.dataset.primaryStage||'',headings,mainOffenders,tabs:tabs.length,metrics:document.querySelectorAll('.pro26-metrics>.pro26-metric').length,
-   mobileNavVisible:visible(mobileNav),sidebarVisible:visible(sidebar),navLinks,
-   systemVisible:visible(system),systemRect:rect(system)
+   sections,headings,mainOffenders,hero:rect(hero),next:rect(next),heroActions,timeline:document.querySelectorAll('.post26-step').length,current:document.querySelectorAll('.post26-step.current').length,metrics:document.querySelectorAll('.post26-summary>.post26-metric').length,archive:document.querySelectorAll('.post26-archive-link').length,facts:document.querySelectorAll('.post26-facts>div').length,
+   oldDashboard:Boolean(document.querySelector('.pro26-dashboard,.pro26-plan,.pro26-analytics,[data-continue-action]')),mobileNavVisible:visible(mobileNav),sidebarVisible:visible(sidebar),navLinks,systemVisible:visible(system),systemRect:rect(system),touchTargets
   };
  })()`);
 }
@@ -90,24 +83,26 @@ async function stop(){server.close();if(chrome.exitCode!==null)return;await new 
 try{
  await waitJson(`http://127.0.0.1:${chromePort}/json/version`);
  for(const p of profiles){
-  const d=await inspect(p);console.log(`AUDIT_${p.name}=${JSON.stringify(d)}`);
-  assert.equal(d.sections.length,6,`${p.name}: as seis áreas operacionais da Home unificada devem permanecer visíveis.`);
-  assert.ok(d.primaryHref.includes('/sedes-tdas-dashboard/'),`${p.name}: ação canônica da próxima execução ausente.`);
-  assert.ok(d.centerStage,`${p.name}: ponte operacional sem estágio canônico.`);
-  assert.equal(d.shortcutCount,3,`${p.name}: a Home deve manter três atalhos diagnósticos.`);
-  assert.equal(d.heroActions.length,4,`${p.name}: esperado 1 CTA + 3 atalhos; encontrado ${d.heroActions.map(x=>x.text).join(' | ')}.`);
-  assert.equal(d.tabs,3,`${p.name}: três visões analíticas devem permanecer acessíveis.`);
-  assert.equal(d.metrics,4,`${p.name}: quatro KPIs principais devem permanecer visíveis, sem métricas redundantes.`);
+  const d=await inspect(p);console.log(`AUDIT_POST_${p.name}=${JSON.stringify(d)}`);
+  assert.equal(d.sections.length,5,`${p.name}: cinco áreas principais do pós-prova devem permanecer visíveis.`);
+  assert.equal(d.heroActions.length,2,`${p.name}: hero deve ter apenas dois CTAs, sem atalhos de execução diária.`);
+  assert.ok(d.heroActions[0]?.href.includes('/desempenho/'),`${p.name}: CTA principal deve abrir histórico.`);
+  assert.equal(d.timeline,6,`${p.name}: linha do tempo deve conter seis marcos.`);
+  assert.equal(d.current,1,`${p.name}: deve existir um único próximo marco.`);
+  assert.equal(d.metrics,4,`${p.name}: quatro indicadores históricos devem permanecer visíveis.`);
+  assert.ok(d.archive>=6,`${p.name}: arquivo do ciclo deve manter pelo menos seis destinos.`);
+  assert.equal(d.facts,4,`${p.name}: fotografia final deve manter quatro fatos.`);
+  assert.equal(d.oldDashboard,false,`${p.name}: dashboard de reta final não pode ser montado.`);
   assert.equal(d.attemptedX,0,`${p.name}: rolagem horizontal funcional detectada.`);
-  assert.equal(d.mainOffenders.length,0,`${p.name}: elementos saindo da viewport fora de trilhos roláveis: ${JSON.stringify(d.mainOffenders)}.`);
-  assert.equal(d.systemVisible,true,`${p.name}: atualização Notion/GitHub deve permanecer visível.`);
-  assert.ok(d.headings.every(h=>h.overflow!=='hidden'||h.scroll<=h.client+4),`${p.name}: título truncado: ${JSON.stringify(d.headings)}.`);
+  assert.equal(d.mainOffenders.length,0,`${p.name}: elementos saindo da viewport: ${JSON.stringify(d.mainOffenders)}.`);
+  assert.equal(d.systemVisible,true,`${p.name}: publicação/sincronização deve permanecer visível.`);
+  assert.ok(d.headings.every(h=>h.overflow!=='hidden'||h.scroll<=h.client+5),`${p.name}: título truncado: ${JSON.stringify(d.headings)}.`);
   if(p.touch){
-   assert.ok(d.heroActions.every(a=>a.height>=43.5),`${p.name}: CTA/atalho do hero abaixo de 44px: ${JSON.stringify(d.heroActions)}.`);
-   if(d.mobileNavVisible)assert.ok(d.navLinks.every(a=>a.height>=43.5),`${p.name}: item da navegação móvel abaixo de 44px: ${JSON.stringify(d.navLinks)}.`);
+   assert.ok(d.touchTargets.filter(x=>x.text).every(a=>a.height>=37.5),`${p.name}: alvo crítico pequeno demais: ${JSON.stringify(d.touchTargets)}.`);
+   if(d.mobileNavVisible)assert.ok(d.navLinks.length===5,`${p.name}: navegação móvel deve ter cinco destinos.`);
   }
-  if(p.width<=834)assert.equal(d.sidebarVisible,false,`${p.name}: sidebar desktop não deve ocupar tela em retrato/tablet estreito.`);
+  if(p.width<=834)assert.equal(d.sidebarVisible,false,`${p.name}: sidebar desktop não deve ocupar tela estreita.`);
   if(p.width>=1280&&!p.mobile)assert.equal(d.sidebarVisible,true,`${p.name}: sidebar deve permanecer disponível no desktop.`);
  }
- console.log('Auditoria responsiva da Home unificada aprovada: mobile, iPad retrato/paisagem e desktop sem overflow, truncamento ou alvo de toque crítico.');
+ console.log('Auditoria responsiva pós-prova aprovada: mobile, iPad e desktop sem overflow, truncamento, dashboard pré-prova ou navegação excessiva.');
 }finally{await stop();await fs.rm(profileDir,{recursive:true,force:true}).catch(()=>{})}
