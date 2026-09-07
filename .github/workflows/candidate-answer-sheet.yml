@@ -1,0 +1,35 @@
+name: Validar gabarito do candidato TDAS
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'data/candidate-answer-sheet.json'
+      - 'assets/integration/post-exam-home.js'
+      - 'scripts/test-candidate-answer-sheet.mjs'
+      - '.github/workflows/candidate-answer-sheet.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'data/candidate-answer-sheet.json'
+      - 'assets/integration/post-exam-home.js'
+      - 'scripts/test-candidate-answer-sheet.mjs'
+      - '.github/workflows/candidate-answer-sheet.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  candidate-sheet:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Baixar repositório
+        uses: actions/checkout@v4
+      - name: Preparar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validar registro e contrato de cruzamento
+        run: node scripts/test-candidate-answer-sheet.mjs
