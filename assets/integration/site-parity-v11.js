@@ -82,7 +82,7 @@ function updateThemeMeta(){
  const light=document.documentElement.dataset.theme!=='dark',meta=document.querySelector('meta[name="theme-color"]');if(meta)meta.content=light?'#f3f4ef':'#101a21';
 }
 async function openGlobalSearch(){
- try{const module=await import(BASE+'assets/tdas-command-palette.js?v=1.0.1');module.openPalette?.()}catch(error){console.error('Busca global TDAS',error);location.href=BASE+'mais/'}
+ try{const module=await import(BASE+'assets/tdas-command-palette.js?v=1.0.2');module.openPalette?.()}catch(error){console.error('Busca global TDAS',error);location.href=BASE+'mais/'}
 }
 function bind(){
  if(document.documentElement.dataset.siteParityBound)return;document.documentElement.dataset.siteParityBound='1';
