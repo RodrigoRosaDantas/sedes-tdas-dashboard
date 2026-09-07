@@ -1,9 +1,32 @@
 import{loadJSON,setupShell,escapeHTML,setLoadingError}from'./common.js';
 const BASE='/sedes-tdas-dashboard/';
 const groups=[
- ['Estudar',[{title:'PE de hoje',desc:'Plano vigente e próxima ação.',href:`${BASE}hoje/`},{title:'Material',desc:'Material Premium do PE vigente.',href:`${BASE}estudar/`},{title:'PEs',desc:'Pesquisar e abrir qualquer PE do ciclo.',href:`${BASE}pe/`},{title:'Matérias',desc:'Diagnóstico consolidado por matéria.',href:`${BASE}materias/`},{title:'Cronograma',desc:'Agenda e próximos PE programados.',href:`${BASE}agenda/`}]],
- ['Praticar',[{title:'Resolver questões',desc:'Player local e bateria do PE vigente.',href:`${BASE}resolver/`},{title:'Banco de questões',desc:'Filtre o acervo, veja a quantidade disponível e monte sua própria bateria.',href:`${BASE}resolver/?modo=banco`},{title:'Caderno de erros',desc:'Erros confirmados e marcações locais.',href:`${BASE}caderno-erros/`},{title:'Redações',desc:'Banco Discursivo, produção e correções.',href:`${BASE}redacoes/`},{title:'Fila de IA',desc:'Itens que exigem análise antes de classificação definitiva.',href:`${BASE}fila-ia/`}]],
- ['Evolução',[{title:'Mentor TDAS',desc:'Pontos fortes, fragilidades, datas dos erros, gravidade e próxima ação.',href:`${BASE}mentor/`},{title:'Prioridades',desc:'Indica os assuntos que merecem revisão externa a partir dos seus sinais reais.',href:`${BASE}revisar/`},{title:'Desempenho',desc:'Tentativas e métricas salvas neste dispositivo.',href:`${BASE}desempenho/`},{title:'Evolução oficial',desc:'Resultados e tendência do ciclo oficial.',href:`${BASE}evolucao/`},{title:'Edital',desc:'Cobertura dos 82 tópicos, riscos e próxima ação por assunto.',href:`${BASE}edital/`},{title:'Riscos',desc:'Pareto, reincidências e pontos críticos.',href:`${BASE}riscos/`}]],
- ['Sistema',[{title:'Meu Notion',desc:'Espelho navegável das páginas e bancos oficiais TDAS dentro da plataforma.',href:`${BASE}notion/`},{title:'Configurações',desc:'Versões, sincronização, PWA, preferências, fontes e privacidade.',href:`${BASE}configuracoes/`},{title:'Backup dos dados locais',desc:'Exportar ou restaurar progresso deste dispositivo.',href:`${BASE}dados-locais/`},{title:'Auditoria',desc:'Diagnóstico técnico, qualidade e histórico de sincronizações.',href:`${BASE}auditoria/`}]]
+ ['Preparação arquivada',[
+  {title:'PE01–PE112',desc:'Plano completo, agenda e registros dos PEs concluídos.',href:`${BASE}agenda/`},
+  {title:'Questões',desc:'Resolver questões no Banco de questões preservado para consulta opcional.',href:`${BASE}resolver/?modo=banco`},
+  {title:'Revisões',desc:'Prioridades e sinais que fizeram parte do ciclo de estudos.',href:`${BASE}revisar/`},
+  {title:'Caderno de erros',desc:'Erros, reincidências e classificações registradas durante a preparação.',href:`${BASE}caderno-erros/`},
+  {title:'Redações',desc:'Banco discursivo, textos e correções preservados.',href:`${BASE}redacoes/`},
+  {title:'Biblioteca',desc:'Matérias, leis e materiais utilizados no ciclo.',href:`${BASE}materias/`}
+ ]],
+ ['Diagnóstico histórico',[
+  {title:'Desempenho',desc:'Métricas e fotografia final da preparação.',href:`${BASE}desempenho/`},
+  {title:'Evolução',desc:'Tendência e resultados registrados ao longo do ciclo.',href:`${BASE}evolucao/`},
+  {title:'Check do Edital',desc:'Cobertura e evidências do Cargo 202 preservadas como histórico.',href:`${BASE}edital/`},
+  {title:'Riscos',desc:'Pareto, reincidências e pontos críticos do ciclo encerrado.',href:`${BASE}riscos/`},
+  {title:'Mentor TDAS',desc:'Diagnóstico final de forças e fragilidades da preparação.',href:`${BASE}mentor/`}
+ ]],
+ ['Dados e sistema',[
+  {title:'Meu Notion',desc:'Espelho das fontes oficiais usadas pelo TDAS.',href:`${BASE}notion/`},
+  {title:'Dados locais',desc:'Backup e persistência dos registros deste dispositivo.',href:`${BASE}dados-locais/`},
+  {title:'Publicação',desc:'Status de sincronização e versão publicada.',href:`${BASE}sincronizacao/`},
+  {title:'Auditoria',desc:'Diagnóstico técnico e qualidade dos dados.',href:`${BASE}auditoria/`},
+  {title:'Configurações',desc:'Preferências, versão e integrações.',href:`${BASE}configuracoes/`},
+  {title:'Fila de IA',desc:'Recurso técnico legado preservado no arquivo; sem ação atual.',href:`${BASE}fila-ia/`}
+ ]]
 ];
-try{const d=await loadJSON('data/more.json');setupShell('mais',d.meta);document.querySelector('main').innerHTML=`<section class="hero"><span class="kicker">Navegação</span><h1>Mais</h1><p>Áreas complementares organizadas por objetivo. Informações técnicas e preferências ficam em Configurações.</p><div class="hero-actions"><a class="btn primary" href="${BASE}notion/">Meu Notion</a><a class="btn" href="${BASE}resolver/?modo=banco">Banco de questões</a><a class="btn" href="${BASE}mentor/">Abrir Mentor</a><a class="btn" href="${BASE}configuracoes/">Configurações</a><a class="btn" href="${BASE}hoje/">PE de hoje</a></div></section>${groups.map(([name,items])=>`<section class="section"><div class="section-head"><div><h2>${name}</h2></div></div><div class="grid portal-grid">${items.map(item=>`<a class="card portal" href="${item.href}"><small>${name}</small><b>${escapeHTML(item.title)}</b><span>${escapeHTML(item.desc)}</span><em>Abrir →</em></a>`).join('')}</div></section>`).join('')}<footer class="footer"><span>TDAS · Mais</span><span>Snapshot <span data-snapshot></span></span></footer>`}catch(error){setLoadingError(error)}
+try{
+ const d=await loadJSON('data/more.json');setupShell('mais',d.meta);document.title='Arquivo do ciclo | TDAS';document.documentElement.dataset.tdasArchive='1';
+ const main=document.querySelector('main');
+ main.innerHTML=`<section class="hero"><span class="kicker">CICLO ENCERRADO</span><h1>Arquivo do ciclo</h1><p>Tudo o que fez parte da preparação continua disponível aqui, mas não aparece mais como tarefa atual. A navegação principal fica reservada ao pós-prova e ao histórico.</p><div class="hero-actions"><a class="btn primary" href="${BASE}">Voltar ao pós-prova</a><a class="btn" href="${BASE}desempenho/">Ver histórico</a></div></section>${groups.map(([name,items])=>`<section class="section"><div class="section-head"><div><h2>${escapeHTML(name)}</h2></div></div><div class="grid portal-grid">${items.map(item=>`<a class="card portal" href="${item.href}"><small>Arquivo</small><b>${escapeHTML(item.title)}</b><span>${escapeHTML(item.desc)}</span><em>Abrir →</em></a>`).join('')}</div></section>`).join('')}<footer class="footer"><span>TDAS · Arquivo do ciclo</span><span>Preparação SEDES/DF 2026 preservada</span></footer>`;
+}catch(error){setLoadingError(error)}

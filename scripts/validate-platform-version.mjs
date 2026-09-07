@@ -17,31 +17,17 @@ const shellVersion=common.match(/const APP_SHELL_VERSION=['"]([^'"]+)['"]/u)?.[1
 const dataList=sw.match(/const DATA=(\[[^;]*\]);/u)?.[1];
 
 assert.equal(manifest.schemaVersion,'1.1.0');
-for(const field of['platformVersion','dataVersion','catalogVersion','serviceWorkerVersion','syncDate','syncAt','peId']){
- assert.equal(manifest[field],expected[field],`${field} diverge da fonte correspondente.`);
-}
-const major=Number(String(manifest.platformVersion).split('.')[0]);
-assert.ok(Number.isFinite(major)&&major>=28,'platformVersion não pode regredir abaixo da TDAS v28.');
-assert.equal(shellVersion,manifest.platformVersion,'shell visual usa versão diferente do manifesto público.');
-for(const asset of['assets/styles.css','assets/v20.css']){
- assert.ok(index.includes(`${asset}?v=${manifest.platformVersion}`),`${asset} não usa o cache-buster da versão global.`);
-}
-assert.match(index,/data-post-exam-home="2"/u,'Home deve declarar o contrato pós-prova v2.');
-assert.match(index,/assets\/integration\/post-exam-home\.js\?v=2\.0\.0/u,'Home deve carregar seu renderer pós-prova nativo.');
-assert.match(index,/assets\/integration\/site-parity-v11\.js\?v=1\.2\.0/u,'Home deve carregar o shell pós-prova atual.');
-assert.match(index,/data-post-exam-home-style/u,'Home deve carregar sua camada visual pós-prova própria.');
-assert.match(postExam,/O ciclo terminou\. Agora é acompanhar o concurso\./u,'Renderer pós-prova deve manter a mensagem canônica do ciclo encerrado.');
-assert.doesNotMatch(index,/assets\/dashboard-pro-2026\.css|assets\/integration\/home-dashboard-pro-2026\.js/u,'Home não pode reativar o dashboard de reta final.');
-for(const retired of['assets/home-mobile.js','assets/home-mobile-hotfix.css','assets/integration/home-v27.js','assets/integration/home-v28.js']){
- assert.ok(!index.includes(retired),`${retired} é legado/rollback e não pode voltar a ser asset ativo da Home.`);
-}
-assert.ok(!index.includes('?v=26.17.0'),'Home ainda referencia cache-buster legado 26.17.0.');
-assert.ok(!syncWorkflow.includes('Plataforma TDAS v26'),'workflow de sincronização ainda se apresenta como TDAS v26.');
-assert.ok(!Number.isNaN(Date.parse(manifest.syncAt)),'syncAt inválido.');
-assert.ok(/^(?:[0-9a-f]{40}|unknown)$/u.test(manifest.sourceCommit),'sourceCommit inválido.');
-const commitRef=manifest.sourceCommit==='unknown'?'unknown':manifest.sourceCommit.slice(0,12);
-assert.equal(manifest.publicationId,[manifest.platformVersion,manifest.dataVersion,manifest.catalogVersion,manifest.syncAt,commitRef].join('|'),'publicationId inconsistente.');
-assert.equal(swVersion,manifest.serviceWorkerVersion,'service worker usa versão diferente do manifesto.');
-assert.ok(dataList,'lista DATA ausente no service worker.');
-assert.ok(JSON.parse(dataList).includes('data/platform-version.json'),'manifesto de versão fora do precache.');
-console.log(`Versão consolidada validada: plataforma ${manifest.platformVersion}, Home pós-prova v2, shell ${shellVersion}, dados ${manifest.dataVersion}, ${manifest.peId}, sincronização ${manifest.syncAt}, cache ${manifest.serviceWorkerVersion}.`);
+for(const field of['platformVersion','dataVersion','catalogVersion','serviceWorkerVersion','syncDate','syncAt','peId'])assert.equal(manifest[field],expected[field],`${field} diverge da fonte correspondente.`);
+const major=Number(String(manifest.platformVersion).split('.')[0]);assert.ok(Number.isFinite(major)&&major>=28);assert.equal(shellVersion,manifest.platformVersion);
+for(const asset of['assets/styles.css','assets/v20.css'])assert.ok(index.includes(`${asset}?v=${manifest.platformVersion}`),`${asset} não usa cache-buster global.`);
+assert.match(index,/data-post-exam-home="3"/u,'Home deve declarar contrato v3.');
+assert.match(index,/assets\/integration\/post-exam-home\.js\?v=3\.0\.0/u,'Home deve carregar renderer v3.');
+assert.match(index,/assets\/integration\/site-parity-v11\.js\?v=1\.2\.0/u,'Home deve carregar shell atual.');
+assert.doesNotMatch(index,/data-post-exam-home-style|\.post26-home/u,'CSS v2 não pode permanecer embutido.');
+assert.match(postExam,/Pós-prova, sem ruído\./u,'Renderer v3 deve manter a mensagem canônica.');
+assert.match(postExam,/dataset\.postExamHome='3'/u);
+assert.doesNotMatch(index,/assets\/dashboard-pro-2026\.css|assets\/integration\/home-dashboard-pro-2026\.js/u);
+for(const retired of['assets/home-mobile.js','assets/home-mobile-hotfix.css','assets/integration/home-v27.js','assets/integration/home-v28.js'])assert.ok(!index.includes(retired),`${retired} não pode voltar à Home.`);
+assert.ok(!index.includes('?v=26.17.0'));assert.ok(!syncWorkflow.includes('Plataforma TDAS v26'));assert.ok(!Number.isNaN(Date.parse(manifest.syncAt)));assert.ok(/^(?:[0-9a-f]{40}|unknown)$/u.test(manifest.sourceCommit));
+const commitRef=manifest.sourceCommit==='unknown'?'unknown':manifest.sourceCommit.slice(0,12);assert.equal(manifest.publicationId,[manifest.platformVersion,manifest.dataVersion,manifest.catalogVersion,manifest.syncAt,commitRef].join('|'));assert.equal(swVersion,manifest.serviceWorkerVersion);assert.ok(dataList);assert.ok(JSON.parse(dataList).includes('data/platform-version.json'));
+console.log(`Versão consolidada validada: plataforma ${manifest.platformVersion}, Home pós-prova v3, shell ${shellVersion}, dados ${manifest.dataVersion}, ${manifest.peId}, cache ${manifest.serviceWorkerVersion}.`);

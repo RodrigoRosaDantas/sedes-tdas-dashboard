@@ -62,9 +62,9 @@ assert.match(generator,/coverageBucket==='studied'\|\|item\.coverageBucket==='re
 assert.match(generator,/coverage\.unknown/,'Lacunas do edital não consideram cobertura desconhecida.');
 assert.match(html,/assets\/edital\.css/,'Página do edital não carrega seu CSS.');
 assert.match(html,/assets\/edital\.js/,'Página do edital não carrega seu controlador.');
-assert.doesNotMatch(html,/assets\/(?:edital\.js|edital\.css|styles\.css|v20\.css)\?/, 'Dependência essencial do Edital usa query incompatível com o precache frio.');
+assert.doesNotMatch(html,/assets\/(?:edital\.js|edital\.css|styles\.css|v20\.css)\?/,'Dependência essencial do Edital usa query incompatível com o precache frio.');
 assert.match(script,/from'\.\/common\.js'/,'Controlador do Edital deve importar common.js pela mesma chave do precache.');
-assert.doesNotMatch(script,/common\.js\?/, 'Import de common.js usa query incompatível com o precache frio.');
+assert.doesNotMatch(script,/common\.js\?/,'Import de common.js usa query incompatível com o precache frio.');
 assert.match(script,/source\.viewUrl\|\|source\.url/,'Botão do banco não prioriza a view exata fornecida.');
 assert.match(script,/data\/edital-status\.json/,'Página não consome o snapshot oficial do edital.');
 assert.match(script,/Sem bateria/,'Página perdeu a distinção de tópicos sem bateria granular.');
@@ -76,13 +76,12 @@ assert.match(script,/edital-discipline/,'Página perdeu filtro por disciplina.')
 assert.match(script,/edital-risk/,'Página perdeu filtro por risco.');
 assert.match(script,/edital-block/,'Página perdeu filtro por bloco.');
 assert.match(script,/edital-search/,'Página perdeu busca textual.');
-assert.match(more,/\$\{BASE\}edital\//,'Edital não está acessível pela navegação complementar.');
+assert.match(more,/\$\{BASE\}edital\//,'Edital não está acessível pelo Arquivo do ciclo.');
+assert.match(more,/title:'Check do Edital'/,'Arquivo deve nomear explicitamente o Check do Edital.');
 assert.match(mobileUx,/edital:BASE\+'edital\/'/,'Navegação global não reconhece a rota do Edital.');
-assert.match(mobileUx,/\['edital','Edital'\]/,'Drawer não expõe o Edital em Progresso.');
-assert.match(mobileUx,/\['edital','Check do Edital','Cobertura'\]/,'Navegação desktop não aponta para a página do Edital.');
-assert.match(mobileUx,/\['riscos','Riscos','Pareto'\]/,'Correção do Edital não pode remover Riscos da navegação desktop.');
-assert.match(mobileUx,/active==='edital'\?'edital'/,'Edital não recebe estado ativo correto no desktop.');
-assert.match(mobileUx,/active==='riscos'\?'riscos'/,'Riscos não recebe estado ativo correto no desktop.');
+assert.match(mobileUx,/\['Arquivo',\[[\s\S]*\['edital','Check do Edital'\]/,'Drawer deve manter o Edital dentro do Arquivo.');
+assert.doesNotMatch(mobileUx,/items=\[[^\]]*\['edital'/s,'Edital não pode voltar à navegação principal móvel.');
+assert.match(mobileUx,/items=\[\['home','Pós-prova','Acompanhar'\],\['history','Histórico','Desempenho'\],\['archive','Arquivo','Ciclo completo'\]\]/,'Navegação desktop principal deve permanecer reduzida a três áreas.');
 for(const source of[sw,pwaGenerator]){
  assert.match(source,/"edital\/"/,'Rota do edital está fora do PWA ou de seu gerador.');
  assert.match(source,/"assets\/edital\.js"/,'Script do edital está fora do PWA ou de seu gerador.');
@@ -91,4 +90,4 @@ for(const source of[sw,pwaGenerator]){
  assert.doesNotMatch(source,/question-keys\//,'Gabaritos individuais não podem entrar no precache ao adicionar a página do edital.');
 }
 
-console.log(`Página do Edital validada: ${data.summary.total}/${expected} tópicos; ${measuredCurrent} aferidos; ${data.summary.total-measuredCurrent} sem bateria; ${data.summary.risk.critical||0} críticos; ${data.summary.risk.attention||0} em atenção; navegação, contrato analítico e precache frio blindados.`);
+console.log(`Página do Edital validada: ${data.summary.total}/${expected} tópicos; ${measuredCurrent} aferidos; ${data.summary.total-measuredCurrent} sem bateria; Edital preservado no Arquivo sem competir na navegação principal.`);
