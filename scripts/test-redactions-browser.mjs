@@ -42,13 +42,15 @@ try{
  const lockedRd=(redactions.redactions||[]).find(item=>item.locked===true)?.rd||'';
  const home=await newPage(1280,900);
  await navigate(home,`${base}/`);
- await waitFor(home,"document.body.textContent.includes('Central de execução')",'central da página inicial');
+ await waitFor(home,"document.documentElement.dataset.tdasPhase==='post-exam'&&document.querySelector('[data-post-exam-status]')",'Home em modo pós-prova');
  await waitFor(home,"document.documentElement.dataset.siteParity==='v11'",'shell v11 na Home');
  await waitFor(home,`document.body.textContent.includes(${JSON.stringify(platform.platformVersion)})`,'versão na página inicial');
- const homeState=await evaluate(home,`({brand:document.querySelector('.brand small')?.textContent||'',status:document.querySelector('[data-publication-status]')?.textContent||'',lastSync:document.querySelector('[data-last-sync]')?.textContent||'',body:document.body.textContent,parity:document.documentElement.dataset.siteParity})`);
+ const homeState=await evaluate(home,`({brand:document.querySelector('.brand small')?.textContent||'',status:document.querySelector('[data-publication-status]')?.textContent||'',lastSync:document.querySelector('[data-last-sync]')?.textContent||'',body:document.body.textContent,parity:document.documentElement.dataset.siteParity,phase:document.documentElement.dataset.tdasPhase})`);
  const expectedSync=new Intl.DateTimeFormat('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'America/Sao_Paulo'}).format(new Date(platform.syncAt)).replace(',',' às');
  assert.equal(homeState.parity,'v11','Home deve usar a experiência do ChatGPT Site v11.');
+ assert.equal(homeState.phase,'post-exam','Home deve preservar a fase pós-prova.');
  assert.ok(homeState.brand.includes('Dashboard PRO'),`Marca deve permanecer TDAS Dashboard PRO: ${homeState.brand}`);
+ assert.ok(homeState.body.includes('Prova realizada'),`Home deve indicar a prova realizada.`);
  assert.ok(homeState.body.includes(`Plataforma ${platform.platformVersion}`),`Central não apresenta Plataforma ${platform.platformVersion}.`);
  assert.ok(homeState.body.includes(`publicação ${String(platform.sourceCommit).slice(0,7)}`),`Central não apresenta a publicação ${String(platform.sourceCommit).slice(0,7)}.`);
  assert.ok(homeState.body.includes(expectedSync),`Sincronização esperada ${expectedSync} não apareceu. Estado: ${JSON.stringify({status:homeState.status,lastSync:homeState.lastSync})}`);
@@ -62,7 +64,7 @@ try{
  assert.equal(await evaluate(mobile,"getComputedStyle(document.querySelector('.rd-bank-table')).display"),'none');
  assert.notEqual(await evaluate(mobile,"getComputedStyle(document.querySelector('.rd-bank-cards')).display"),'none');
  const mobileNav=await evaluate(mobile,"[...document.querySelectorAll('#mobile-nav a')].map(a=>a.querySelector('span:last-child')?.textContent.trim()||'')");
- assert.deepEqual(mobileNav,['Faça agora','Resolver questões','Revisões','Caderno de erros','Check do Edital','Recursos v28','Operações','Plano PE01–PE112','Biblioteca','Dados pessoais','Configurações'],'Redações deve permanecer dentro do mesmo shell móvel do site v11.');
+ assert.deepEqual(mobileNav,['Pós-prova','Resolver questões','Revisões','Caderno de erros','Check do Edital','Recursos v28','Operações','Plano PE01–PE112','Biblioteca','Dados pessoais','Configurações'],'Redações deve permanecer dentro do mesmo shell móvel pós-prova.');
  assert.equal(await evaluate(mobile,"document.querySelector('[data-site-nav=library]')?.classList.contains('active')"),true,'Redações deve estar agrupada visualmente em Biblioteca.');
  assert.equal(await evaluate(mobile,"getComputedStyle(document.querySelector('.sidebar')).display"),'none','Sidebar não pode espremer Redações no mobile.');
  assert.equal(await evaluate(mobile,"document.documentElement.scrollWidth<=innerWidth+1"),true,'Redações não pode criar overflow horizontal de página.');
@@ -96,7 +98,7 @@ try{
   assert.equal(await evaluate(locked,"document.body.textContent.includes('Proposta completa')"),false);
  }
 
- console.log(JSON.stringify({browser:'ok',siteParity:'v11',homePublication:true,mobileCards:true,globalDiscovery:true,tabsAccessible:true,paragraphs:true,offlinePersistent:true,futureLocked:Boolean(lockedRd),lockedRd:lockedRd||null}));
+ console.log(JSON.stringify({browser:'ok',siteParity:'v11',phase:'post-exam',homePublication:true,mobileCards:true,globalDiscovery:true,tabsAccessible:true,paragraphs:true,offlinePersistent:true,futureLocked:Boolean(lockedRd),lockedRd:lockedRd||null}));
 }finally{
  await stopChrome();
  await fs.rm(profile,{recursive:true,force:true,maxRetries:8,retryDelay:200}).catch(()=>{});

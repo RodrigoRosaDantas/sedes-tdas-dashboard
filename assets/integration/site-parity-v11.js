@@ -1,3 +1,5 @@
+import './post-exam-shell.js?v=1.0.0';
+
 const BASE='/sedes-tdas-dashboard/';
 const SOURCE_SITE_VERSION='v11';
 let clockTimer=null;
