@@ -40,12 +40,22 @@ for(const[relative,html]of tdas){
 for(const[relative,html]of edas){
  assert.doesNotMatch(html,/data-site-shell-bootstrap|data-site-shell="booting"/,`${relative}: shell TDAS não pode contaminar o EDAS.`);
 }
-const[parity,common,mobileUx,boot,sw,postprocess,preserve]=await Promise.all([
- fs.readFile('assets/integration/site-parity-v11.js','utf8'),fs.readFile('assets/common.js','utf8'),fs.readFile('assets/tdas-mobile-ux.js','utf8'),fs.readFile('assets/site-shell-boot.css','utf8'),fs.readFile('sw.js','utf8'),fs.readFile('scripts/postprocess-v26.mjs','utf8'),fs.readFile('scripts/preserve-v27-pwa.mjs','utf8')
+const[parity,postExamShell,common,mobileUx,boot,sw,postprocess,preserve,versionSync]=await Promise.all([
+ fs.readFile('assets/integration/site-parity-v11.js','utf8'),fs.readFile('assets/integration/post-exam-shell.js','utf8'),fs.readFile('assets/common.js','utf8'),fs.readFile('assets/tdas-mobile-ux.js','utf8'),fs.readFile('assets/site-shell-boot.css','utf8'),fs.readFile('sw.js','utf8'),fs.readFile('scripts/postprocess-v26.mjs','utf8'),fs.readFile('scripts/preserve-v27-pwa.mjs','utf8'),fs.readFile('scripts/sync-platform-version.mjs','utf8')
 ]);
 assert.match(parity,/dataset\.siteShell='ready'/,'Shell deve liberar a interface após a reconstrução síncrona.');
+assert.match(parity,/label:'Pós-prova',hint:'Acompanhar'/,'Fonte do shell deve nascer em modo pós-prova.');
+assert.doesNotMatch(parity,/label:'Faça agora'/,'Fonte do shell não pode reconstruir a Home como Faça agora.');
+assert.doesNotMatch(parity,/function examState\(/,'Contagem regressiva pré-prova não pode permanecer no shell base.');
+assert.match(parity,/Prova realizada<\/span><b>Concluído<\/b>/,'Card da prova deve nascer encerrado, sem depender de correção posterior no DOM.');
+assert.match(postExamShell,/observer\.disconnect\(\)/,'Fallback pós-prova precisa encerrar o MutationObserver quando o shell estiver pronto.');
+assert.match(postExamShell,/setTimeout\(\(\)=>observer\.disconnect\(\),5000\)/,'Fallback pós-prova não pode observar o DOM indefinidamente.');
 assert.match(common,/siteParityActive/,'setupShell deve preservar o shell já inicializado.');
 assert.match(mobileUx,/siteParityActive.*if\(!siteParityActive\)\{renderHeader\(\);renderBottomNav\(\);augmentDesktop\(\)\}/,'UX mobile legada não pode sobrescrever um shell já pronto.');
 assert.match(boot,/data-site-shell="booting"/,'CSS deve possuir estado de carregamento explícito.');
 for(const source of[sw,postprocess,preserve])assert.ok(source.includes('assets/site-shell-boot.css'),'PWA deve preservar o CSS do primeiro quadro.');
-console.log(`Primeiro quadro validado em ${tdas.length} rotas TDAS; ${edas.length} arquivos EDAS permaneceram isolados.`);
+assert.match(sw,/const postExamRuntime=.*site-parity-v11\.js.*post-exam-shell\.js.*post-exam-home\.js/,'Service worker deve tratar o runtime pós-prova separadamente.');
+assert.match(sw,/postExamRuntime\)\{event\.respondWith\(fetchAndCache\(event\.request,\{fresh:true\}\)/,'Runtime pós-prova deve priorizar rede fresca com fallback offline.');
+assert.match(preserve,/function preservePostExamRuntime\(/,'Preservador deve reconstruir a proteção de cache após cada sincronização.');
+assert.match(versionSync,/VISUAL_CACHE_REV='cachefix7-postexam-pro12'/,'Revisão visual precisa invalidar o cache pré-prova já instalado.');
+console.log(`Primeiro quadro pós-prova validado em ${tdas.length} rotas TDAS; ${edas.length} arquivos EDAS permaneceram isolados.`);
