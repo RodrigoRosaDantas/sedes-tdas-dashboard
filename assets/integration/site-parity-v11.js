@@ -45,7 +45,8 @@ function ensureStyle(){
  for(const[key,href]of styles){if(document.querySelector(`link[data-${key}]`))continue;const link=document.createElement('link');link.rel='stylesheet';link.href=BASE+href;link.dataset[key.replace(/-([a-z])/g,(_,letter)=>letter.toUpperCase())]='1';document.head.appendChild(link)}
 }
 function renderNav(active){return navItems.map(item=>`<a href="${item.href}" class="${item.id===active?'active':''}" data-site-nav="${item.id}"><span class="nav-icon">${item.icon}</span><span><b>${esc(item.label)}</b><small>${esc(item.hint)}</small></span></a>`).join('')}
-function renderMobileNav(active){return navItems.map(item=>`<a href="${item.href}" class="${item.id===active?'active':''}" data-site-nav="${item.id}"><span>${item.icon}</span><span>${esc(item.label)}</span></a>`).join('')}
+const mobileNavItems=navItems.filter(item=>item.id!=='pre-edital');
+function renderMobileNav(active){return mobileNavItems.map(item=>`<a href="${item.href}" class="${item.id===active?'active':''}" data-site-nav="${item.id}"><span>${item.icon}</span><span>${esc(item.label)}</span></a>`).join('')}
 function protectBranding(){
  const label=document.querySelector('.brand small');if(!label)return;
  const normalize=()=>{const version=label.textContent.match(/v[\d.]+/i)?.[0]||'v28.0.0';const expected=`Pós-prova · SEDES/DF · ${version}`;if(label.textContent!==expected)label.textContent=expected};
