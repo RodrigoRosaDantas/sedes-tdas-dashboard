@@ -6,19 +6,20 @@ let brandObserver=null;
 
 const navItems=[
  {id:'overview',label:'Pós-prova',hint:'Acompanhar',icon:'⌂',href:BASE},
+ {id:'pre-edital',label:'Pré-edital',hint:'Próximo ciclo',icon:'↗',href:BASE+'pre-edital/'},
  {id:'history',label:'Histórico',hint:'Desempenho',icon:'▥',href:BASE+'desempenho/'},
  {id:'archive',label:'Arquivo',hint:'Ciclo completo',icon:'▤',href:BASE+'mais/'}
 ];
 
 const pageLabels={
  '/':'Pós-prova','/index.html':'Pós-prova','/hoje/':'Arquivo · antigo painel diário',
- '/desempenho/':'Histórico do ciclo','/evolucao/':'Histórico · Evolução',
+ '/desempenho/':'Histórico do ciclo','/evolucao/':'Histórico · Evolução','/pre-edital/':'Pré-edital · próximo ciclo',
  '/mais/':'Arquivo do ciclo','/agenda/':'Arquivo · PEs','/pe/':'Arquivo · PEs','/estudar/':'Arquivo · Estudo','/materias/':'Arquivo · Biblioteca','/resolver/':'Arquivo · Questões','/revisar/':'Arquivo · Revisões','/caderno-erros/':'Arquivo · Caderno de erros','/questoes-erros/':'Arquivo · Caderno de erros','/redacoes/':'Arquivo · Redações','/edital/':'Arquivo · Edital','/riscos/':'Arquivo · Riscos','/mentor/':'Arquivo · Mentor','/fila-ia/':'Arquivo · Fila de IA',
  '/auditoria/':'Arquivo · Auditoria','/sincronizacao/':'Arquivo · Publicação','/dados-locais/':'Arquivo · Dados locais','/notion/':'Arquivo · Notion','/configuracoes/':'Configurações'
 };
 const activeMap={
  '/':'overview','/index.html':'overview',
- '/desempenho/':'history','/evolucao/':'history',
+ '/desempenho/':'history','/evolucao/':'history','/pre-edital/':'pre-edital',
  '/mais/':'archive','/hoje/':'archive','/agenda/':'archive','/pe/':'archive','/estudar/':'archive','/materias/':'archive','/resolver/':'archive','/revisar/':'archive','/caderno-erros/':'archive','/questoes-erros/':'archive','/redacoes/':'archive','/edital/':'archive','/riscos/':'archive','/mentor/':'archive','/fila-ia/':'archive','/auditoria/':'archive','/sincronizacao/':'archive','/dados-locais/':'archive','/notion/':'archive'
 };
 

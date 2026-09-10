@@ -1,6 +1,9 @@
 import{loadJSON,setupShell,escapeHTML,setLoadingError}from'./common.js';
 const BASE='/sedes-tdas-dashboard/';
 const groups=[
+ ['Próximo ciclo',[
+  {title:'Pré-edital SEDES/DF',desc:'Radar de cargos, fontes oficiais e gatilhos do próximo concurso.',href:`${BASE}pre-edital/`}
+ ]],
  ['Preparação arquivada',[
   {title:'PE01–PE112',desc:'Plano completo, agenda e registros dos PEs concluídos.',href:`${BASE}agenda/`},
   {title:'Questões',desc:'Resolver questões no Banco de questões preservado para consulta opcional.',href:`${BASE}resolver/?modo=banco`},
