@@ -4,4 +4,4 @@ Atualize este arquivo somente quando for necessário solicitar uma recuperação
 
 Última solicitação:
 - data: 2026-09-10
-- motivo: confirmar a proteção pós-prova, validar o contrato atualizado do mapa seguro do Notion e reexecutar os monitores sem alterar o snapshot encerrado em 06/09/2026.
+- motivo: confirmar a proteção pós-prova, validar o contrato atualizado do mapa seguro do Notion, preservar o atalho explícito para o mapa e reexecutar os monitores sem alterar o snapshot encerrado em 06/09/2026.
