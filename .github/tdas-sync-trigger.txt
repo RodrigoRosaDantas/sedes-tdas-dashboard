@@ -3,5 +3,5 @@ Acionador técnico da sincronização TDAS.
 Atualize este arquivo somente quando for necessário solicitar uma recuperação manual da publicação automática.
 
 Última solicitação:
-- data: 2026-09-05
-- motivo: reexecutar a sincronização oficial após o fechamento do ciclo TDAS. PE105–PE112 foram concluídos no Notion com meta de questões zerada e observação de não estudo; PE112 permanece como prova oficial de 06/09/2026. Validar o banco completo, gerar o snapshot final da reta pré-prova, promover atomicamente para main e confirmar a publicação no GitHub Pages. Não criar novas tarefas após o encerramento do ciclo.
+- data: 2026-09-10
+- motivo: confirmar a proteção pós-prova, validar o contrato atualizado do mapa seguro do Notion e reexecutar os monitores sem alterar o snapshot encerrado em 06/09/2026.
