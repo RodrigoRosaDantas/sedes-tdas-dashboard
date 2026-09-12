@@ -1,4 +1,5 @@
 import './post-exam-shell.js?v=1.0.1';
+import{mountFocusTimer}from'./focus-timer.js';
 
 const BASE='/sedes-tdas-dashboard/';
 const SOURCE_SITE_VERSION='v11';
@@ -41,7 +42,7 @@ function pageLabel(){
  return document.querySelector('.topbar strong')?.textContent?.trim()||'TDAS';
 }
 function ensureStyle(){
- const styles=[['site-parity-v11','assets/site-parity-v11.css?v=1.1.0'],['site-parity-v11-fixes','assets/site-parity-v11-fixes.css?v=1.1.0'],['site-shell-boot','assets/site-shell-boot.css?v=1.1.0']];
+ const styles=[['focus-timer','assets/integration/focus-timer.css'],['site-parity-v11','assets/site-parity-v11.css?v=1.1.0'],['site-parity-v11-fixes','assets/site-parity-v11-fixes.css?v=1.1.0'],['site-shell-boot','assets/site-shell-boot.css?v=1.1.0']];
  for(const[key,href]of styles){if(document.querySelector(`link[data-${key}]`))continue;const link=document.createElement('link');link.rel='stylesheet';link.href=BASE+href;link.dataset[key.replace(/-([a-z])/g,(_,letter)=>letter.toUpperCase())]='1';document.head.appendChild(link)}
 }
 function renderNav(active){return navItems.map(item=>`<a href="${item.href}" class="${item.id===active?'active':''}" data-site-nav="${item.id}"><span class="nav-icon">${item.icon}</span><span><b>${esc(item.label)}</b><small>${esc(item.hint)}</small></span></a>`).join('')}
@@ -72,7 +73,7 @@ function bind(){
  document.addEventListener('keydown',event=>{if((event.metaKey||event.ctrlKey)&&event.key.toLowerCase()==='k'){event.preventDefault();openGlobalSearch()}});
 }
 function init(){
- try{ensureStyle();document.documentElement.dataset.siteParity=SOURCE_SITE_VERSION;if(!document.documentElement.dataset.theme){try{document.documentElement.dataset.theme=localStorage.getItem('tdas-theme')||'light'}catch{document.documentElement.dataset.theme='light'}}const active=resolveSection(),label=pageLabel();rebuildSidebar(active);rebuildTopbar(label);rebuildMobileNav(active);updateThemeMeta();bind();document.documentElement.dataset.siteShell='ready'}catch(error){document.documentElement.dataset.siteShell='fallback';console.error('Shell TDAS indisponível',error)}
+ try{ensureStyle();mountFocusTimer();document.documentElement.dataset.siteParity=SOURCE_SITE_VERSION;if(!document.documentElement.dataset.theme){try{document.documentElement.dataset.theme=localStorage.getItem('tdas-theme')||'light'}catch{document.documentElement.dataset.theme='light'}}const active=resolveSection(),label=pageLabel();rebuildSidebar(active);rebuildTopbar(label);rebuildMobileNav(active);updateThemeMeta();bind();document.documentElement.dataset.siteShell='ready'}catch(error){document.documentElement.dataset.siteShell='fallback';console.error('Shell TDAS indisponível',error)}
 }
 
 export function refreshSiteParity(){init()}
