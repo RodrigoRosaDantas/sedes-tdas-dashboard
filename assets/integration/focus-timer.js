@@ -274,7 +274,8 @@ export function mountFocusTimer(){
   render();
  });
  window.addEventListener('pageshow',render);
- document.addEventListener('visibilitychange',render);
+ document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')pause();else render()});
+ window.addEventListener('pagehide',()=>{if(document.visibilityState!=='visible')pause()});
  window.setInterval(render,1000);
  render();
 }
