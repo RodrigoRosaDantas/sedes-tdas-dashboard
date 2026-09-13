@@ -159,7 +159,7 @@ jobs:
           grep -q "${SEARCH_CRASE} de ${TOTAL} itens" /tmp/edital-search.html
           grep -q 'Abrir análise no Notion' /tmp/edital.html
           grep -q 'Abrir banco' /tmp/edital.html
-          grep -q 'Check do Edital</b><small>Cobertura' /tmp/edital.html
+          grep -q 'Arquivo</b><small>Ciclo completo' /tmp/edital.html
           grep -q '>Arquivo</span>' /tmp/edital-mobile.html
           grep -q 'Edital</strong>' /tmp/edital-mobile.html
           ! grep -Eqi 'Carregando o edital|Não foi possível carregar esta página|Snapshot parcial' /tmp/edital.html /tmp/edital-mobile.html
@@ -174,7 +174,7 @@ jobs:
           for file in /tmp/edital.html /tmp/edital-mobile.html /tmp/edital-unmeasured.html /tmp/edital-attention.html /tmp/edital-consolidated.html /tmp/edital-review.html /tmp/edital-critical.html /tmp/edital-portugues.html /tmp/edital-block.html /tmp/edital-search.html; do
             [[ -f "$file" ]] || continue
             echo "=== $file ==="
-            grep -Eo '[0-9]+ de [0-9]+ itens|Não foi possível carregar esta página|Snapshot parcial|Seu edital, sem bagunça|Próxima ação|Lacunas do Edital|Tópicos ainda sem bateria oficial|Praticar no Banco|Aferidos|Sem bateria|Check do Edital</b>|Edital</strong>|>Mais</span>' "$file" | head -50 || true
+            grep -Eo '[0-9]+ de [0-9]+ itens|Não foi possível carregar esta página|Snapshot parcial|Seu edital, sem bagunça|Próxima ação|Lacunas do Edital|Tópicos ainda sem bateria oficial|Praticar no Banco|Aferidos|Sem bateria|Arquivo</b>|Edital</strong>|>Mais</span>' "$file" | head -50 || true
           done
           for file in /tmp/edital*.stderr; do
             [[ -f "$file" ]] || continue
