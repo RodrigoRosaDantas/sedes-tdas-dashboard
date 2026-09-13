@@ -1,0 +1,51 @@
+
+.tdas-focus-timer{position:fixed;right:22px;bottom:22px;z-index:260;color:var(--text);font-size:13px}
+.tdas-focus-timer button{font:inherit}
+.tdas-focus-trigger{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 14px;border:1px solid var(--line);border-radius:14px;background:var(--surface);color:var(--text);box-shadow:var(--shadow);cursor:pointer;font-weight:800;transition:transform .2s ease,border-color .2s ease,background .2s ease}
+.tdas-focus-trigger:hover{transform:translateY(-2px);border-color:color-mix(in srgb,var(--accent) 58%,var(--line))}
+.tdas-focus-trigger:focus-visible,.tdas-focus-close:focus-visible,.tdas-focus-action:focus-visible,.tdas-focus-duration:focus-visible,.tdas-focus-reset:focus-visible{outline:3px solid color-mix(in srgb,var(--accent) 70%,white);outline-offset:3px}
+.tdas-focus-trigger[data-state="running"]{border-color:color-mix(in srgb,var(--green) 65%,var(--line));background:color-mix(in srgb,var(--green) 9%,var(--surface))}
+.tdas-focus-trigger[data-state="paused"]{border-color:color-mix(in srgb,var(--yellow) 65%,var(--line))}
+.tdas-focus-trigger-icon{display:grid;place-items:center;width:22px;height:22px;color:var(--green);font-size:19px;line-height:1}
+.tdas-focus-trigger[data-state="paused"] .tdas-focus-trigger-icon{color:var(--yellow)}
+.tdas-focus-trigger[data-state="finished"] .tdas-focus-trigger-icon{color:var(--accent2)}
+.tdas-focus-panel{position:absolute;right:0;bottom:calc(100% + 10px);width:min(360px,calc(100vw - 24px));padding:18px;border:1px solid var(--line);border-radius:20px;background:var(--surface);box-shadow:var(--shadow)}
+.tdas-focus-panel[hidden]{display:none!important}
+.tdas-focus-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.tdas-focus-kicker{display:block;margin-bottom:4px;color:var(--green);font-size:9px;font-weight:900;letter-spacing:.14em}
+.tdas-focus-head h2{margin:0;font-size:19px;letter-spacing:-.03em}
+.tdas-focus-close{display:grid;place-items:center;width:34px;height:34px;padding:0;border:1px solid var(--line);border-radius:10px;background:var(--surface2);color:var(--text);cursor:pointer;font-size:21px;line-height:1}
+.tdas-focus-status{margin:14px 0 4px;color:var(--muted);font-size:11px}
+.tdas-focus-display{display:grid;place-items:center;padding:8px 0 12px}
+.tdas-focus-display strong{font-size:48px;line-height:1;letter-spacing:-.07em;font-variant-numeric:tabular-nums}
+.tdas-focus-display span{margin-top:7px;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.1em}
+.tdas-focus-progress{height:8px;overflow:hidden;border-radius:999px;background:var(--surface3)}
+.tdas-focus-progress span{display:block;width:0;height:100%;border-radius:inherit;background:linear-gradient(90deg,var(--accent),var(--green));transition:width .25s linear}
+.tdas-focus-meta{display:flex;justify-content:space-between;gap:10px;margin-top:7px;color:var(--muted);font-size:10px;font-variant-numeric:tabular-nums}
+.tdas-focus-durations{margin:16px 0 0;padding:0;border:0}
+.tdas-focus-durations legend{margin-bottom:7px;color:var(--muted);font-size:10px;font-weight:800}
+.tdas-focus-duration-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+.tdas-focus-duration{min-height:38px;border:1px solid var(--line);border-radius:10px;background:var(--surface2);color:var(--text);cursor:pointer;font-size:11px;font-weight:800}
+.tdas-focus-duration:hover:not(:disabled){border-color:var(--accent)}
+.tdas-focus-duration.is-active{border-color:color-mix(in srgb,var(--accent) 60%,var(--line));background:color-mix(in srgb,var(--accent) 16%,var(--surface2));color:var(--text)}
+.tdas-focus-duration:disabled{cursor:not-allowed;opacity:.55}
+.tdas-focus-controls{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}
+.tdas-focus-action{min-height:40px;padding:0 10px;border:1px solid var(--line);border-radius:11px;background:var(--surface2);color:var(--text);cursor:pointer;font-size:11px;font-weight:800}
+.tdas-focus-action.primary{border-color:transparent;background:linear-gradient(135deg,var(--accent),#6575ed);color:#fff}
+.tdas-focus-action:hover:not(:disabled){transform:translateY(-1px)}
+.tdas-focus-action:disabled{cursor:not-allowed;opacity:.45}
+.tdas-focus-reset{width:100%;margin-top:8px;padding:7px;border:0;background:transparent;color:var(--muted);cursor:pointer;font-size:10px;text-decoration:underline;text-underline-offset:3px}
+.tdas-focus-reset:hover{color:var(--text)}
+.tdas-focus-today{margin:15px 0 0;padding-top:12px;border-top:1px solid var(--line);color:var(--text);font-size:11px;font-weight:800}
+.tdas-focus-note{margin:5px 0 0;color:var(--muted);font-size:10px;line-height:1.45}
+.tdas-drawer-open .tdas-focus-timer{display:none}
+@media(max-width:780px){
+ .tdas-focus-timer{right:12px;bottom:calc(78px + env(safe-area-inset-bottom))}
+ .tdas-focus-trigger{min-height:42px;padding:0 12px;border-radius:13px}
+ .tdas-focus-panel{width:min(360px,calc(100vw - 24px));padding:16px}
+ .tdas-focus-display strong{font-size:43px}
+}
+@media(prefers-reduced-motion:reduce){
+ .tdas-focus-trigger,.tdas-focus-progress span{transition:none}
+ .tdas-focus-trigger:hover,.tdas-focus-action:hover:not(:disabled){transform:none}
+}
