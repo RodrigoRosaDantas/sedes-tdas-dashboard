@@ -117,7 +117,7 @@ export function mountFocusTimer(){
   document.addEventListener('DOMContentLoaded',()=>mountFocusTimer(),{once:true});
   return;
  }
- if(document.querySelector('[data-focus-timer]'))return;
+ if(document.querySelector('.tdas-focus-timer'))return;
 
  const root=document.createElement('div');
  root.className='tdas-focus-timer';
