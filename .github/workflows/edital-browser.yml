@@ -161,7 +161,7 @@ jobs:
           grep -q 'Abrir banco' /tmp/edital.html
           grep -q 'Check do Edital</b><small>Cobertura' /tmp/edital.html
           grep -q '>Arquivo</span>' /tmp/edital-mobile.html
-          grep -q 'Edital</b>' /tmp/edital-mobile.html
+          grep -q 'Edital</strong>' /tmp/edital-mobile.html
           ! grep -Eqi 'Carregando o edital|Não foi possível carregar esta página|Snapshot parcial' /tmp/edital.html /tmp/edital-mobile.html
           ! grep -Eqi 'Uncaught (TypeError|ReferenceError|SyntaxError)' /tmp/edital*.stderr
           printf '{"editalBrowser":"ok","total":%s,"critical":%s,"attention":%s,"unmeasured":%s,"consolidated":%s,"review":%s,"portuguese":%s,"block":%s,"searchCrase":%s,"officialGapQueue":true,"privateHistory":false,"simplifiedUx":true,"mobile":true,"filters":true,"views":true}\n' "$TOTAL" "$CRITICAL" "$ATTENTION" "$UNMEASURED" "$CONSOLIDATED" "$REVIEW" "$PORTUGUESE" "$BLOCK" "$SEARCH_CRASE"
