@@ -160,7 +160,7 @@ jobs:
           grep -q 'Abrir análise no Notion' /tmp/edital.html
           grep -q 'Abrir banco' /tmp/edital.html
           grep -q 'Check do Edital</b><small>Cobertura' /tmp/edital.html
-          grep -q '>Mais</span>' /tmp/edital-mobile.html
+          grep -q '>Arquivo</span>' /tmp/edital-mobile.html
           grep -q 'Edital</b>' /tmp/edital-mobile.html
           ! grep -Eqi 'Carregando o edital|Não foi possível carregar esta página|Snapshot parcial' /tmp/edital.html /tmp/edital-mobile.html
           ! grep -Eqi 'Uncaught (TypeError|ReferenceError|SyntaxError)' /tmp/edital*.stderr
