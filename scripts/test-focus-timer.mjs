@@ -17,6 +17,8 @@ assert.match(timer,/export function mountFocusTimer\(\)/u);
 assert.match(timer,/if\(document\.querySelector\('\.tdas-focus-timer'\)\)return;/u);
 assert.match(timer,/localStorage\.getItem\(STORAGE_KEY/u);
 assert.match(timer,/status==='running'/u);
+assert.match(timer,/visibilityState==='hidden'.*pause\(\)/u);
+assert.match(timer,/window\.addEventListener\('pagehide'/u);
 assert.match(timer,/data-focus-start/u);
 assert.match(timer,/data-focus-pause/u);
 assert.match(timer,/data-focus-finish/u);
