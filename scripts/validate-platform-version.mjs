@@ -21,8 +21,8 @@ for(const field of['platformVersion','dataVersion','catalogVersion','serviceWork
 const major=Number(String(manifest.platformVersion).split('.')[0]);assert.ok(Number.isFinite(major)&&major>=28);assert.equal(shellVersion,manifest.platformVersion);
 for(const asset of['assets/styles.css','assets/v20.css'])assert.ok(index.includes(`${asset}?v=${manifest.platformVersion}`),`${asset} não usa cache-buster global.`);
 assert.match(index,/data-post-exam-home="3"/u,'Home deve declarar contrato v3.');
-assert.match(index,/assets\/integration\/post-exam-home\.js\?v=3\.0\.0/u,'Home deve carregar renderer v3.');
-assert.match(index,/assets\/integration\/site-parity-v11\.js\?v=1\.2\.0/u,'Home deve carregar shell atual.');
+assert.match(index,/assets\/integration\/post-exam-home\.js\?v=3\.1\.0/u,'Home deve carregar renderer v3.');
+assert.match(index,/assets\/integration\/site-parity-v11\.js\?v=1\.2\.1/u,'Home deve carregar shell atual.');
 assert.doesNotMatch(index,/data-post-exam-home-style|\.post26-home/u,'CSS v2 não pode permanecer embutido.');
 assert.match(postExam,/Pós-prova, sem ruído\./u,'Renderer v3 deve manter a mensagem canônica.');
 assert.match(postExam,/dataset\.postExamHome='3'/u);
