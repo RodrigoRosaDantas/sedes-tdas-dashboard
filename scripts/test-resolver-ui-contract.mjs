@@ -21,7 +21,7 @@ const contrast = (foreground, background) => {
 
 assert.match(resolverHtml, /site-parity-v11-fixes\.css\?v=1\.1\.2/, 'Resolver deve carregar a correção visual nova sem reutilizar o CSS do Safari.');
 assert.match(mobileUx, /tdas-pro-modules\.js\?v=1\.1\.1/, 'Camada de módulos deve escapar do cache da implementação que duplicava cartões.');
-assert.match(platform.serviceWorkerVersion, /cachefix7-postexam-pro12-key-published-v1$/, 'PWA deve invalidar tanto o cache visual anterior quanto o shell pré-prova já instalado.');
+assert.match(platform.serviceWorkerVersion, /postexam-key-published-v1-pro12$/, 'PWA deve invalidar tanto o cache visual anterior quanto o shell pré-prova já instalado.');
 
 for (const marker of ['tdas-module-score', 'tdas-module-trail', 'tdas-module-command']) {
   assert.match(fixes, new RegExp(`data-question-mode="daily"[^}]*${marker}`, 's'), `Hero diário deve aplicar superfície escura em ${marker}.`);

@@ -1,4 +1,4 @@
-const VERSION="tdas-28.0.0-20260906-pe112-tdas-pe112-empty-cachefix7-postexam-pro12-key-published-v1";
+const VERSION="tdas-28.0.0-20260906-pe112-tdas-pe112-empty-postexam-key-published-v1-pro12";
 const BASE='/sedes-tdas-dashboard/';
 const USER_CACHE_PREFIXES=['tdas-redactions-user-'];
 const CORE_ROUTES=["","hoje/","evolucao/","edital/","mentor/","riscos/","agenda/","redacoes/","auditoria/","mais/","configuracoes/","dados-locais/","questoes-erros/","pe/","materias/","estudar/","resolver/","revisar/","caderno-erros/","desempenho/","fila-ia/","offline.html","manifest.webmanifest","redacoes/detalhe/","notion/"];
