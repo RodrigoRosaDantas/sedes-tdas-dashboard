@@ -21,7 +21,7 @@ function patchSidebar(){
  const context=sidebar.querySelector('.sidebar-context');
  if(context)setText(context.querySelector('span'),'Ciclo encerrado');
  const card=sidebar.querySelector('.exam-card');
- if(card&&card.dataset.postExam!=='1'){
+ if(card&&card.querySelector('strong')?.textContent!=='06 SET 2026'){
   card.dataset.postExam='1';
   card.innerHTML='<div class="exam-top"><span>Prova realizada</span><b>Concluído</b></div><strong>06 SET 2026</strong><div class="exam-progress"><i style="width:100%"></i></div><small>Gabarito preliminar publicado · resultado previsto em 13/10</small>';
  }
