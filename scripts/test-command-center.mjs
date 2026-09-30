@@ -17,7 +17,7 @@ assert.ok(postExam.includes('Gabarito preliminar'));
 assert.ok(postExam.includes('ANDAMENTO DO CONCURSO'));
 assert.ok(postExam.includes('RESUMO FINAL'));
 assert.ok(postExam.includes('Abrir arquivo do ciclo'));
-assert.ok(postExam.includes('Sem data oficial cadastrada.'));
+assert.ok(postExam.includes('<aside class="postv3-next">'),'Home deve exibir o próximo marco oficial.');
 assert.ok(!postExam.includes('FOTOGRAFIA FINAL')&&!postExam.includes('ARQUIVO DO CICLO'),'Blocos extensos da Home v2 não podem reaparecer.');
 assert.ok(!postExam.includes('Central de execução'));
 assert.ok(!postExam.includes('readSessionDraft'));
