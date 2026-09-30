@@ -1,4 +1,4 @@
-import './post-exam-shell.js?v=1.0.1';
+import './post-exam-shell.js?v=1.0.2';
 
 const BASE='/sedes-tdas-dashboard/';
 const SOURCE_SITE_VERSION='v11';

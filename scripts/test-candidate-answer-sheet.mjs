@@ -29,11 +29,15 @@ if(q8?.notebook!=='B'||q8?.cardAnswer!=='B'||q8?.cardStatus!=='single')fail('Q8 
 if(q30?.notebook!=='D'||q30?.cardStatus!=='multiple'||q30?.cardAnswer!==null)fail('Q30 deve preservar D no caderno e dupla marcação no cartão, sem resposta única.');
 
 const preliminary=sheet?.official?.preliminary||{};
-if(preliminary.status!=='not_published'||(preliminary.answers||[]).length!==0)fail('não pode haver gabarito preliminar inventado.');
-if(sheet?.comparison?.status!=='pending_preliminary_key')fail('comparação deve permanecer pendente até publicação oficial.');
+if(preliminary.status!=='published'||(preliminary.answers||[]).length!==0)fail('gabarito oficial publicado deve permanecer sem respostas importadas até mapear o caderno.');
+if(sheet?.meta?.status!=='preliminary_key_published')fail('metadado do candidato deve refletir a publicação oficial.');
+if(preliminary.publishedAt!=='2026-09-09'||preliminary.sourceUrl!== 'https://anexos-r2.selecao.net.br/uploads/861/concursos/3056/anexos/9ecbb8fd-f3b7-4bc7-a1a8-3b64b5f38752.pdf')fail('publicação precisa apontar para o gabarito oficial da Quadrix.');
+if(sheet?.comparison?.status!=='pending_booklet_mapping')fail('comparação deve aguardar o tipo de caderno, sem inferir a versão.');
 
 const preliminarySchedule=schedule?.milestones?.preliminaryKey||{};
-if(preliminarySchedule.date!=='2026-09-09'||preliminarySchedule.status!=='scheduled')fail('data oficial do gabarito preliminar deve ser 09/09/2026.');
+if(preliminarySchedule.date!=='2026-09-09'||preliminarySchedule.status!=='published'||preliminarySchedule.url!== 'https://anexos-r2.selecao.net.br/uploads/861/concursos/3056/anexos/9ecbb8fd-f3b7-4bc7-a1a8-3b64b5f38752.pdf')fail('gabarito preliminar deve estar publicado em 09/09/2026 com fonte oficial.');
+const nextOfficial=schedule?.milestones?.preliminaryObjectiveResult||{};
+if(nextOfficial.date!=='2026-10-13'||nextOfficial.status!=='scheduled')fail('resultado preliminar da objetiva deve estar previsto para 13/10/2026.');
 if(schedule?.source?.organization!=='Instituto Quadrix'||schedule?.source?.url!=='https://quadrix.org.br/informacoes/3056/')fail('cronograma deve apontar para a fonte oficial da Quadrix.');
 
 for(const token of [
@@ -47,6 +51,6 @@ for(const token of [
 
 if(!home.includes("preliminary.status==='published'")||!home.includes('officialByQuestion'))fail('Home não está preparada para o cruzamento futuro com o preliminar.');
 for(const token of ['data/post-exam-official-schedule.json','Divulgação prevista:','preliminaryDate'])if(!scheduleRuntime.includes(token))fail(`Runtime do cronograma não contém ${token}.`);
-if(!index.includes('post-exam-official-schedule.js?v=1.0.0'))fail('Home não carrega o cronograma oficial.');
+if(!index.includes('post-exam-official-schedule.js?v=1.1.0'))fail('Home não carrega a versão atual do cronograma oficial.');
 
-console.log('Gabarito real validado: 60 questões, 59 simples, Q8=B, Q30 dupla; preliminar ainda não publicado e divulgação oficial prevista para 09/09/2026.');
+console.log('Gabarito do candidato validado: respostas preservadas; gabarito preliminar publicado sem respostas importadas; comparação aguarda o tipo do caderno.');

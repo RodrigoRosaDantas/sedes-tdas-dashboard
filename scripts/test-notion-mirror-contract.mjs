@@ -47,7 +47,7 @@ assert.ok(!sw.includes('data/notion-mirror/index.json'),'Índice do Notion não 
 assert.ok(html.includes('assets/notion-mirror.js?v=1.2.0'));
 assert.ok(
   homeHtml.includes('home-dashboard-pro-2026.js?v=30.0.1')
-  || (homeHtml.includes('data-post-exam-home="3"') && homeHtml.includes('assets/integration/post-exam-home.js?v=3.0.0')),
+  || (homeHtml.includes('data-post-exam-home="3"') && homeHtml.includes('assets/integration/post-exam-home.js?v=3.1.0')),
   'Home operacional precisa usar a experiência consolidada.'
 );
 assert.ok(!homeHtml.includes('home-notion-mirror.js'),'Home consolidada não deve reempilhar o antigo bloco visual do mapa do Notion.');

@@ -15,7 +15,7 @@ const [homeHtml,editalHtml,resolverHtml,mentorHtml,performanceHtml,diagnostic,ru
 for(const html of[editalHtml,resolverHtml]){assert.match(html,/edital-diagnostic\.css\?v=1\.0\.0/);assert.match(html,/edital-diagnostic\.js\?v=1\.0\.0/)}
 for(const html of[editalHtml,resolverHtml,mentorHtml,performanceHtml])assert.match(html,/edital-evidence-runtime\.js\?v=1\.1\.0/);
 assert.match(homeHtml,/data-post-exam-home="3"/,'Home pós-prova deve usar contrato v3 próprio desde o primeiro paint.');
-assert.match(homeHtml,/post-exam-home\.js\?v=3\.0\.0/,'Home pós-prova deve carregar seu renderer v3 nativo.');
+assert.match(homeHtml,/post-exam-home\.js\?v=3\.1\.0/,'Home pós-prova deve carregar seu renderer v3 nativo.');
 assert.doesNotMatch(homeHtml,/edital-evidence-runtime\.js/,'Home pós-prova não deve carregar runtime diagnóstico do Edital sem uso funcional.');
 for(const marker of['Lacunas do Edital','Praticar no Banco','exactTopicSelection','TDAS202:'])assert.ok(diagnostic.includes(marker),`Controlador diagnóstico perdeu ${marker}.`);for(const marker of['Evidência do Edital','Lacunas do snapshot oficial','syncDiagnosticEvidence','localExactCurrent','Lacunas oficiais','risco oficial','prioridade oficial'])assert.ok(runtime.includes(marker),`Runtime oficial perdeu ${marker}.`);
 assert.ok(!/queueMutableRecord|syncPrivateHistory|getPrivateSession|firebase-history/i.test(runtime),'Runtime do Edital não pode depender de histórico pessoal/nuvem.');assert.ok(!diagnostic.includes('setItem(DIAGNOSTIC_STORAGE_KEY'),'Controlador não pode persistir aproveitamento privado.');assert.ok(!diagnostic.includes('api.notion.com')&&!runtime.includes('api.notion.com'));
