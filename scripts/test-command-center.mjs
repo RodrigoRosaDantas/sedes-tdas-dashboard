@@ -3,7 +3,7 @@ import fs from 'node:fs';
 const read=file=>fs.readFileSync(file,'utf8');
 const index=read('index.html'),postExam=read('assets/integration/post-exam-home.js'),priorities=read('assets/integration/daily-priorities.js'),reviewEngine=read('assets/integration/review-engine.js'),reviews=read('assets/integration/module-reviews.js'),redactions=read('assets/redactions.js'),redactionsPage=read('redacoes/index.html'),player=read('assets/integration/module-player.js'),audit=read('auditoria/index.html'),unlinked=read('assets/integration/audit-unlinked-errors.js'),auditData=JSON.parse(read('data/audit.json')),platform=JSON.parse(read('data/platform-version.json')),packageData=JSON.parse(read('package.json'));
 
-assert.ok(index.includes('post-exam-home.js?v=3.0.0'),'Home deve usar renderer pós-prova v3.');
+assert.ok(index.includes('post-exam-home.js?v=3.1.0'),'Home deve usar renderer pós-prova v3.');
 assert.ok(index.includes('data-post-exam-home="3"'),'Home deve declarar contrato pós-prova v3 desde o primeiro paint.');
 assert.ok(!index.includes('data-post-exam-home-style')&&!index.includes('.post26-home'),'CSS da Home v2 não pode permanecer embutido no HTML.');
 assert.ok(!index.includes('home-dashboard-pro-2026.js')&&!index.includes('dashboard-pro-2026.css'),'Central diária e CSS de reta final não podem ser dependências ativas da Home.');
