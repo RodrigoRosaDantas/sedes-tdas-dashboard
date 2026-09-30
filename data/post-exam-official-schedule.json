@@ -4,7 +4,7 @@
   "source": {
     "organization": "Instituto Quadrix",
     "url": "https://quadrix.org.br/informacoes/3056/",
-    "verifiedAt": "2026-09-07"
+    "verifiedAt": "2026-09-30"
   },
   "milestones": {
     "exam": {
@@ -14,8 +14,10 @@
     },
     "preliminaryKey": {
       "date": "2026-09-09",
-      "status": "scheduled",
-      "label": "Gabarito preliminar da prova objetiva"
+      "status": "published",
+      "label": "Gabarito preliminar da prova objetiva",
+      "publishedAt": "2026-09-09",
+      "url": "https://anexos-r2.selecao.net.br/uploads/861/concursos/3056/anexos/9ecbb8fd-f3b7-4bc7-a1a8-3b64b5f38752.pdf"
     },
     "preliminaryObjectiveResult": {
       "date": "2026-10-13",
