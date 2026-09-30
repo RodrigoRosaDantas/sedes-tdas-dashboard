@@ -22,7 +22,7 @@ async function selfTest(){
  const index=local['index.html'].toString('utf8'),postExam=local['assets/integration/post-exam-home.js'].toString('utf8'),shell=local['assets/integration/site-parity-v11.js'].toString('utf8'),mentor=local['mentor/index.html'].toString('utf8'),sw=local['sw.js'].toString('utf8');
  assert.match(index,/data-post-exam-home="3"/,'Home deve declarar o contrato pós-prova v3.');
  assert.match(index,/assets\/integration\/post-exam-home\.js\?v=3\.1\.0/,'Home deve referenciar o renderer pós-prova v3.');
- assert.match(index,/assets\/integration\/site-parity-v11\.js\?v=1\.2\.1/,'Home deve referenciar o shell atual.');
+ assert.match(index,/assets\/integration\/site-parity-v11\.js\?v=1\.2\.2/,'Home deve referenciar o shell atual.');
  assert.doesNotMatch(index,/data-post-exam-home-style|\.post26-home|(?:src|href)="[^"]*(?:home-dashboard-pro-2026\.js|dashboard-pro-2026\.css|home-mobile-hotfix\.css|tdas-pro-dashboard\.css|home-v27\.js|home-v28\.js)/,'Home não pode reativar v2 nem dashboard de reta final.');
  assert.match(postExam,/Pós-prova, sem ruído\./,'Renderer v3 deve manter a mensagem canônica.');
  assert.match(postExam,/Gabarito preliminar/,'Renderer deve manter o próximo marco oficial sem inventar data.');
