@@ -7,7 +7,7 @@
     "examDate": "2026-09-06",
     "recordedAt": "2026-09-07T09:58:00-03:00",
     "source": "Anotações no caderno de provas confirmadas pelo candidato",
-    "status": "awaiting_preliminary_key"
+    "status": "preliminary_key_published"
   },
   "candidate": {
     "totalQuestions": 60,
@@ -79,9 +79,9 @@
   },
   "official": {
     "preliminary": {
-      "status": "not_published",
-      "publishedAt": null,
-      "sourceUrl": null,
+      "status": "published",
+      "publishedAt": "2026-09-09",
+      "sourceUrl": "https://anexos-r2.selecao.net.br/uploads/861/concursos/3056/anexos/9ecbb8fd-f3b7-4bc7-a1a8-3b64b5f38752.pdf",
       "answers": []
     },
     "final": {
@@ -92,7 +92,7 @@
     }
   },
   "comparison": {
-    "status": "pending_preliminary_key",
+    "status": "pending_booklet_mapping",
     "correct": null,
     "incorrect": null,
     "invalidCandidateMarks": 1,
